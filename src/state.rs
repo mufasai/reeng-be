@@ -1,0 +1,40 @@
+use surrealdb::engine::remote::http::{Client, Http};
+use surrealdb::opt::auth::Root;
+use surrealdb::Surreal;
+
+pub type DB = Surreal<Client>;
+
+pub struct AppState {
+    pub db: DB,
+}
+
+impl AppState {
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        // Load environment variables
+        let surreal_url = std::env::var("SURREAL_URL")?;
+        let surreal_namespace = std::env::var("SURREAL_NAMESPACE")?;
+        let surreal_database = std::env::var("SURREAL_DATABASE")?;
+        let surreal_username = std::env::var("SURREAL_USERNAME")?;
+        let surreal_password = std::env::var("SURREAL_PASSWORD")?;
+
+        // Connect to SurrealDB
+        println!("🔌 Connecting to SurrealDB at {}...", surreal_url);
+        let db: Surreal<Client> = Surreal::new::<Http>(&surreal_url).await?;
+
+        // Sign in
+        db.signin(Root {
+            username: &surreal_username,
+            password: &surreal_password,
+        })
+        .await?;
+
+        // Select namespace and database
+        db.use_ns(&surreal_namespace)
+            .use_db(&surreal_database)
+            .await?;
+
+        println!("✅ Connected to SurrealDB: {}/{}", surreal_namespace, surreal_database);
+
+        Ok(Self { db })
+    }
+}
