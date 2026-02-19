@@ -1,4 +1,4 @@
-# Simple API - SmartElco Backend
+# SmartElco Backend
 
 Backend API untuk SmartElco Reengineering Tracking Tool yang telah dirapikan dengan struktur modular.
 
