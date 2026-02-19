@@ -50,7 +50,7 @@ Berisi semua data structures:
 
 ```bash
 # Dari root tracking-tool folder
-cd simple-api
+cd reengineering-tool-be
 cargo run
 ```
 
