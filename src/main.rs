@@ -11,7 +11,7 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project};
+use handlers::{auth, project, site, people, costs, materials, regions, files, termins};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -43,9 +43,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build router
     let app = Router::new()
         .route("/api/health", get(health_check))
+        // Auth routes
         .route("/api/auth/login", post(auth::login))
+        // Project routes
         .route("/api/projects", post(project::create_project))
         .route("/api/projects", get(project::list_projects))
+        // Site routes
+        .route("/api/sites", post(site::create_site))
+        .route("/api/sites", get(site::list_sites))
+        .route("/api/sites/project/:project_id", get(site::get_sites_by_project))
+        // People routes
+        .route("/api/people", post(people::create_people))
+        .route("/api/people", get(people::list_people))
+        // Cost routes
+        .route("/api/costs", post(costs::create_cost))
+        .route("/api/costs", get(costs::list_costs))
+        .route("/api/costs/project/:project_id", get(costs::get_costs_by_project))
+        .route("/api/costs/site/:site_id", get(costs::get_costs_by_site))
+        .route("/api/costs/:cost_id/approve", post(costs::approve_cost))
+        // Material routes
+        .route("/api/materials", post(materials::create_material))
+        .route("/api/materials", get(materials::list_materials))
+        .route("/api/materials/project/:project_id", get(materials::get_materials_by_project))
+        .route("/api/materials/site/:site_id", get(materials::get_materials_by_site))
+        // Area & Region routes
+        .route("/api/areas", post(regions::create_area))
+        .route("/api/areas", get(regions::list_areas))
+        .route("/api/regions", post(regions::create_region))
+        .route("/api/regions", get(regions::list_regions))
+        .route("/api/regions/area/:area_id", get(regions::get_regions_by_area))
+        // File routes
+        .route("/api/project-files", post(files::create_project_file))
+        .route("/api/projects/:project_id/files", get(files::list_project_files))
+        .route("/api/project-files/:file_id/delete", axum::routing::delete(files::delete_project_file))
+        .route("/api/site-files", post(files::create_site_file))
+        .route("/api/sites/:site_id/files", get(files::list_site_files))
+        .route("/api/site-files/:file_id/delete", axum::routing::delete(files::delete_site_file))
+        // Termin routes
+        .route("/api/termins", post(termins::create_termin))
+        .route("/api/termins", get(termins::list_termins))
+        .route("/api/termins/project/:project_id", get(termins::get_termins_by_project))
+        .route("/api/termins/site/:site_id", get(termins::get_termins_by_site))
+        .route("/api/termin-files", post(termins::create_termin_file))
+        .route("/api/termins/:termin_id/files", get(termins::list_termin_files))
+        .route("/api/termin-files/:file_id/delete", axum::routing::delete(termins::delete_termin_file))
         .with_state(state)
         .layer(cors);
 
@@ -54,9 +95,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Server starting on http://{}", addr);
     println!("📝 Available endpoints:");
     println!("  GET    /api/health");
+    println!("\n🔐 Auth:");
     println!("  POST   /api/auth/login");
+    println!("\n📊 Projects:");
     println!("  POST   /api/projects");
     println!("  GET    /api/projects");
+    println!("\n🏗️  Sites:");
+    println!("  POST   /api/sites");
+    println!("  GET    /api/sites");
+    println!("  GET    /api/sites/project/:project_id");
+    println!("\n👥 People:");
+    println!("  POST   /api/people");
+    println!("  GET    /api/people");
+    println!("\n💰 Costs:");
+    println!("  POST   /api/costs");
+    println!("  GET    /api/costs");
+    println!("  GET    /api/costs/project/:project_id");
+    println!("  GET    /api/costs/site/:site_id");
+    println!("  POST   /api/costs/:cost_id/approve");
+    println!("\n📦 Materials:");
+    println!("  POST   /api/materials");
+    println!("  GET    /api/materials");
+    println!("  GET    /api/materials/project/:project_id");
+    println!("  GET    /api/materials/site/:site_id");
+    println!("\n🌍 Areas & Regions:");
+    println!("  POST   /api/areas");
+    println!("  GET    /api/areas");
+    println!("  POST   /api/regions");
+    println!("  GET    /api/regions");
+    println!("  GET    /api/regions/area/:area_id");
+    println!("\n📁 Files:");
+    println!("  POST   /api/project-files");
+    println!("  GET    /api/projects/:project_id/files");
+    println!("  DELETE /api/project-files/:file_id/delete");
+    println!("  POST   /api/site-files");
+    println!("  GET    /api/sites/:site_id/files");
+    println!("  DELETE /api/site-files/:file_id/delete");
+    println!("\n💵 Termins:");
+    println!("  POST   /api/termins");
+    println!("  GET    /api/termins");
+    println!("  GET    /api/termins/project/:project_id");
+    println!("  GET    /api/termins/site/:site_id");
+    println!("  POST   /api/termin-files");
+    println!("  GET    /api/termins/:termin_id/files");
+    println!("  DELETE /api/termin-files/:file_id/delete");
     println!("\n✅ Login credentials for testing:");
     println!("   Email: admin@smartelco.com");
     println!("   Password: admin123");

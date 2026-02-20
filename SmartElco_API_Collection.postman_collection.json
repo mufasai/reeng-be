@@ -1,0 +1,941 @@
+{
+	"info": {
+		"_postman_id": "smartelco-api-2026",
+		"name": "SmartElco API Collection",
+		"description": "Complete API collection for SmartElco Reengineering Tool Backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.environment.set(\"auth_token\", jsonData.token);",
+									"        console.log(\"Token saved to environment\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@smartelco.com\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Create Project",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Network Expansion Jakarta\",\n  \"lokasi\": \"Jakarta\",\n  \"value\": 5000000000,\n  \"cost\": 0,\n  \"tipe\": \"COMBAT\",\n  \"keterangan\": \"Ekspansi jaringan fiber optik Jakarta 2026\",\n  \"tgi_start\": \"2026-03-01\",\n  \"tgi_end\": \"2026-12-31\",\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Project - L2H Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"L2H Project Surabaya\",\n  \"lokasi\": \"Surabaya\",\n  \"value\": 3000000000,\n  \"cost\": 0,\n  \"tipe\": \"L2H\",\n  \"keterangan\": \"Light to Home project untuk area Surabaya\",\n  \"tgi_start\": \"2026-04-01\",\n  \"tgi_end\": \"2026-10-31\",\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Project - BLACK SITE",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Black Site Bandung\",\n  \"lokasi\": \"Bandung\",\n  \"value\": 2000000000,\n  \"cost\": 0,\n  \"tipe\": \"BLACK SITE\",\n  \"keterangan\": \"Black site maintenance project\",\n  \"tgi_start\": \"2026-05-01\",\n  \"tgi_end\": \"2026-08-31\",\n  \"status\": \"active\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sites",
+			"item": [
+				{
+					"name": "Create Site",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sites",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Sites",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sites",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sites by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sites/project/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"project",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "People",
+			"item": [
+				{
+					"name": "Create Person",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Budi Santoso\",\n  \"tanggal_lahir\": \"1990-05-15\",\n  \"tempat_lahir\": \"Jakarta\",\n  \"agama\": \"Islam\",\n  \"jenis_kelamin\": \"Laki-laki\",\n  \"no_ktp\": \"3174012345678901\",\n  \"no_hp\": \"081234567890\",\n  \"email\": \"budi@smartelco.com\",\n  \"jabatan_kerja\": \"Teknisi Senior\",\n  \"regional\": \"Jakarta\",\n  \"lokasi_kerja\": \"Jakarta Pusat\",\n  \"pekerjaan\": \"Instalasi Fiber\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/people",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All People",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/people",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Costs",
+			"item": [
+				{
+					"name": "Create Cost",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1\",\n  \"tgl_pengajuan\": \"2026-02-20\",\n  \"jumlah_pengajuan\": 100000000,\n  \"status\": \"pending\",\n  \"catatan_tolak\": null\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/costs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"costs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Costs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/costs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"costs"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Costs by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/costs/project/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"costs",
+								"project",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Costs by Site",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/costs/site/{{site_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"costs",
+								"site",
+								"{{site_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Cost",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"acc_by\": \"user:admin123\",\n  \"acc_name\": \"John Doe\",\n  \"jumlah_acc\": 95000000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/costs/{{cost_id_only}}/approve",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"costs",
+								"{{cost_id_only}}",
+								"approve"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Materials",
+			"item": [
+				{
+					"name": "Create Material",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"skp\": \"SKP-2026-001\",\n  \"name\": \"Kabel Fiber Optik 100m\",\n  \"unit\": \"Roll\",\n  \"qty\": 50,\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"tgl\": \"2026-02-20\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/materials",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"materials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Materials",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/materials",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"materials"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Materials by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/materials/project/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"materials",
+								"project",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Materials by Site",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/materials/site/{{site_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"materials",
+								"site",
+								"{{site_id_only}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Areas & Regions",
+			"item": [
+				{
+					"name": "Create Area",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nama_area\": \"Jakarta\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"areas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Areas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/areas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"areas"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Region",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"area_id\": \"{{area_id}}\",\n  \"kode_region\": \"JKT-PUSAT\",\n  \"nama_region\": \"Jakarta Pusat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/regions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"regions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Regions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/regions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"regions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Regions by Area",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/regions/area/{{area_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"regions",
+								"area",
+								"{{area_id_only}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Files",
+			"item": [
+				{
+					"name": "Upload Project File",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"title\": \"Project Documentation\",\n  \"filename\": \"doc_2026_02_20.pdf\",\n  \"original_name\": \"Project Plan.pdf\",\n  \"bucket\": \"smartelco-files\",\n  \"key\": \"projects/xyz/doc.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size\": 2048576,\n  \"disk\": \"s3\",\n  \"visibility\": \"private\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/project-files",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"project-files"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Project Files",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}/files",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}",
+								"files"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Project File",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/project-files/{{file_id_only}}/delete",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"project-files",
+								"{{file_id_only}}",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Site File",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"site_id\": \"{{site_id}}\",\n  \"title\": \"Site Documentation\",\n  \"filename\": \"site_doc_2026_02_20.pdf\",\n  \"original_name\": \"Site Plan.pdf\",\n  \"bucket\": \"smartelco-files\",\n  \"key\": \"sites/xyz/doc.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size\": 1048576,\n  \"disk\": \"s3\",\n  \"visibility\": \"private\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/site-files",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"site-files"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Site Files",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sites/{{site_id_only}}/files",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"{{site_id_only}}",
+								"files"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Site File",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/site-files/{{file_id_only}}/delete",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"site-files",
+								"{{file_id_only}}",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Termins",
+			"item": [
+				{
+					"name": "Create Termin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1 - 30%\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 150000000,\n  \"status\": \"pending\",\n  \"keterangan\": \"Pembayaran termin pertama setelah pekerjaan 30% selesai\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Termins",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Termins by Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/project/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"project",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Termins by Site",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/site/{{site_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"site",
+								"{{site_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Termin File",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"termin_id\": \"{{termin_id}}\",\n  \"category\": \"invoice\",\n  \"title\": \"Invoice Termin 1\",\n  \"filename\": \"invoice_term1.pdf\",\n  \"original_name\": \"Invoice.pdf\",\n  \"bucket\": \"smartelco-files\",\n  \"key\": \"termins/xyz/invoice.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size\": 1048576,\n  \"disk\": \"s3\",\n  \"visibility\": \"private\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termin-files",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termin-files"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Termin Files",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/files",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"files"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Termin File",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termin-files/{{file_id_only}}/delete",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termin-files",
+								"{{file_id_only}}",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "project_id",
+			"value": "projects:your_project_id_here",
+			"type": "string"
+		},
+		{
+			"key": "project_id_only",
+			"value": "your_project_id_here",
+			"type": "string"
+		},
+		{
+			"key": "site_id",
+			"value": "sites:your_site_id_here",
+			"type": "string"
+		},
+		{
+			"key": "site_id_only",
+			"value": "your_site_id_here",
+			"type": "string"
+		},
+		{
+			"key": "cost_id_only",
+			"value": "your_cost_id_here",
+			"type": "string"
+		},
+		{
+			"key": "area_id",
+			"value": "areas:your_area_id_here",
+			"type": "string"
+		},
+		{
+			"key": "area_id_only",
+			"value": "your_area_id_here",
+			"type": "string"
+		},
+		{
+			"key": "file_id_only",
+			"value": "your_file_id_here",
+			"type": "string"
+		},
+		{
+			"key": "termin_id",
+			"value": "termins:your_termin_id_here",
+			"type": "string"
+		},
+		{
+			"key": "termin_id_only",
+			"value": "your_termin_id_here",
+			"type": "string"
+		}
+	]
+}

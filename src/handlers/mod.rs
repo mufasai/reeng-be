@@ -1,2 +1,9 @@
 pub mod auth;
 pub mod project;
+pub mod site;
+pub mod people;
+pub mod costs;
+pub mod materials;
+pub mod regions;
+pub mod files;
+pub mod termins;
