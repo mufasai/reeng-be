@@ -5,7 +5,7 @@ Backend API untuk SmartElco Reengineering Tracking Tool yang telah dirapikan den
 ## 📁 Struktur Folder
 
 ```
-simple-api/
+reengineering-tool-be/
 ├── Cargo.toml                 # Rust dependencies
 ├── .env                       # Environment variables
 ├── README.md                  # This file
