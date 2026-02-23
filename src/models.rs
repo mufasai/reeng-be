@@ -109,6 +109,31 @@ pub struct CreatePeopleRequest {
     pub pekerjaan: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePeopleRequest {
+    pub name: Option<String>,
+    pub tanggal_lahir: Option<String>,
+    pub tempat_lahir: Option<String>,
+    pub agama: Option<String>,
+    pub jenis_kelamin: Option<String>,
+    pub no_ktp: Option<String>,
+    pub no_hp: Option<String>,
+    pub email: Option<String>,
+    pub jabatan_kerja: Option<String>,
+    pub regional: Option<String>,
+    pub lokasi_kerja: Option<String>,
+    pub pekerjaan: Option<String>,
+    pub nama_kontak_darurat: Option<String>,
+    pub nomor_kontak_darurat: Option<String>,
+    pub alamat_kontak_darurat: Option<String>,
+    pub status_pernikahan: Option<String>,
+    pub nama_ibu_kandung: Option<String>,
+    pub pendidikan_terakhir: Option<String>,
+    pub nama_kampus_sekolah: Option<String>,
+    pub jurusan_sekolah: Option<String>,
+    pub tahun_lulus: Option<String>,
+}
+
 // ==================== PROJECT MODELS ====================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,6 +163,19 @@ pub struct CreateProjectRequest {
     pub cost: Option<i64>,
     pub tipe: ProjectType,
     pub keterangan: String,
+    pub tgi_start: Option<String>,
+    pub tgi_end: Option<String>,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateProjectRequest {
+    pub name: Option<String>,
+    pub lokasi: Option<String>,
+    pub value: Option<i64>,
+    pub cost: Option<i64>,
+    pub tipe: Option<ProjectType>,
+    pub keterangan: Option<String>,
     pub tgi_start: Option<String>,
     pub tgi_end: Option<String>,
     pub status: Option<String>,

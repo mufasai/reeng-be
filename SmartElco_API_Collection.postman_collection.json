@@ -102,6 +102,69 @@
 					"response": []
 				},
 				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Network Expansion Jakarta - Updated\",\n  \"cost\": 1500000000,\n  \"status\": \"in_progress\",\n  \"keterangan\": \"Updated: Project sudah dimulai\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Project",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Create Project - L2H Type",
 					"request": {
 						"method": "POST",
@@ -263,6 +326,69 @@
 							],
 							"path": [
 								"people"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Person by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/people/{{people_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people",
+								"{{people_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Person",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jabatan_kerja\": \"Senior Project Manager\",\n  \"status_pernikahan\": \"Menikah\",\n  \"pendidikan_terakhir\": \"S1\",\n  \"nama_kampus_sekolah\": \"Universitas Indonesia\",\n  \"jurusan_sekolah\": \"Teknik Elektro\",\n  \"tahun_lulus\": \"2012\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/people/{{people_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people",
+								"{{people_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Person",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/people/{{people_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people",
+								"{{people_id}}"
 							]
 						}
 					},

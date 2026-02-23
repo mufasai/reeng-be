@@ -5,7 +5,7 @@ mod state;
 use axum::{
     extract::Json,
     http::Method,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
@@ -48,6 +48,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Project routes
         .route("/api/projects", post(project::create_project))
         .route("/api/projects", get(project::list_projects))
+        .route("/api/projects/:id", get(project::get_project))
+        .route("/api/projects/:id", put(project::update_project))
+        .route("/api/projects/:id", delete(project::delete_project))
         // Site routes
         .route("/api/sites", post(site::create_site))
         .route("/api/sites", get(site::list_sites))
@@ -55,6 +58,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // People routes
         .route("/api/people", post(people::create_people))
         .route("/api/people", get(people::list_people))
+        .route("/api/people/:id", get(people::get_people))
+        .route("/api/people/:id", put(people::update_people))
+        .route("/api/people/:id", delete(people::delete_people))
         // Cost routes
         .route("/api/costs", post(costs::create_cost))
         .route("/api/costs", get(costs::list_costs))
@@ -100,6 +106,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📊 Projects:");
     println!("  POST   /api/projects");
     println!("  GET    /api/projects");
+    println!("  GET    /api/projects/:id");
+    println!("  PUT    /api/projects/:id");
+    println!("  DELETE /api/projects/:id");
     println!("\n🏗️  Sites:");
     println!("  POST   /api/sites");
     println!("  GET    /api/sites");
@@ -107,6 +116,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n👥 People:");
     println!("  POST   /api/people");
     println!("  GET    /api/people");
+    println!("  GET    /api/people/:id");
+    println!("  PUT    /api/people/:id");
+    println!("  DELETE /api/people/:id");
     println!("\n💰 Costs:");
     println!("  POST   /api/costs");
     println!("  GET    /api/costs");
