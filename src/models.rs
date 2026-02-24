@@ -225,6 +225,23 @@ pub struct CreateSiteRequest {
     pub team_members: Option<Vec<String>>,  // Array of people IDs for the team
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSiteRequest {
+    pub project_id: Option<String>,
+    pub site_name: Option<String>,
+    pub site_info: Option<String>,
+    pub pekerjaan: Option<String>,
+    pub lokasi: Option<String>,
+    pub nomor_kontrak: Option<String>,
+    pub start: Option<String>,
+    pub end: Option<String>,
+    pub maximal_budget: Option<i64>,
+    pub cost_estimated: Option<i64>,
+    pub pemberi_tugas: Option<String>,
+    pub penerima_tugas: Option<String>,
+    pub site_document: Option<String>,
+}
+
 // ==================== TEAM MODELS ====================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

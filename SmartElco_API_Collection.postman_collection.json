@@ -282,6 +282,51 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update Site",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sites/{{site_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"{{site_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Site",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sites/{{site_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"{{site_id}}"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
