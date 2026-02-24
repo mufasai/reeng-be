@@ -16,6 +16,8 @@ pub async fn create_site(
         site_info: $site_info,
         pekerjaan: $pekerjaan,
         lokasi: $lokasi,
+        latitude: $latitude,
+        longitude: $longitude,
         nomor_kontrak: $nomor_kontrak,
         start: $start,
         end: $end,
@@ -36,6 +38,8 @@ pub async fn create_site(
         .bind(("site_info", req.site_info.clone()))
         .bind(("pekerjaan", req.pekerjaan.clone()))
         .bind(("lokasi", req.lokasi.clone()))
+        .bind(("latitude", req.latitude.clone()))
+        .bind(("longitude", req.longitude.clone()))
         .bind(("nomor_kontrak", req.nomor_kontrak.clone()))
         .bind(("start", req.start.clone()))
         .bind(("end", req.end.clone()))
@@ -241,6 +245,12 @@ pub async fn update_site(
     if req.lokasi.is_some() {
         update_parts.push("lokasi = $lokasi".to_string());
     }
+    if req.latitude.is_some() {
+        update_parts.push("latitude = $latitude".to_string());
+    }
+    if req.longitude.is_some() {
+        update_parts.push("longitude = $longitude".to_string());
+    }
     if req.nomor_kontrak.is_some() {
         update_parts.push("nomor_kontrak = $nomor_kontrak".to_string());
     }
@@ -288,6 +298,12 @@ pub async fn update_site(
     }
     if let Some(lokasi) = req.lokasi {
         query_builder = query_builder.bind(("lokasi", lokasi));
+    }
+    if let Some(latitude) = req.latitude {
+        query_builder = query_builder.bind(("latitude", latitude));
+    }
+    if let Some(longitude) = req.longitude {
+        query_builder = query_builder.bind(("longitude", longitude));
     }
     if let Some(nomor_kontrak) = req.nomor_kontrak {
         query_builder = query_builder.bind(("nomor_kontrak", nomor_kontrak));

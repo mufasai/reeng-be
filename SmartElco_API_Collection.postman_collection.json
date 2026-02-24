@@ -233,7 +233,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/sites",
@@ -295,7 +295,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
+							"raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/sites/{{site_id}}",
