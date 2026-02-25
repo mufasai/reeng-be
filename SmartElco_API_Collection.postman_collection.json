@@ -888,7 +888,7 @@
 			"name": "Termins",
 			"item": [
 				{
-					"name": "Create Termin",
+					"name": "Create Termin (Draft)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -899,7 +899,33 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1 - 30%\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 150000000,\n  \"status\": \"pending\",\n  \"keterangan\": \"Pembayaran termin pertama setelah pekerjaan 30% selesai\"\n}"
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 50000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"status\": \"draft\",\n  \"keterangan\": \"pengajuan termin 2\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Termin (Direct Submit)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 25000000,\n  \"termin_ke\": 1,\n  \"percentage\": 25,\n  \"keterangan\": \"pengajuan termin 1\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/termins",
@@ -963,6 +989,181 @@
 								"termins",
 								"site",
 								"{{site_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Termin by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Termin (Draft Only)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 400000000,\n  \"keterangan\": \"Updated: Pembayaran termin kedua 50%\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Termin for Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"submitter_name\": \"Field Engineer\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/submit",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"submit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review Termin (Field Head)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reviewer_name\": \"John Doe\",\n  \"catatan_review\": \"review oleh head area - dokumen lengkap dan sesuai\",\n  \"approve\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/review",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"review"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Termin (Director)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/approve",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"approve"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Pay Termin (Finance)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"payer_name\": \"Finance Team\",\n  \"jumlah_dibayar\": 400000000,\n  \"catatan_pembayaran\": \"Pembayaran melalui transfer bank BCA\",\n  \"bukti_pembayaran\": \"TRF-20260220-001\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/pay",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"pay"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Termin",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}"
 							]
 						}
 					},

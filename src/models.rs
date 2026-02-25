@@ -502,8 +502,36 @@ pub struct Termin {
     pub type_termin: String,
     pub tgl_terima: Option<String>,
     pub jumlah: i64,
+    pub termin_ke: i32,
+    pub percentage: i32,
     pub status: String,
     pub keterangan: Option<String>,
+    
+    // Submit tracking
+    pub submitted_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+    
+    // Field Head Review tracking
+    pub reviewed_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub catatan_review: Option<String>,
+    
+    // Director Approval tracking
+    pub approved_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub catatan_approval: Option<String>,
+    
+    // Finance Payment tracking
+    pub paid_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub paid_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub jumlah_dibayar: Option<i64>,
+    pub catatan_pembayaran: Option<String>,
+    pub bukti_pembayaran: Option<String>,
+    
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -517,8 +545,46 @@ pub struct CreateTerminRequest {
     pub type_termin: String,
     pub tgl_terima: Option<String>,
     pub jumlah: i64,
+    pub termin_ke: i32,
+    pub percentage: i32,
     pub status: Option<String>,
     pub keterangan: Option<String>,
+    pub submitted_by: Option<String>, // If provided, will submit directly for review
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTerminRequest {
+    pub type_termin: Option<String>,
+    pub tgl_terima: Option<String>,
+    pub jumlah: Option<i64>,
+    pub keterangan: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubmitTerminRequest {
+    pub submitter_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReviewTerminRequest {
+    pub reviewer_name: String,
+    pub catatan_review: String,
+    pub approve: bool, // true = approve, false = reject
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApproveTerminRequest {
+    pub approver_name: String,
+    pub catatan_approval: Option<String>,
+    pub approve: bool, // true = approve, false = reject
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PayTerminRequest {
+    pub payer_name: String,
+    pub jumlah_dibayar: i64,
+    pub catatan_pembayaran: Option<String>,
+    pub bukti_pembayaran: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

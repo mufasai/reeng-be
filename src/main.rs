@@ -92,6 +92,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/termins", get(termins::list_termins))
         .route("/api/termins/project/:project_id", get(termins::get_termins_by_project))
         .route("/api/termins/site/:site_id", get(termins::get_termins_by_site))
+        .route("/api/termins/:termin_id", get(termins::get_termin_by_id))
+        .route("/api/termins/:termin_id", put(termins::update_termin))
+        .route("/api/termins/:termin_id", axum::routing::delete(termins::delete_termin))
+        .route("/api/termins/:termin_id/submit", post(termins::submit_termin))
+        .route("/api/termins/:termin_id/review", post(termins::review_termin))
+        .route("/api/termins/:termin_id/approve", post(termins::approve_termin))
+        .route("/api/termins/:termin_id/pay", post(termins::pay_termin))
         .route("/api/termin-files", post(termins::create_termin_file))
         .route("/api/termins/:termin_id/files", get(termins::list_termin_files))
         .route("/api/termin-files/:file_id/delete", axum::routing::delete(termins::delete_termin_file))
@@ -150,6 +157,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  GET    /api/termins");
     println!("  GET    /api/termins/project/:project_id");
     println!("  GET    /api/termins/site/:site_id");
+    println!("  GET    /api/termins/:termin_id");
+    println!("  PUT    /api/termins/:termin_id");
+    println!("  DELETE /api/termins/:termin_id");
+    println!("  POST   /api/termins/:termin_id/submit");
+    println!("  POST   /api/termins/:termin_id/review");
+    println!("  POST   /api/termins/:termin_id/approve");
+    println!("  POST   /api/termins/:termin_id/pay");
     println!("  POST   /api/termin-files");
     println!("  GET    /api/termins/:termin_id/files");
     println!("  DELETE /api/termin-files/:file_id/delete");

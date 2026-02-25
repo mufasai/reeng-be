@@ -602,16 +602,182 @@
 ### Create Termin
 **POST** `/termins`
 
-**Request Body:**
+**Request Body (Save as Draft):**
 ```json
 {
   "project_id": "projects:b7v5e43bvtpwyipxlemg",
   "site_id": "sites:73tnamhln5s1oehr2om2",
-  "type_termin": "Termin 1 - 30%",
+  "type_termin": "TERMIN_2",
   "tgl_terima": "2026-02-20",
-  "jumlah": 150000000,
-  "status": "pending",
-  "keterangan": "Pembayaran termin pertama setelah pekerjaan 30% selesai"
+  "jumlah": 50000000,
+  "termin_ke": 2,
+  "percentage": 50,
+  "status": "draft",
+  "keterangan": "Pengajuan termin ke-2"
+}
+```
+
+**Request Body (Direct Submit for Review):**
+```json
+{
+  "project_id": "projects:b7v5e43bvtpwyipxlemg",
+  "site_id": "sites:73tnamhln5s1oehr2om2",
+  "type_termin": "TERMIN_1",
+  "tgl_terima": "2026-02-15",
+  "jumlah": 25000000,
+  "termin_ke": 1,
+  "percentage": 25,
+  "keterangan": "Pengajuan termin ke-1",
+  "submitted_by": "Budi Santoso"
+}
+```
+
+**Field Definitions:**
+- `project_id` (string, required): ID project (format: "projects:xxx")
+- `site_id` (string, required): ID site (format: "sites:xxx")
+- `type_termin` (string, required): Tipe termin (e.g., "TERMIN_1", "TERMIN_2")
+- `tgl_terima` (string, optional): Tanggal terima (format: YYYY-MM-DD)
+- `jumlah` (integer, required): Jumlah pembayaran termin dalam Rupiah
+- `termin_ke` (integer, required): Urutan termin (1, 2, 3, 4, dst)
+- `percentage` (integer, required): Persentase dari maximal_budget (25, 50, 10, 10)
+- `status` (string, optional): Status termin (default: "draft")
+- `keterangan` (string, optional): Keterangan tambahan
+- `submitted_by` (string, optional): Nama pengaju. Jika diisi, termin langsung berstatus "pending_review"
+
+**⚠️ Validasi Otomatis:**
+Sistem akan memvalidasi bahwa `jumlah` sesuai dengan `percentage × site.maximal_budget`.
+Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
+
+**Response (200 OK - Draft):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "termins:abc123",
+    "project_id": "projects:b7v5e43bvtpwyipxlemg",
+    "site_id": "sites:73tnamhln5s1oehr2om2",
+    "type_termin": "TERMIN_2",
+    "tgl_terima": "2026-02-20",
+    "jumlah": 50000000,
+    "termin_ke": 2,
+    "percentage": 50,
+    "status": "draft",
+    "keterangan": "Pengajuan termin ke-2",
+    "submitted_by": null,
+    "submitted_at": null,
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "catatan_review": null,
+    "approved_by": null,
+    "approved_at": null,
+    "catatan_approval": null,
+    "paid_by": null,
+    "paid_at": null,
+    "jumlah_dibayar": null,
+    "catatan_pembayaran": null,
+    "bukti_pembayaran": null,
+    "created_at": "2026-02-25T10:00:00Z",
+    "updated_at": "2026-02-25T10:00:00Z"
+  },
+  "message": "Termin created successfully"
+}
+```
+
+**Response (200 OK - Direct Submit):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "termins:xyz789",
+    "status": "pending_review",
+    "submitted_by": "Budi Santoso",
+    "submitted_at": "2026-02-25T10:05:00Z",
+    ...
+  },
+  "message": "Termin created successfully"
+}
+```
+
+**Response (400 Validation Failed):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Validation failed: jumlah (10000000) does not match expected amount (25000000) based on 50% of site maximal_budget (50000000)"
+}
+```
+
+### Get Termin by ID
+**GET** `/termins/:termin_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "termins:abc123",
+    "project_id": "projects:xxx",
+    "site_id": "sites:xxx",
+    "type_termin": "TERMIN_1",
+    "tgl_terima": "2026-02-15",
+    "jumlah": 25000000,
+    "termin_ke": 1,
+    "percentage": 25,
+    "status": "approved",
+    ...
+  },
+  "message": null
+}
+```
+
+### List All Termins
+**GET** `/termins`
+
+**Response:** Array of termins, sorted by `created_at DESC`
+
+### Get Termins by Project
+**GET** `/termins/project/:project_id`
+
+**Response:** Array of termins for specific project
+
+### Get Termins by Site
+**GET** `/termins/site/:site_id`
+
+**Response:** Array of termins for specific site
+
+### Update Termin (Draft Only)
+**PUT** `/termins/:termin_id`
+
+**Note:** Hanya termin dengan status "draft" yang bisa diupdate.
+
+**Request Body:**
+```json
+{
+  "type_termin": "TERMIN_1_UPDATED",
+  "tgl_terima": "2026-02-16",
+  "jumlah": 26000000,
+  "keterangan": "Updated keterangan"
+}
+```
+
+### Delete Termin
+**DELETE** `/termins/:termin_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Termin and associated files deleted successfully"
+}
+```
+
+### Submit Termin for Review
+**POST** `/termins/:termin_id/submit`
+
+**Request Body:**
+```json
+{
+  "submitter_name": "Ahmad Santoso"
 }
 ```
 
@@ -620,28 +786,150 @@
 {
   "success": true,
   "data": {
-    "id": "termins:term001",
-    "project_id": "projects:b7v5e43bvtpwyipxlemg",
-    "site_id": "sites:73tnamhln5s1oehr2om2",
-    "type_termin": "Termin 1 - 30%",
-    "tgl_terima": "2026-02-20",
-    "jumlah": 150000000,
-    "status": "pending",
-    "keterangan": "Pembayaran termin pertama...",
-    "created_at": "2026-02-20T10:00:00Z"
+    "id": "termins:abc123",
+    "status": "pending_review",
+    "submitted_by": "Ahmad Santoso",
+    "submitted_at": "2026-02-25T11:00:00Z",
+    ...
   },
-  "message": "Termin created successfully"
+  "message": "Termin submitted for review"
 }
 ```
 
-### List All Termins
-**GET** `/termins`
+### Review Termin (Field Head)
+**POST** `/termins/:termin_id/review`
 
-### Get Termins by Project
-**GET** `/termins/project/:project_id`
+**Request Body:**
+```json
+{
+  "reviewer_name": "Indra Sadik",
+  "catatan_review": "Progress pekerjaan sudah sesuai. Disetujui untuk diteruskan ke direktur.",
+  "approve": true
+}
+```
 
-### Get Termins by Site
-**GET** `/termins/site/:site_id`
+**Field Definitions:**
+- `reviewer_name` (string, required): Nama Field Head yang mereview
+- `catatan_review` (string, required): Catatan hasil review
+- `approve` (boolean, required): 
+  - `true` = Approve, status menjadi "reviewed"
+  - `false` = Reject, status kembali ke "draft"
+
+**Response (200 OK - Approved):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "termins:abc123",
+    "status": "reviewed",
+    "reviewed_by": "Indra Sadik",
+    "reviewed_at": "2026-02-25T12:00:00Z",
+    "catatan_review": "Progress pekerjaan sudah sesuai...",
+    ...
+  },
+  "message": "Termin reviewed and approved by Field Head. Waiting for Director approval."
+}
+```
+
+**Response (200 OK - Rejected):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "draft",
+    "reviewed_by": "Indra Sadik",
+    "catatan_review": "Pekerjaan belum sesuai, silahkan perbaiki",
+    ...
+  },
+  "message": "Termin rejected by Field Head. Returned to draft."
+}
+```
+
+### Approve Termin (Director)
+**POST** `/termins/:termin_id/approve`
+
+**Request Body:**
+```json
+{
+  "approver_name": "Direktur Utama",
+  "catatan_approval": "Termin disetujui oleh direktur. Silahkan proses pembayaran.",
+  "approve": true
+}
+```
+
+**Field Definitions:**
+- `approver_name` (string, required): Nama Direktur yang menyetujui
+- `catatan_approval` (string, required): Catatan persetujuan
+- `approve` (boolean, required):
+  - `true` = Approve, status menjadi "approved"
+  - `false` = Reject, status kembali ke "draft"
+
+**Response (200 OK - Approved):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "approved",
+    "approved_by": "Direktur Utama",
+    "approved_at": "2026-02-25T13:00:00Z",
+    "catatan_approval": "Termin disetujui...",
+    ...
+  },
+  "message": "Termin approved by Director. Waiting for payment by Finance."
+}
+```
+
+### Pay Termin (Finance)
+**POST** `/termins/:termin_id/pay`
+
+**Request Body:**
+```json
+{
+  "payer_name": "Siti Nurhaliza (Finance)",
+  "jumlah_dibayar": 25000000,
+  "catatan_pembayaran": "Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425",
+  "bukti_pembayaran": "https://storage.smartelco.com/bukti/termin1-payment.pdf"
+}
+```
+
+**Field Definitions:**
+- `payer_name` (string, required): Nama petugas Finance yang memproses
+- `jumlah_dibayar` (integer, required): Jumlah yang dibayarkan (dalam Rupiah)
+- `catatan_pembayaran` (string, required): Catatan/keterangan pembayaran
+- `bukti_pembayaran` (string, required): URL/path bukti pembayaran
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "paid",
+    "paid_by": "Siti Nurhaliza (Finance)",
+    "paid_at": "2026-02-25T14:00:00Z",
+    "jumlah_dibayar": 25000000,
+    "catatan_pembayaran": "Pembayaran termin 1...",
+    "bukti_pembayaran": "https://storage.smartelco.com/...",
+    ...
+  },
+  "message": "Payment confirmed. Termin completed."
+}
+```
+
+### 🔄 Termin Workflow Summary
+
+```
+DRAFT 
+  ↓ (submit)
+PENDING_REVIEW
+  ↓ (Field Head review: approve=true)
+REVIEWED
+  ↓ (Director approve: approve=true)
+APPROVED
+  ↓ (Finance pay)
+PAID
+
+Note: Jika di-reject di tahap manapun (approve=false), status kembali ke DRAFT.
+```
 
 ### Upload Termin File
 **POST** `/termin-files`
@@ -649,7 +937,7 @@
 **Request Body:**
 ```json
 {
-  "termin_id": "termins:term001",
+  "termin_id": "termins:abc123",
   "category": "invoice",
   "title": "Invoice Termin 1",
   "filename": "invoice_term1.pdf",
