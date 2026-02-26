@@ -4,7 +4,33 @@
 
 ---
 
-## 🔐 Authentication
+## � Changelog
+
+### v1.2.0 (2026-02-26)
+**Termin API - Backward Compatibility Update**
+- ✅ Field `termin_ke` dan `percentage` sekarang **optional** (sebelumnya required)
+- ✅ Mendukung data termin lama yang belum memiliki field tersebut
+- ✅ Validasi otomatis hanya berjalan jika `percentage` field diisi
+- ⚠️ **Rekomendasi**: Untuk termin baru, tetap isi `termin_ke` dan `percentage` untuk aktivasi validasi otomatis
+
+### v1.1.0 (2026-02-25)
+**Termin Workflow & Validation**
+- ✅ Implementasi full workflow: draft → pending_review → reviewed → approved → paid
+- ✅ Tambah field `termin_ke` dan `percentage` untuk tracking urutan termin
+- ✅ Validasi otomatis: `jumlah = percentage × site.maximal_budget`
+- ✅ Direct submit feature: Optional `submitted_by` untuk langsung submit saat create
+- ✅ 15 endpoints termin lengkap (CRUD + workflow + files)
+
+### v1.0.0 (2026-02-20)
+**Initial Release**
+- ✅ Core APIs: Projects, Sites, People, Teams, Costs, Materials
+- ✅ Authentication dengan JWT
+- ✅ File management untuk project & site
+- ✅ Regional management (Areas & Regions)
+
+---
+
+## �🔐 Authentication
 
 ### Login
 **POST** `/auth/login`
@@ -638,14 +664,18 @@
 - `type_termin` (string, required): Tipe termin (e.g., "TERMIN_1", "TERMIN_2")
 - `tgl_terima` (string, optional): Tanggal terima (format: YYYY-MM-DD)
 - `jumlah` (integer, required): Jumlah pembayaran termin dalam Rupiah
-- `termin_ke` (integer, required): Urutan termin (1, 2, 3, 4, dst)
-- `percentage` (integer, required): Persentase dari maximal_budget (25, 50, 10, 10)
+- `termin_ke` (integer, **optional**): Urutan termin (1, 2, 3, 4, dst) - **Direkomendasikan untuk termin baru**
+- `percentage` (integer, **optional**): Persentase dari maximal_budget (25, 50, 10, 10) - **Direkomendasikan untuk termin baru**
 - `status` (string, optional): Status termin (default: "draft")
 - `keterangan` (string, optional): Keterangan tambahan
 - `submitted_by` (string, optional): Nama pengaju. Jika diisi, termin langsung berstatus "pending_review"
 
+**📝 Catatan Field Optional:**
+- Field `termin_ke` dan `percentage` bersifat optional untuk backward compatibility dengan data lama
+- Untuk termin baru, **sangat direkomendasikan** mengisi kedua field ini untuk validasi otomatis
+
 **⚠️ Validasi Otomatis:**
-Sistem akan memvalidasi bahwa `jumlah` sesuai dengan `percentage × site.maximal_budget`.
+Jika `percentage` diisi, sistem akan memvalidasi bahwa `jumlah` sesuai dengan `percentage × site.maximal_budget`.
 Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
 
 **Response (200 OK - Draft):**

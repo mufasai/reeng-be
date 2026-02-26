@@ -502,8 +502,8 @@ pub struct Termin {
     pub type_termin: String,
     pub tgl_terima: Option<String>,
     pub jumlah: i64,
-    pub termin_ke: i32,
-    pub percentage: i32,
+    pub termin_ke: Option<i32>,
+    pub percentage: Option<i32>,
     pub status: String,
     pub keterangan: Option<String>,
     
