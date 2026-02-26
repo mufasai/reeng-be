@@ -1135,7 +1135,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"payer_name\": \"Finance Team\",\n  \"jumlah_dibayar\": 400000000,\n  \"catatan_pembayaran\": \"Pembayaran melalui transfer bank BCA\",\n  \"bukti_pembayaran\": \"TRF-20260220-001\"\n}"
+							"raw": "{\n  \"payer_name\": \"Siti Nurhaliza (Finance)\",\n  \"jumlah_dibayar\": 25000000,\n  \"referensi_pembayaran\": \"TRF-12345B\",\n  \"catatan_pembayaran\": \"Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425\",\n  \"bukti_pembayaran\": \"https://storage.smartelco.com/bukti/termin1-payment.pdf\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/termins/{{termin_id_only}}/pay",

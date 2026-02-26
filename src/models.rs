@@ -529,6 +529,7 @@ pub struct Termin {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub paid_at: Option<chrono::DateTime<chrono::Utc>>,
     pub jumlah_dibayar: Option<i64>,
+    pub referensi_pembayaran: Option<String>,  // Nomor referensi pembayaran (e.g., TRF-12345B)
     pub catatan_pembayaran: Option<String>,
     pub bukti_pembayaran: Option<String>,
     
@@ -583,6 +584,7 @@ pub struct ApproveTerminRequest {
 pub struct PayTerminRequest {
     pub payer_name: String,
     pub jumlah_dibayar: i64,
+    pub referensi_pembayaran: String,  // Required: Nomor referensi pembayaran
     pub catatan_pembayaran: Option<String>,
     pub bukti_pembayaran: Option<String>,
 }

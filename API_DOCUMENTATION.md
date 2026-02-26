@@ -6,6 +6,13 @@
 
 ## � Changelog
 
+### v1.2.1 (2026-02-26)
+**Termin Payment - Add Payment Reference Field**
+- ✅ Tambah field `referensi_pembayaran` (required) di model Termin
+- ✅ Tambah field `referensi_pembayaran` (required) di PayTerminRequest
+- ✅ Update endpoint POST `/termins/:id/pay` untuk menyimpan nomor referensi
+- 📝 Field ini untuk tracking nomor referensi pembayaran (e.g., TRF-12345B, INV-001)
+
 ### v1.2.0 (2026-02-26)
 **Termin API - Backward Compatibility Update**
 - ✅ Field `termin_ke` dan `percentage` sekarang **optional** (sebelumnya required)
@@ -917,6 +924,7 @@ Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
 {
   "payer_name": "Siti Nurhaliza (Finance)",
   "jumlah_dibayar": 25000000,
+  "referensi_pembayaran": "TRF-12345B",
   "catatan_pembayaran": "Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425",
   "bukti_pembayaran": "https://storage.smartelco.com/bukti/termin1-payment.pdf"
 }
@@ -925,8 +933,9 @@ Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
 **Field Definitions:**
 - `payer_name` (string, required): Nama petugas Finance yang memproses
 - `jumlah_dibayar` (integer, required): Jumlah yang dibayarkan (dalam Rupiah)
-- `catatan_pembayaran` (string, required): Catatan/keterangan pembayaran
-- `bukti_pembayaran` (string, required): URL/path bukti pembayaran
+- `referensi_pembayaran` (string, required): Nomor referensi pembayaran (e.g., TRF-12345B, INV-001, dst)
+- `catatan_pembayaran` (string, optional): Catatan/keterangan pembayaran
+- `bukti_pembayaran` (string, optional): URL/path bukti pembayaran
 
 **Response (200 OK):**
 ```json
@@ -937,6 +946,7 @@ Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
     "paid_by": "Siti Nurhaliza (Finance)",
     "paid_at": "2026-02-25T14:00:00Z",
     "jumlah_dibayar": 25000000,
+    "referensi_pembayaran": "TRF-12345B",
     "catatan_pembayaran": "Pembayaran termin 1...",
     "bukti_pembayaran": "https://storage.smartelco.com/...",
     ...

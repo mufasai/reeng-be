@@ -74,6 +74,7 @@ pub async fn create_termin(
             paid_by: NONE,
             paid_at: NONE,
             jumlah_dibayar: NONE,
+            referensi_pembayaran: NONE,
             catatan_pembayaran: NONE,
             bukti_pembayaran: NONE,
             created_at: time::now(),
@@ -103,6 +104,7 @@ pub async fn create_termin(
             paid_by: NONE,
             paid_at: NONE,
             jumlah_dibayar: NONE,
+            referensi_pembayaran: NONE,
             catatan_pembayaran: NONE,
             bukti_pembayaran: NONE,
             created_at: time::now(),
@@ -440,6 +442,7 @@ pub async fn pay_termin(
             paid_by = $paid_by,
             paid_at = time::now(),
             jumlah_dibayar = $jumlah_dibayar,
+            referensi_pembayaran = $referensi_pembayaran,
             catatan_pembayaran = $catatan_pembayaran,
             bukti_pembayaran = $bukti_pembayaran,
             updated_at = time::now()
@@ -449,6 +452,7 @@ pub async fn pay_termin(
         .bind(("termin_id", thing))
         .bind(("paid_by", req.payer_name.clone()))
         .bind(("jumlah_dibayar", req.jumlah_dibayar))
+        .bind(("referensi_pembayaran", req.referensi_pembayaran.clone()))
         .bind(("catatan_pembayaran", req.catatan_pembayaran.clone()))
         .bind(("bukti_pembayaran", req.bukti_pembayaran.clone()))
         .await
