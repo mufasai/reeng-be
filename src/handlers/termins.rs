@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 use crate::models::{
@@ -27,30 +28,119 @@ pub async fn create_termin(
     let site: Option<Site> = site_result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let site = site.ok_or(StatusCode::NOT_FOUND)?;
     
-    // Step 2: Calculate expected amount based on percentage
-    let expected_amount = (site.maximal_budget * req.percentage as i64) / 100;
+    // Step 2: Validate percentage pattern (30%-50%-10%-10%) for termin_ke 1-4
+    let expected_percentage = match req.termin_ke {
+        1 => 30,
+        2 => 50,
+        3 => 10,
+        4 => 10,
+        _ => {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some(format!(
+                    "Validation failed: termin_ke must be between 1-4. Got: {}",
+                    req.termin_ke
+                )),
+            }));
+        }
+    };
     
-    // Step 3: Validate that jumlah matches expected amount (allow 1% tolerance)
-    let tolerance = expected_amount / 100; // 1% tolerance
-    if (req.jumlah - expected_amount).abs() > tolerance {
+    if req.percentage != expected_percentage {
         return Ok(Json(ApiResponse {
             success: false,
             data: None,
             message: Some(format!(
-                "Validation failed: jumlah ({}) does not match expected amount ({}) based on {}% of site maximal_budget ({})",
-                req.jumlah, expected_amount, req.percentage, site.maximal_budget
+                "Validation failed: Termin {} harus memiliki percentage {}%, bukan {}%. Pola yang benar: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%",
+                req.termin_ke, expected_percentage, req.percentage
             )),
         }));
     }
     
-    // Step 4: Determine status and submit tracking based on submitted_by
+    // Step 3: Validate previous termin dependency (termin can only be created if previous termin is approved)
+    if req.termin_ke > 1 {
+        let previous_termin_ke = req.termin_ke - 1;
+        let check_previous_query = r#"
+            SELECT * FROM termins 
+            WHERE site_id = type::thing($site_id) 
+            AND termin_ke = $previous_termin_ke 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        "#;
+        
+        let mut previous_result = state.db.query(check_previous_query)
+            .bind(("site_id", req.site_id.clone()))
+            .bind(("previous_termin_ke", previous_termin_ke))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let previous_termin: Option<Termin> = previous_result.take(0)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        match previous_termin {
+            None => {
+                return Ok(Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some(format!(
+                        "Validation failed: Termin {} belum dibuat. Termin harus dibuat secara berurutan.",
+                        previous_termin_ke
+                    )),
+                }));
+            }
+            Some(prev) => {
+                if prev.status != "approved" && prev.status != "paid" {
+                    return Ok(Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: Some(format!(
+                            "Validation failed: Termin {} harus disetujui direktur (status: approved) terlebih dahulu sebelum mengajukan Termin {}. Status Termin {} saat ini: {}",
+                            previous_termin_ke, req.termin_ke, previous_termin_ke, prev.status
+                        )),
+                    }));
+                }
+            }
+        }
+    }
+    
+    // Step 4: Validate 70% maximum payment limit
+    // Get sum of all existing termins for this site
+    let sum_query = r#"
+        SELECT * FROM termins 
+        WHERE site_id = type::thing($site_id)
+    "#;
+    
+    let mut sum_result = state.db.query(sum_query)
+        .bind(("site_id", req.site_id.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let existing_termins: Vec<Termin> = sum_result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let current_total: i64 = existing_termins.iter().map(|t| t.jumlah).sum();
+    let max_allowed = (site.maximal_budget * 70) / 100; // 70% dari maximal_budget
+    let new_total = current_total + req.jumlah;
+    
+    if new_total > max_allowed {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!(
+                "Validation failed: Total pembayaran (Rp {}) melebihi batas maksimal 70% dari nilai site (Rp {}). Total saat ini: Rp {}, Termin baru: Rp {}, Sisa kuota: Rp {}",
+                new_total, max_allowed, current_total, req.jumlah, max_allowed - current_total
+            )),
+        }));
+    }
+    
+    // Step 5: Determine status and submit tracking based on submitted_by
     let (status, submitted_by, _submitted_at) = if let Some(submitter) = &req.submitted_by {
         ("pending_review".to_string(), Some(submitter.clone()), Some("time::now()"))
     } else {
         (req.status.clone().unwrap_or_else(|| "draft".to_string()), None, None)
     };
     
-    // Step 5: Create the termin
+    // Step 6: Create the termin
     let query = if submitted_by.is_some() {
         r#"
         CREATE termins CONTENT {

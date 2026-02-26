@@ -888,7 +888,25 @@
 			"name": "Termins",
 			"item": [
 				{
-					"name": "Create Termin (Draft)",
+					"name": "📖 READ ME FIRST - Workflow & Validation Rules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						},
+						"description": "🔒 TERMIN BUSINESS RULES & VALIDATIONS\n\n═══════════════════════════════════════════\n\n✅ WORKFLOW:\n1. Draft → Buat termin (engineer)\n2. Submit → Kirim untuk review (engineer) \n3. Review → Cek oleh Admin Area/Field Head\n4. Approve → Setujui oleh Direktur\n5. Pay → Bayar oleh Keuangan\n\n═══════════════════════════════════════════\n\n🔒 VALIDASI (v1.3.1 - FLEXIBLE AMOUNT):\n\n1️⃣ POLA PERCENTAGE TERKUNCI (Label/Struktur):\n   - Termin 1 HARUS 30%\n   - Termin 2 HARUS 50%\n   - Termin 3 HARUS 10%\n   - Termin 4 HARUS 10%\n   ❌ Tidak bisa pakai percentage lain!\n   📝 Percentage adalah LABEL termin, bukan constraint jumlah\n\n2️⃣ URUTAN SEQUENTIAL:\n   - Termin 2 hanya bisa dibuat SETELAH Termin 1 status \"approved\"\n   - Termin 3 hanya bisa dibuat SETELAH Termin 2 status \"approved\"\n   - Termin 4 hanya bisa dibuat SETELAH Termin 3 status \"approved\"\n   ❌ Tidak bisa skip atau paralel!\n\n3️⃣ MAKSIMAL 70% DARI SITE BUDGET (Hard Limit):\n   - Total semua termin ≤ 70% × site.maximal_budget\n   - Sistem hitung otomatis total kumulatif\n   ❌ Overpayment tidak mungkin!\n\n4️⃣ JUMLAH FLEXIBLE (NEW!):\n   ✅ Jumlah TIDAK wajib = percentage × budget\n   ✅ Anda bebas isi jumlah berapa saja asal total ≤ 70%\n   ✅ Percentage tetap terkunci untuk struktur termin\n   📌 Contoh: Termin 2 (50%) bisa diisi 20jt, tidak harus 50jt\n\n═══════════════════════════════════════════\n\n📋 CONTOH SKENARIO VALID:\n\nSite budget: 100,000,000 (100 juta)\nMax payment: 70,000,000 (70% = 70 juta)\n\n✅ Termin 1 (30%): 25,000,000 → Approve\n✅ Termin 2 (50%): 30,000,000 → Total: 55jt ✅\n✅ Termin 3 (10%): 10,000,000 → Total: 65jt ✅\n✅ Termin 4 (10%):  5,000,000 → Total: 70jt ✅ (exactly!)\n\n💡 CATATAN: Jumlah flexible agar fit dalam 70% limit!\n   - T1 tidak harus 30jt (30%)\n   - T2 tidak harus 50jt (50%)\n   - Yang penting: percentage benar + total ≤ 70%\n\n═══════════════════════════════════════════\n\n⚠️ ERROR SCENARIOS (Test Cases Below):\n\n❌ Wrong Percentage: Termin 1 dengan 40% → DITOLAK\n❌ Skip Order: Termin 2 sebelum T1 approved → DITOLAK\n❌ Exceed 70%: Total > 70% site budget → DITOLAK\n❌ Invalid termin_ke: termin_ke = 5 → DITOLAK\n\n═══════════════════════════════════════════\n\n📝 TESTING FLOW:\n1. Buat site dengan maximal_budget yang cukup (min 100jt)\n2. Test termin dengan jumlah flexible dalam 70% limit\n3. Approve setiap termin sebelum buat termin berikutnya\n4. Test validation dengan error scenarios (❌ requests)\n\n═══════════════════════════════════════════"
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 1 (VALID - 30%)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -899,7 +917,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 50000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"status\": \"draft\",\n  \"keterangan\": \"pengajuan termin 2\"\n}"
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/termins",
@@ -914,7 +932,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Termin (Direct Submit)",
+					"name": "✅ Create Termin 2 (VALID - 50%)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -925,7 +943,137 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 25000000,\n  \"termin_ke\": 1,\n  \"percentage\": 25,\n  \"keterangan\": \"pengajuan termin 1\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 3 (VALID - 10%)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_3\",\n  \"tgl_terima\": \"2026-03-01\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 3,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 3 - 10% dari budget\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 4 (VALID - 10%)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_4\",\n  \"tgl_terima\": \"2026-03-15\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 4,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 4 - 10% dari budget (final)\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "❌ TEST: Wrong Percentage Pattern",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 40000000,\n  \"termin_ke\": 1,\n  \"percentage\": 40,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena Termin 1 harus 30%\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "❌ TEST: Skip Sequential Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Test validasi - seharusnya ditolak jika Termin 1 belum approved\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "❌ TEST: Invalid termin_ke (5)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_5\",\n  \"tgl_terima\": \"2026-03-20\",\n  \"jumlah\": 5000000,\n  \"termin_ke\": 5,\n  \"percentage\": 10,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena termin_ke hanya 1-4\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/termins",

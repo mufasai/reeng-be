@@ -4,7 +4,31 @@
 
 ---
 
-## � Changelog
+## 📋 Changelog
+
+### v1.3.1 (2026-02-26)
+**💡 Termin Flexible Amount - Design Optimization**
+- ✅ **Jumlah Flexible:** Field `jumlah` tidak lagi wajib match dengan `percentage × maximal_budget`
+- ✅ **Percentage as Label:** Field `percentage` tetap terkunci (30-50-10-10) sebagai struktur termin
+- ✅ **70% Compliance:** Memungkinkan semua 4 termin dibuat dalam limit 70% dengan adjust jumlah
+- 🎯 **Rationale:** Menyelesaikan konflik antara pattern 30-50-10-10 (=100%) dengan limit 70%
+- 📝 **Example:** Termin 2 (50%) bisa diisi jumlah 20 juta (tidak harus 50 juta dari budget 100 juta)
+- 🔧 **Changed:** Removed exact amount validation, kept percentage pattern + sequential + 70% limit
+
+### v1.3.0 (2026-02-26)
+**🔒 Termin Business Rules Enforcement - Critical Validations**
+- ✅ **VALIDASI 1:** Enforcement pola percentage terkunci (30%-50%-10%-10%)
+  - Termin 1 WAJIB 30%, Termin 2 WAJIB 50%, Termin 3 WAJIB 10%, Termin 4 WAJIB 10%
+  - Request dengan percentage berbeda akan ditolak dengan error
+- ✅ **VALIDASI 2:** Sequential termin dependency check
+  - Termin hanya bisa dibuat setelah termin sebelumnya berstatus "approved" atau "paid"
+  - Mencegah pembuatan termin secara paralel atau melompat urutan
+- ✅ **VALIDASI 3:** Maximum payment limit 70% dari site value
+  - Total kumulatif semua termin tidak boleh melebihi 70% dari `maximal_budget`
+  - Sistem menghitung jumlah total termin existing + termin baru
+  - Mencegah overpayment di level site
+- ✅ Field `termin_ke` dan `percentage` sekarang **REQUIRED** (tidak lagi optional)
+- 🎯 **Impact:** Sistem sekarang fully compliant dengan business rules untuk mencegah kebocoran budget
 
 ### v1.2.1 (2026-02-26)
 **Termin Payment - Add Payment Reference Field**
@@ -670,20 +694,76 @@
 - `site_id` (string, required): ID site (format: "sites:xxx")
 - `type_termin` (string, required): Tipe termin (e.g., "TERMIN_1", "TERMIN_2")
 - `tgl_terima` (string, optional): Tanggal terima (format: YYYY-MM-DD)
-- `jumlah` (integer, required): Jumlah pembayaran termin dalam Rupiah
-- `termin_ke` (integer, **optional**): Urutan termin (1, 2, 3, 4, dst) - **Direkomendasikan untuk termin baru**
-- `percentage` (integer, **optional**): Persentase dari maximal_budget (25, 50, 10, 10) - **Direkomendasikan untuk termin baru**
+- `jumlah` (integer, required): Jumlah pembayaran termin dalam Rupiah - **FLEXIBLE, tidak harus match dengan percentage**
+- `termin_ke` (integer, **REQUIRED**): Urutan termin (1, 2, 3, atau 4) - **WAJIB diisi**
+- `percentage` (integer, **REQUIRED**): Persentase dari maximal_budget - **WAJIB sesuai pola: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%**
 - `status` (string, optional): Status termin (default: "draft")
 - `keterangan` (string, optional): Keterangan tambahan
 - `submitted_by` (string, optional): Nama pengaju. Jika diisi, termin langsung berstatus "pending_review"
 
-**📝 Catatan Field Optional:**
-- Field `termin_ke` dan `percentage` bersifat optional untuk backward compatibility dengan data lama
-- Untuk termin baru, **sangat direkomendasikan** mengisi kedua field ini untuk validasi otomatis
+**🔒 VALIDASI KETAT (Business Rules):**
 
-**⚠️ Validasi Otomatis:**
-Jika `percentage` diisi, sistem akan memvalidasi bahwa `jumlah` sesuai dengan `percentage × site.maximal_budget`.
-Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
+1. **Pola Percentage Terkunci (Struktur):**
+   - Termin 1 HARUS 30%
+   - Termin 2 HARUS 50%
+   - Termin 3 HARUS 10%
+   - Termin 4 HARUS 10%
+   - Tidak bisa menggunakan percentage lain. Request akan ditolak.
+   - **CATATAN:** Percentage adalah label/struktur termin, bukan constraint jumlah pembayaran
+
+2. **Urutan Sequential:**
+   - Termin 2 hanya bisa dibuat setelah Termin 1 berstatus "approved" atau "paid"
+   - Termin 3 hanya bisa dibuat setelah Termin 2 berstatus "approved" atau "paid"
+   - Termin 4 hanya bisa dibuat setelah Termin 3 berstatus "approved" atau "paid"
+   - Tidak bisa skip termin atau buat termin secara paralel
+
+3. **Maksimal Pembayaran 70% (Hard Limit):**
+   - Total semua termin (yang sudah ada + yang baru diajukan) tidak boleh melebihi 70% dari `maximal_budget` site
+   - Contoh: Site budget 100 juta → maksimal total pembayaran 70 juta
+   - Sistem akan menghitung total kumulatif dan menolak jika melebihi batas
+   - **PENTING:** Karena limit 70%, Anda bisa adjust `jumlah` setiap termin agar fit dalam limit ini
+
+4. **Jumlah Flexible:**
+   - `jumlah` TIDAK wajib sama dengan `percentage × site.maximal_budget`
+   - Field `percentage` adalah label/struktur termin (30-50-10-10), bukan constraint jumlah
+   - Anda bebas mengisi `jumlah` berapa saja, selama total ≤ 70% dari site budget
+   - **Contoh:** Site 100 juta, Termin 2 (50%) bisa diisi 20 juta atau 30 juta (tidak harus 50 juta)
+
+**✅ Contoh Skenario yang DITERIMA:**
+
+```json
+// Site budget: 100 juta, Max total: 70 juta
+// Termin 1 (30%): 25 juta → ✅ OK (not exactly 30 juta, but within 70% limit)
+// Termin 2 (50%): 30 juta → ✅ OK (not exactly 50 juta, but total 55 juta < 70 juta)
+// Termin 3 (10%): 10 juta → ✅ OK (total 65 juta < 70 juta)
+// Termin 4 (10%): 5 juta  → ✅ OK (total 70 juta = exactly 70%)
+```
+
+**⚠️ Contoh Skenario yang DITOLAK:**
+
+```json
+// ❌ DITOLAK: Percentage tidak sesuai pola
+{
+  "termin_ke": 1,
+  "percentage": 40,  // Seharusnya 30%
+  "jumlah": 40000000
+}
+// Error: "Termin 1 harus memiliki percentage 30%, bukan 40%"
+
+// ❌ DITOLAK: Termin 2 dibuat sebelum Termin 1 approved
+{
+  "termin_ke": 2,
+  "percentage": 50,
+  "jumlah": 50000000
+}
+// Error: "Termin 1 harus disetujui direktur terlebih dahulu"
+
+// ❌ DITOLAK: Total melebihi 70%
+// Site budget: 100 juta (max: 70 juta)
+// Already: Termin 1 (25 jt) + Termin 2 (40 jt) = 65 juta
+// New: Termin 3 (10 jt) → Total akan 75 juta > 70 juta ❌
+// Error: "Total pembayaran (75000000) melebihi batas maksimal 70% (70000000)"
+```
 
 **Response (200 OK - Draft):**
 ```json
@@ -735,12 +815,48 @@ Jika tidak sesuai (toleransi 1%), request akan ditolak dengan pesan error.
 }
 ```
 
-**Response (400 Validation Failed):**
+**Response (400 Validation Failed - Wrong Percentage Pattern):**
 ```json
 {
   "success": false,
   "data": null,
-  "message": "Validation failed: jumlah (10000000) does not match expected amount (25000000) based on 50% of site maximal_budget (50000000)"
+  "message": "Validation failed: Termin 1 harus memiliki percentage 30%, bukan 40%. Pola yang benar: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%"
+}
+```
+
+**Response (400 Validation Failed - Previous Termin Not Approved):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Validation failed: Termin 1 harus disetujui direktur (status: approved) terlebih dahulu sebelum mengajukan Termin 2. Status Termin 1 saat ini: pending_review"
+}
+```
+
+**Response (400 Validation Failed - Exceeds 70% Limit):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Validation failed: Total pembayaran (Rp 90000000) melebihi batas maksimal 70% dari nilai site (Rp 70000000). Total saat ini: Rp 80000000, Termin baru: Rp 10000000, Sisa kuota: Rp -10000000"
+}
+```
+
+**Response (400 Validation Failed - Wrong Amount):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Validation failed: jumlah (10000000) does not match expected amount (30000000) based on 30% of site maximal_budget (100000000)"
+}
+```
+
+**Response (400 Validation Failed - Invalid termin_ke):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Validation failed: termin_ke must be between 1-4. Got: 5"
 }
 ```
 
