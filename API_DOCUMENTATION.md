@@ -6,6 +6,17 @@
 
 ## 📋 Changelog
 
+### v1.4.0 (2026-02-27)
+**👥 User Management & Registration System**
+- ✅ Implementasi endpoint **Register** dengan pilihan role
+- ✅ Implementasi **User Management** CRUD (Create, Read, Update, Delete)
+- ✅ Update model User dengan field `role` (required)
+- ✅ 6 role yang tersedia: backoffice admin, management, team leader, finance, engineer, admin
+- ✅ Validasi email uniqueness saat register
+- ✅ Password hashing untuk keamanan
+- ✅ Update Login untuk menggunakan database users
+- 🎯 **Impact:** Sistem sekarang mendukung multi-user dengan role-based access
+
 ### v1.3.1 (2026-02-26)
 **💡 Termin Flexible Amount - Design Optimization**
 - ✅ **Jumlah Flexible:** Field `jumlah` tidak lagi wajib match dengan `percentage × maximal_budget`
@@ -61,7 +72,62 @@
 
 ---
 
-## �🔐 Authentication
+## 🔐 Authentication & User Management
+
+### Register
+**POST** `/auth/register`
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john.doe@smartelco.com",
+  "password": "securepassword123",
+  "role": "engineer"
+}
+```
+
+**Available Roles:**
+- `backoffice admin`
+- `management`
+- `team leader`
+- `finance`
+- `engineer`
+- `admin`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "users:abc123def456",
+    "name": "John Doe",
+    "email": "john.doe@smartelco.com",
+    "role": "engineer"
+  },
+  "message": "User registered successfully"
+}
+```
+
+**Response (Error - Email Already Exists):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Email already registered"
+}
+```
+
+**Response (Error - Invalid Email):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Invalid email format"
+}
+```
+
+---
 
 ### Login
 **POST** `/auth/login`
@@ -69,8 +135,8 @@
 **Request Body:**
 ```json
 {
-  "email": "admin@smartelco.com",
-  "password": "admin123"
+  "email": "john.doe@smartelco.com",
+  "password": "securepassword123"
 }
 ```
 
@@ -78,11 +144,12 @@
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "token_john.doe@smartelco.com_1709049600",
   "user": {
-    "email": "admin@smartelco.com",
-    "nama": "Administrator",
-    "role": "admin"
+    "id": "users:abc123def456",
+    "name": "John Doe",
+    "email": "john.doe@smartelco.com",
+    "role": "engineer"
   },
   "message": "Login successful"
 }
@@ -95,6 +162,129 @@
   "token": null,
   "user": null,
   "message": "Invalid credentials"
+}
+```
+
+---
+
+### Get All Users
+**GET** `/users`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "users:abc123def456",
+      "name": "John Doe",
+      "email": "john.doe@smartelco.com",
+      "role": "engineer",
+      "email_verified_at": null,
+      "remember_token": null,
+      "created_at": "2026-02-27T10:30:00Z",
+      "updated_at": "2026-02-27T10:30:00Z"
+    },
+    {
+      "id": "users:xyz789ghi012",
+      "name": "Jane Smith",
+      "email": "jane.smith@smartelco.com",
+      "role": "finance",
+      "email_verified_at": null,
+      "remember_token": null,
+      "created_at": "2026-02-27T11:00:00Z",
+      "updated_at": "2026-02-27T11:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Get User By ID
+**GET** `/users/:user_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "users:abc123def456",
+    "name": "John Doe",
+    "email": "john.doe@smartelco.com",
+    "role": "engineer",
+    "email_verified_at": null,
+    "remember_token": null,
+    "created_at": "2026-02-27T10:30:00Z",
+    "updated_at": "2026-02-27T10:30:00Z"
+  },
+  "message": null
+}
+```
+
+**Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "User not found"
+}
+```
+
+---
+
+### Update User
+**PUT** `/users/:user_id`
+
+**Request Body (all fields optional):**
+```json
+{
+  "name": "John Doe Updated",
+  "email": "john.updated@smartelco.com",
+  "role": "team leader",
+  "password": "newpassword123"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "users:abc123def456",
+    "name": "John Doe Updated",
+    "email": "john.updated@smartelco.com",
+    "role": "team leader",
+    "email_verified_at": null,
+    "remember_token": null,
+    "created_at": "2026-02-27T10:30:00Z",
+    "updated_at": "2026-02-27T14:25:00Z"
+  },
+  "message": "User updated successfully"
+}
+```
+
+**Response (Error - No Fields):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "No fields to update"
+}
+```
+
+---
+
+### Delete User
+**DELETE** `/users/:user_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "User deleted successfully"
 }
 ```
 

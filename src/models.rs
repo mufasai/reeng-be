@@ -20,6 +20,27 @@ mod thing_serializer {
 
 // ==================== AUTH MODELS ====================
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum UserRole {
+    #[serde(rename = "backoffice admin")]
+    BackofficeAdmin,
+    Management,
+    #[serde(rename = "team leader")]
+    TeamLeader,
+    Finance,
+    Engineer,
+    Admin,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegisterRequest {
+    pub name: String,
+    pub email: String,
+    pub password: String,
+    pub role: UserRole,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoginRequest {
     pub email: String,
@@ -36,8 +57,9 @@ pub struct LoginResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserInfo {
+    pub id: String,
+    pub name: String,
     pub email: String,
-    pub nama: String,
     pub role: String,
 }
 
@@ -636,6 +658,7 @@ pub struct User {
     pub id: Option<Thing>,
     pub name: String,
     pub email: String,
+    pub role: String,
     pub email_verified_at: Option<String>,
     #[serde(skip_serializing)]
     pub password: String,
@@ -651,6 +674,15 @@ pub struct CreateUserRequest {
     pub name: String,
     pub email: String,
     pub password: String,
+    pub role: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateUserRequest {
+    pub name: Option<String>,
+    pub email: Option<String>,
+    pub role: Option<String>,
+    pub password: Option<String>,
 }
 
 // ==================== RESPONSE WRAPPER ====================

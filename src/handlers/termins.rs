@@ -3,7 +3,6 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::Deserialize;
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 use crate::models::{

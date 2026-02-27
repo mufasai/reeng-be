@@ -44,7 +44,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/api/health", get(health_check))
         // Auth routes
+        .route("/api/auth/register", post(auth::register))
         .route("/api/auth/login", post(auth::login))
+        // User management routes
+        .route("/api/users", get(auth::get_all_users))
+        .route("/api/users/:user_id", get(auth::get_user_by_id))
+        .route("/api/users/:user_id", put(auth::update_user))
+        .route("/api/users/:user_id", delete(auth::delete_user))
         // Project routes
         .route("/api/projects", post(project::create_project))
         .route("/api/projects", get(project::list_projects))
@@ -110,8 +116,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Server starting on http://{}", addr);
     println!("📝 Available endpoints:");
     println!("  GET    /api/health");
-    println!("\n🔐 Auth:");
+    println!("\n🔐 Auth & User Management:");
+    println!("  POST   /api/auth/register");
     println!("  POST   /api/auth/login");
+    println!("  GET    /api/users");
+    println!("  GET    /api/users/:user_id");
+    println!("  PUT    /api/users/:user_id");
+    println!("  DELETE /api/users/:user_id");
     println!("\n📊 Projects:");
     println!("  POST   /api/projects");
     println!("  GET    /api/projects");
@@ -167,9 +178,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  POST   /api/termin-files");
     println!("  GET    /api/termins/:termin_id/files");
     println!("  DELETE /api/termin-files/:file_id/delete");
-    println!("\n✅ Login credentials for testing:");
-    println!("   Email: admin@smartelco.com");
-    println!("   Password: admin123");
+    println!("\n📝 Available roles for registration:");
+    println!("   - backoffice admin");
+    println!("   - management");
+    println!("   - team leader");
+    println!("   - finance");
+    println!("   - engineer");
+    println!("   - admin");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
