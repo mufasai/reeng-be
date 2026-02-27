@@ -1283,8 +1283,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"payer_name\": \"Siti Nurhaliza (Finance)\",\n  \"jumlah_dibayar\": 25000000,\n  \"referensi_pembayaran\": \"TRF-12345B\",\n  \"catatan_pembayaran\": \"Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425\",\n  \"bukti_pembayaran\": \"https://storage.smartelco.com/bukti/termin1-payment.pdf\"\n}"
+							"raw": "{\n  \"payer_name\": \"Siti Nurhaliza (Finance)\",\n  \"jumlah_dibayar\": 25000000,\n  \"referensi_pembayaran\": \"TRF-12345B\",\n  \"catatan_pembayaran\": \"Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425\",\n  \"bukti_pembayaran\": \"https://storage.smartelco.com/bukti/termin1-payment.pdf\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
 						},
+						"description": "⚠️ PENTING - Field Descriptions:\n\n- `referensi_pembayaran` = NOMOR REFERENSI (text) seperti \"TRF-12345B\", \"CEK-001\"\n- `bukti_pembayaran` = URL/PATH FILE (string) seperti \"https://storage.../proof.pdf\"\n\n❌ JANGAN TERTUKAR! Referensi adalah nomor, Bukti adalah file path/URL",
 						"url": {
 							"raw": "{{base_url}}/termins/{{termin_id_only}}/pay",
 							"host": [

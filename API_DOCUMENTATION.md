@@ -1049,9 +1049,14 @@
 **Field Definitions:**
 - `payer_name` (string, required): Nama petugas Finance yang memproses
 - `jumlah_dibayar` (integer, required): Jumlah yang dibayarkan (dalam Rupiah)
-- `referensi_pembayaran` (string, required): Nomor referensi pembayaran (e.g., TRF-12345B, INV-001, dst)
+- `referensi_pembayaran` (string, required): **Nomor referensi pembayaran** seperti nomor transfer, nomor cek, dll (e.g., TRF-12345B, INV-001, CEK-2026-001)
 - `catatan_pembayaran` (string, optional): Catatan/keterangan pembayaran
-- `bukti_pembayaran` (string, optional): URL/path bukti pembayaran
+- `bukti_pembayaran` (string, optional): **URL/path file bukti pembayaran** (screenshot transfer, PDF, image, dll)  
+
+⚠️ **PENTING - JANGAN TERTUKAR!**
+- ✅ `referensi_pembayaran` = Text/string nomor referensi (e.g., "TRF-20260220-001")
+- ✅ `bukti_pembayaran` = URL/path file bukti (e.g., "https://storage.../proof.pdf")  
+- ❌ JANGAN: bukti_pembayaran = "TRF-20260220-001" (ini salah!)
 
 **Response (200 OK):**
 ```json
