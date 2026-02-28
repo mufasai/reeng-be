@@ -612,6 +612,62 @@ pub struct PayTerminRequest {
     pub bukti_pembayaran: Option<String>,
 }
 
+// ==================== TERMIN WITH SITE INFO MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminSiteInfo {
+    pub site_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminWithSiteInfo {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub project_id: Option<Thing>,
+    pub site_id: Option<TerminSiteInfo>,
+    pub type_termin: String,
+    pub tgl_terima: Option<String>,
+    pub jumlah: i64,
+    pub termin_ke: Option<i32>,
+    pub percentage: Option<i32>,
+    pub status: String,
+    pub keterangan: Option<String>,
+    
+    // Submit tracking
+    pub submitted_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+    
+    // Field Head Review tracking
+    pub reviewed_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub catatan_review: Option<String>,
+    
+    // Director Approval tracking
+    pub approved_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approved_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub catatan_approval: Option<String>,
+    
+    // Finance Payment tracking
+    pub paid_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub paid_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub jumlah_dibayar: Option<i64>,
+    pub referensi_pembayaran: Option<String>,
+    pub catatan_pembayaran: Option<String>,
+    pub bukti_pembayaran: Option<String>,
+    
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+// ==================== TERMIN FILE MODELS ====================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminFile {
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]

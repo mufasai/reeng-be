@@ -6,7 +6,8 @@ use axum::{
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 use crate::models::{
-    ApiResponse, Site, Termin, TerminFile, CreateTerminRequest, UpdateTerminRequest,
+    ApiResponse, Site, Termin, TerminFile, TerminWithSiteInfo, TerminSiteInfo, 
+    CreateTerminRequest, UpdateTerminRequest,
     CreateTerminFileRequest, SubmitTerminRequest, ReviewTerminRequest, ApproveTerminRequest, PayTerminRequest,
 };
 use crate::state::AppState;
@@ -235,18 +236,73 @@ pub async fn create_termin(
 
 pub async fn list_termins(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<ApiResponse<Vec<Termin>>>, StatusCode> {
+) -> Result<Json<ApiResponse<Vec<TerminWithSiteInfo>>>, StatusCode> {
+    // Fetch all termins
     let query = "SELECT * FROM termins ORDER BY created_at DESC";
 
     let mut result = state.db.query(query)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let termins: Vec<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termins: Vec<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Map to TerminWithSiteInfo
+    let mut termins_with_site: Vec<TerminWithSiteInfo> = Vec::new();
+    
+    for termin in termins {
+        // Fetch site details
+        let site_name = if let Some(ref site_id) = termin.site_id {
+            let site_query = "SELECT * FROM type::thing($site_id)";
+            let mut site_result = state.db.query(site_query)
+                .bind(("site_id", site_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let site: Option<Site> = site_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            site.map(|s| s.site_name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
+        // Build TerminWithSiteInfo
+        let termin_with_site = TerminWithSiteInfo {
+            id: termin.id,
+            project_id: termin.project_id,
+            site_id: Some(TerminSiteInfo { site_name }),
+            type_termin: termin.type_termin,
+            tgl_terima: termin.tgl_terima,
+            jumlah: termin.jumlah,
+            termin_ke: termin.termin_ke,
+            percentage: termin.percentage,
+            status: termin.status,
+            keterangan: termin.keterangan,
+            submitted_by: termin.submitted_by,
+            submitted_at: termin.submitted_at,
+            reviewed_by: termin.reviewed_by,
+            reviewed_at: termin.reviewed_at,
+            catatan_review: termin.catatan_review,
+            approved_by: termin.approved_by,
+            approved_at: termin.approved_at,
+            catatan_approval: termin.catatan_approval,
+            paid_by: termin.paid_by,
+            paid_at: termin.paid_at,
+            jumlah_dibayar: termin.jumlah_dibayar,
+            referensi_pembayaran: termin.referensi_pembayaran,
+            catatan_pembayaran: termin.catatan_pembayaran,
+            bukti_pembayaran: termin.bukti_pembayaran,
+            created_at: termin.created_at,
+            updated_at: termin.updated_at,
+        };
+        
+        termins_with_site.push(termin_with_site);
+    }
 
     Ok(Json(ApiResponse {
         success: true,
-        data: Some(termins),
+        data: Some(termins_with_site),
         message: None,
     }))
 }
@@ -254,7 +310,8 @@ pub async fn list_termins(
 pub async fn get_termins_by_project(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<String>,
-) -> Result<Json<ApiResponse<Vec<Termin>>>, StatusCode> {
+) -> Result<Json<ApiResponse<Vec<TerminWithSiteInfo>>>, StatusCode> {
+    // Fetch all termins for the project
     let query = "SELECT * FROM termins WHERE project_id = type::thing('projects', $id) ORDER BY created_at DESC";
 
     let mut result = state.db.query(query)
@@ -262,11 +319,65 @@ pub async fn get_termins_by_project(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let termins: Vec<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termins: Vec<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Map to TerminWithSiteInfo
+    let mut termins_with_site: Vec<TerminWithSiteInfo> = Vec::new();
+    
+    for termin in termins {
+        // Fetch site details
+        let site_name = if let Some(ref site_id) = termin.site_id {
+            let site_query = "SELECT * FROM type::thing($site_id)";
+            let mut site_result = state.db.query(site_query)
+                .bind(("site_id", site_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let site: Option<Site> = site_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            site.map(|s| s.site_name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
+        // Build TerminWithSiteInfo
+        let termin_with_site = TerminWithSiteInfo {
+            id: termin.id,
+            project_id: termin.project_id,
+            site_id: Some(TerminSiteInfo { site_name }),
+            type_termin: termin.type_termin,
+            tgl_terima: termin.tgl_terima,
+            jumlah: termin.jumlah,
+            termin_ke: termin.termin_ke,
+            percentage: termin.percentage,
+            status: termin.status,
+            keterangan: termin.keterangan,
+            submitted_by: termin.submitted_by,
+            submitted_at: termin.submitted_at,
+            reviewed_by: termin.reviewed_by,
+            reviewed_at: termin.reviewed_at,
+            catatan_review: termin.catatan_review,
+            approved_by: termin.approved_by,
+            approved_at: termin.approved_at,
+            catatan_approval: termin.catatan_approval,
+            paid_by: termin.paid_by,
+            paid_at: termin.paid_at,
+            jumlah_dibayar: termin.jumlah_dibayar,
+            referensi_pembayaran: termin.referensi_pembayaran,
+            catatan_pembayaran: termin.catatan_pembayaran,
+            bukti_pembayaran: termin.bukti_pembayaran,
+            created_at: termin.created_at,
+            updated_at: termin.updated_at,
+        };
+        
+        termins_with_site.push(termin_with_site);
+    }
 
     Ok(Json(ApiResponse {
         success: true,
-        data: Some(termins),
+        data: Some(termins_with_site),
         message: None,
     }))
 }
@@ -274,7 +385,8 @@ pub async fn get_termins_by_project(
 pub async fn get_termins_by_site(
     State(state): State<Arc<AppState>>,
     Path(site_id): Path<String>,
-) -> Result<Json<ApiResponse<Vec<Termin>>>, StatusCode> {
+) -> Result<Json<ApiResponse<Vec<TerminWithSiteInfo>>>, StatusCode> {
+    // Fetch all termins for the site
     let query = "SELECT * FROM termins WHERE site_id = type::thing('sites', $id) ORDER BY created_at DESC";
 
     let mut result = state.db.query(query)
@@ -282,11 +394,65 @@ pub async fn get_termins_by_site(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let termins: Vec<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termins: Vec<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Map to TerminWithSiteInfo
+    let mut termins_with_site: Vec<TerminWithSiteInfo> = Vec::new();
+    
+    for termin in termins {
+        // Fetch site details
+        let site_name = if let Some(ref site_id) = termin.site_id {
+            let site_query = "SELECT * FROM type::thing($site_id)";
+            let mut site_result = state.db.query(site_query)
+                .bind(("site_id", site_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let site: Option<Site> = site_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            site.map(|s| s.site_name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
+        // Build TerminWithSiteInfo
+        let termin_with_site = TerminWithSiteInfo {
+            id: termin.id,
+            project_id: termin.project_id,
+            site_id: Some(TerminSiteInfo { site_name }),
+            type_termin: termin.type_termin,
+            tgl_terima: termin.tgl_terima,
+            jumlah: termin.jumlah,
+            termin_ke: termin.termin_ke,
+            percentage: termin.percentage,
+            status: termin.status,
+            keterangan: termin.keterangan,
+            submitted_by: termin.submitted_by,
+            submitted_at: termin.submitted_at,
+            reviewed_by: termin.reviewed_by,
+            reviewed_at: termin.reviewed_at,
+            catatan_review: termin.catatan_review,
+            approved_by: termin.approved_by,
+            approved_at: termin.approved_at,
+            catatan_approval: termin.catatan_approval,
+            paid_by: termin.paid_by,
+            paid_at: termin.paid_at,
+            jumlah_dibayar: termin.jumlah_dibayar,
+            referensi_pembayaran: termin.referensi_pembayaran,
+            catatan_pembayaran: termin.catatan_pembayaran,
+            bukti_pembayaran: termin.bukti_pembayaran,
+            created_at: termin.created_at,
+            updated_at: termin.updated_at,
+        };
+        
+        termins_with_site.push(termin_with_site);
+    }
 
     Ok(Json(ApiResponse {
         success: true,
-        data: Some(termins),
+        data: Some(termins_with_site),
         message: None,
     }))
 }
