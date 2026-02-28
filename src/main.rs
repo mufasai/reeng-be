@@ -185,6 +185,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - finance");
     println!("   - engineer");
     println!("   - admin");
+    println!("   - direktur");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

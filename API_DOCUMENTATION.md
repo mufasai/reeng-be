@@ -6,6 +6,30 @@
 
 ## 📋 Changelog
 
+### v1.5.0 (2026-02-28)
+**🔄 File Storage Optimization & Role Addition**
+- ✅ **BREAKING CHANGE:** File storage dipisahkan ke tabel terpisah `bukti_pembayaran_files`
+- ✅ Field `bukti_pembayaran` dihapus dari model `Termin` (hanya metadata yang tersisa)
+- ✅ Tabel `termins` sekarang hanya menyimpan metadata: `bukti_pembayaran_filename`, `bukti_pembayaran_mime_type`, `bukti_pembayaran_size`
+- ✅ Base64 content disimpan di tabel `bukti_pembayaran_files` dengan referensi `termin_id`
+- ✅ Endpoint download tetap sama: `/termins/:id/bukti-pembayaran`
+- ✅ Tambah endpoint cleanup: `POST /termins/cleanup/old-bukti-pembayaran` untuk migrasi data lama
+- ✅ **NEW ROLE:** Tambah role `direktur` ke sistem user management
+- 🎯 **Impact:** Database termins lebih bersih di Surrealist Explorer, tidak ada string base64 panjang
+- 📊 **Benefits:** Improved query performance, cleaner table view, better data organization
+- 👥 **Roles:** 7 role tersedia: backoffice admin, management, team leader, finance, engineer, admin, **direktur**
+
+### v1.4.1 (2026-02-27)
+**📎 Payment File Upload - Direct Database Storage**
+- ✅ **BREAKING CHANGE:** Endpoint `/termins/:id/pay` sekarang menggunakan **multipart/form-data**
+- ✅ Field `bukti_pembayaran` sekarang menerima **file upload langsung**
+- ✅ **File disimpan langsung ke database SurrealDB sebagai base64** (BUKAN ke disk!)
+- ✅ Tambah field metadata: `bukti_pembayaran_filename`, `bukti_pembayaran_mime_type`, `bukti_pembayaran_size`
+- ✅ Response berisi base64 encoded file content yang bisa di-decode kembali
+- ✅ Support berbagai format: PDF, JPG, PNG, TXT, dll
+- 🎯 **Impact:** File bukti pembayaran tersimpan aman di database, tidak perlu storage eksternal
+- ⚠️ **Migration Note:** Frontend perlu update dari JSON request ke multipart form-data
+
 ### v1.4.0 (2026-02-27)
 **👥 User Management & Registration System**
 - ✅ Implementasi endpoint **Register** dengan pilihan role
@@ -94,6 +118,7 @@
 - `finance`
 - `engineer`
 - `admin`
+- `direktur`
 
 **Response (200 OK):**
 ```json
@@ -1225,28 +1250,42 @@
 ### Pay Termin (Finance)
 **POST** `/termins/:termin_id/pay`
 
-**Request Body:**
-```json
-{
-  "payer_name": "Siti Nurhaliza (Finance)",
-  "jumlah_dibayar": 25000000,
-  "referensi_pembayaran": "TRF-12345B",
-  "catatan_pembayaran": "Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425",
-  "bukti_pembayaran": "https://storage.smartelco.com/bukti/termin1-payment.pdf"
-}
-```
+**Content-Type:** `multipart/form-data`
+
+⚠️ **PERUBAHAN PENTING:** Endpoint ini sekarang menggunakan **multipart/form-data** untuk upload file bukti pembayaran. File akan **disimpan langsung ke database SurrealDB sebagai base64**, bukan ke disk!
+
+**Request Body (Form Data):**
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `approved_by` | text | ✅ Yes | ID user yang login yang meng-approve pembayaran (tanpa prefix "users:"). Contoh: "7lwx51qk56xe13arlctl" |
+| `jumlah_dibayar` | text | ✅ Yes | Jumlah yang dibayarkan dalam Rupiah (angka, e.g., "25000000") |
+| `referensi_pembayaran` | text | ✅ Yes | Nomor referensi pembayaran seperti nomor transfer, cek (e.g., "TRF-12345B", "CEK-001") |
+| `catatan_pembayaran` | text | ❌ No | Catatan/keterangan tambahan pembayaran |
+| `bukti_pembayaran` | file | ❌ No | **File upload** bukti pembayaran (PDF, JPG, PNG, dll). File akan di-encode ke base64 dan disimpan di database |
 
 **Field Definitions:**
-- `payer_name` (string, required): Nama petugas Finance yang memproses
-- `jumlah_dibayar` (integer, required): Jumlah yang dibayarkan (dalam Rupiah)
-- `referensi_pembayaran` (string, required): **Nomor referensi pembayaran** seperti nomor transfer, nomor cek, dll (e.g., TRF-12345B, INV-001, CEK-2026-001)
-- `catatan_pembayaran` (string, optional): Catatan/keterangan pembayaran
-- `bukti_pembayaran` (string, optional): **URL/path file bukti pembayaran** (screenshot transfer, PDF, image, dll)  
+- `approved_by` (text, required): **ID user yang login** yang meng-approve pembayaran (tanpa prefix "users:")
+  - Sistem akan otomatis ambil nama dan email dari user ID ini
+  - Tidak ada validasi role khusus, user dengan role apapun bisa approve pembayaran
+  - Contoh: "7lwx51qk56xe13arlctl"
+- `jumlah_dibayar` (text, required): Jumlah yang dibayarkan (dalam Rupiah, input sebagai text/string)
+- `referensi_pembayaran` (text, required): **Nomor referensi pembayaran** seperti nomor transfer, nomor cek, dll (e.g., TRF-12345B, INV-001, CEK-2026-001)
+- `catatan_pembayaran` (text, optional): Catatan/keterangan pembayaran
+- `bukti_pembayaran` (file, optional): **Upload file bukti pembayaran** langsung (screenshot transfer, PDF, image, dll)
+  - **File akan di-encode ke base64 dan disimpan langsung ke database**
+  - Response akan berisi base64 string yang bisa di-decode kembali ke file original
+  - Metadata file (filename, MIME type, size) juga disimpan di database
+  - Supported formats: PDF, JPG, JPEG, PNG, TXT, dll
 
-⚠️ **PENTING - JANGAN TERTUKAR!**
-- ✅ `referensi_pembayaran` = Text/string nomor referensi (e.g., "TRF-20260220-001")
-- ✅ `bukti_pembayaran` = URL/path file bukti (e.g., "https://storage.../proof.pdf")  
-- ❌ JANGAN: bukti_pembayaran = "TRF-20260220-001" (ini salah!)
+**Example cURL:**
+```bash
+curl -X POST http://localhost:3000/api/termins/ak0opm1rih5ttaoowc29/pay \
+  -F "approved_by=7lwx51qk56xe13arlctl" \
+  -F "jumlah_dibayar=25000000" \
+  -F "referensi_pembayaran=TRF-12345B" \
+  -F "catatan_pembayaran=Pembayaran termin 1 via transfer BCA" \
+  -F "bukti_pembayaran=@/path/to/payment-proof.pdf"
+```
 
 **Response (200 OK):**
 ```json
@@ -1254,15 +1293,42 @@
   "success": true,
   "data": {
     "status": "paid",
-    "paid_by": "Siti Nurhaliza (Finance)",
-    "paid_at": "2026-02-25T14:00:00Z",
+    "paid_by": "Finance Manager (finance@smartelco.com)",
+    "paid_at": "2026-02-27T14:00:00Z",
     "jumlah_dibayar": 25000000,
     "referensi_pembayaran": "TRF-12345B",
     "catatan_pembayaran": "Pembayaran termin 1...",
-    "bukti_pembayaran": "https://storage.smartelco.com/...",
+    "bukti_pembayaran": "JVBERi0xLjQKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy...",
+    "bukti_pembayaran_filename": "payment-proof.pdf",
+    "bukti_pembayaran_mime_type": "application/pdf",
+    "bukti_pembayaran_size": 123456,
     ...
   },
   "message": "Payment confirmed. Termin completed."
+}
+```
+
+**Field Explanations (Response):**
+- `bukti_pembayaran`: Base64 encoded file content (untuk download/view, decode base64 ini kembali ke file)
+- `bukti_pembayaran_filename`: Nama file original yang di-upload
+- `bukti_pembayaran_mime_type`: MIME type file (e.g., "application/pdf", "image/jpeg")
+- `bukti_pembayaran_size`: Ukuran file dalam bytes
+
+**Response (404 Not Found - User Not Found):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "User not found"
+}
+```
+
+**Response (400 Bad Request - Missing Required Fields):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Bad Request"
 }
 ```
 

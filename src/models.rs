@@ -31,6 +31,7 @@ pub enum UserRole {
     Finance,
     Engineer,
     Admin,
+    Direktur,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

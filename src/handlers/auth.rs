@@ -51,6 +51,7 @@ pub async fn register(
         crate::models::UserRole::Finance => "finance",
         crate::models::UserRole::Engineer => "engineer",
         crate::models::UserRole::Admin => "admin",
+        crate::models::UserRole::Direktur => "direktur",
     };
 
     // Create user

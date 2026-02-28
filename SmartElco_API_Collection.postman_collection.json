@@ -46,7 +46,7 @@
 								}
 							}
 						},
-						"description": "Register a new user with role selection.\n\n**Available Roles:**\n- backoffice admin\n- management\n- team leader\n- finance\n- engineer\n- admin",
+						"description": "Register a new user with role selection.\n\n**Available Roles:**\n- backoffice admin\n- management\n- team leader\n- finance\n- engineer\n- admin\n- direktur",
 						"url": {
 							"raw": "{{base_url}}/auth/register",
 							"host": [
