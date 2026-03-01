@@ -1412,22 +1412,42 @@
 					"name": "Pay Termin (Finance)",
 					"request": {
 						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
+						"header": [],
 						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"payer_name\": \"Siti Nurhaliza (Finance)\",\n  \"jumlah_dibayar\": 25000000,\n  \"referensi_pembayaran\": \"TRF-12345B\",\n  \"catatan_pembayaran\": \"Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425\",\n  \"bukti_pembayaran\": \"https://storage.smartelco.com/bukti/termin1-payment.pdf\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "payer_name",
+									"value": "7lwx51qk56xe13arIctI",
+									"description": "ID user yang login (tanpa 'users:' prefix)",
+									"type": "text"
+								},
+								{
+									"key": "jumlah_dibayar",
+									"value": "25000000",
+									"description": "Jumlah yang dibayarkan dalam Rupiah",
+									"type": "text"
+								},
+								{
+									"key": "referensi_pembayaran",
+									"value": "TRF-12345B",
+									"description": "Nomor referensi pembayaran (TRF, CEK, INV, dll)",
+									"type": "text"
+								},
+								{
+									"key": "catatan_pembayaran",
+									"value": "Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425",
+									"description": "Catatan pembayaran (optional)",
+									"type": "text"
+								},
+								{
+									"key": "bukti_pembayaran",
+									"type": "file",
+									"src": [],
+									"description": "Upload file bukti pembayaran (PDF, JPG, PNG, ...)"
 								}
-							}
+							]
 						},
-						"description": "⚠️ PENTING - Field Descriptions:\n\n- `referensi_pembayaran` = NOMOR REFERENSI (text) seperti \"TRF-12345B\", \"CEK-001\"\n- `bukti_pembayaran` = URL/PATH FILE (string) seperti \"https://storage.../proof.pdf\"\n\n❌ JANGAN TERTUKAR! Referensi adalah nomor, Bukti adalah file path/URL",
 						"url": {
 							"raw": "{{base_url}}/termins/{{termin_id_only}}/pay",
 							"host": [
@@ -1438,7 +1458,28 @@
 								"{{termin_id_only}}",
 								"pay"
 							]
-						}
+						},
+						"description": "Endpoint untuk pembayaran termin oleh Finance. Mendukung upload file bukti pembayaran.\n\n**Form Fields:**\n- `payer_name` - ID user finance yang melakukan pembayaran\n- `jumlah_dibayar` - Jumlah yang dibayarkan (dalam Rupiah)\n- `referensi_pembayaran` - Nomor referensi pembayaran (TRF, CEK, INV, dll)\n- `catatan_pembayaran` - Catatan tambahan (optional)\n- `bukti_pembayaran` - File upload bukti pembayaran (PDF, JPG, PNG)\n\n**Note:** Gunakan tombol \"Send and Download\" di Postman untuk menguji fitur download file."
+					},
+					"response": []
+				},
+				{
+					"name": "Download Bukti Pembayaran",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/download-bukti-pembayaran",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"download-bukti-pembayaran"
+							]
+						},
+						"description": "📥 **Download Bukti Pembayaran File**\n\nEndpoint untuk download file bukti pembayaran yang telah diupload.\n\n**Method:** GET\n\n**Response:**\n- File akan di-download langsung dengan nama file asli\n- Content-Type sesuai dengan mime type file (application/pdf, image/jpeg, dll)\n- Content-Disposition: attachment untuk trigger download\n\n**Cara Test di Postman:**\n1. Klik tombol **Send and Download** (klik dropdown di sebelah tombol Send)\n2. Pilih lokasi penyimpanan file\n3. File akan tersimpan dengan nama asli (e.g., \"kwintansi pak adnan.pdf\")\n\n**Error Responses:**\n- 404: Termin tidak ditemukan atau belum ada bukti pembayaran\n- 400: Invalid termin ID format\n- 500: Error saat decode/process file"
 					},
 					"response": []
 				},

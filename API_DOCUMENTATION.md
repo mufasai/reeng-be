@@ -6,6 +6,20 @@
 
 ## 📋 Changelog
 
+### v1.6.0 (2026-03-01)
+**📥 Unified Payment Endpoint & File Download**
+- ✅ **UNIFIED ENDPOINT:** `/termins/:id/pay` sekarang mendukung 2 content types:
+  - `application/json` - Pembayaran tanpa file
+  - `multipart/form-data` - Pembayaran dengan file upload
+- ✅ **AUTO-DETECT:** Backend otomatis detect Content-Type dan proses sesuai format
+- ✅ **FILE METADATA:** Menyimpan filename, mime_type, dan size terpisah
+- ✅ **CLEAN RESPONSE:** Field base64 di-hide dari JSON response (hanya metadata yang muncul)
+- ✅ **NEW ENDPOINT:** `GET /termins/:id/download-bukti-pembayaran` untuk download file
+- ✅ **DOWNLOAD SUPPORT:** File download dengan nama asli dan mime type correct
+- 🎯 **Impact:** Single endpoint untuk semua payment scenario, user tidak bingung
+- 📥 **Usage:** Di Postman gunakan "Send and Download" untuk test download endpoint
+- 🗄️ **Storage:** Base64 tetap tersimpan di database untuk download, tapi hidden dari response
+
 ### v1.5.0 (2026-02-28)
 **🔄 File Storage Optimization & Role Addition**
 - ✅ **BREAKING CHANGE:** File storage dipisahkan ke tabel terpisah `bukti_pembayaran_files`

@@ -1,6 +1,8 @@
 use axum::{
     extract::{Path, State, Multipart, Request, FromRequest},
-    http::{StatusCode, header},
+    http::{StatusCode, header, HeaderMap, HeaderValue},
+    response::Response,
+    body::Body,
     Json,
 };
 use std::sync::Arc;
@@ -767,15 +769,13 @@ pub async fn pay_termin(
         referensi_pembayaran = referensi_pembayaran_opt.ok_or(StatusCode::BAD_REQUEST)?;
         catatan_pembayaran = catatan_pembayaran_opt;
 
-        // Simpan metadata file saja, TIDAK simpan base64 ke database (terlalu besar)
+        // Convert file ke base64 data URL dan simpan ke database
         if let Some(data) = file_data {
             let file_size = data.len() as i64;
             let mime_type = file_content_type.unwrap_or_else(|| "application/pdf".to_string());
+            let base64_data = base64::engine::general_purpose::STANDARD.encode(&data);
             
-            // TODO: Simpan file ke file system atau cloud storage di sini
-            // Untuk saat ini, hanya simpan metadata tanpa base64
-            
-            bukti_pembayaran = None;  // Tidak simpan base64 ke database
+            bukti_pembayaran = Some(format!("data:{};base64,{}", mime_type, base64_data));
             bukti_pembayaran_filename = file_name;
             bukti_pembayaran_mime_type = Some(mime_type);
             bukti_pembayaran_size = Some(file_size);
@@ -841,6 +841,76 @@ pub async fn pay_termin(
             data: Some(termin),
             message: Some("Payment confirmed. Termin completed.".to_string()),
         })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn download_bukti_pembayaran(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+) -> Result<Response<Body>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Query termin untuk mendapatkan bukti pembayaran
+    let query = "SELECT * FROM $termin_id";
+    
+    let mut result = state.db.query(query)
+        .bind(("termin_id", thing))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match termin {
+        Some(termin) => {
+            // Validasi apakah ada bukti pembayaran
+            let data_url = termin.bukti_pembayaran
+                .ok_or(StatusCode::NOT_FOUND)?;
+            
+            let filename = termin.bukti_pembayaran_filename
+                .unwrap_or_else(|| "bukti_pembayaran.pdf".to_string());
+            let mime_type = termin.bukti_pembayaran_mime_type
+                .unwrap_or_else(|| "application/pdf".to_string());
+
+            // Parse data URL (format: data:mime/type;base64,...)
+            let parts: Vec<&str> = data_url.split(',').collect();
+            if parts.len() != 2 {
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+
+            let base64_data = parts[1];
+            
+            // Decode base64
+            let file_bytes = base64::engine::general_purpose::STANDARD
+                .decode(base64_data)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            // Buat response dengan headers untuk download
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_str(&mime_type)
+                    .unwrap_or(HeaderValue::from_static("application/octet-stream")),
+            );
+            headers.insert(
+                header::CONTENT_DISPOSITION,
+                HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
+                    .unwrap_or(HeaderValue::from_static("attachment; filename=\"bukti_pembayaran.pdf\"")),
+            );
+            headers.insert(
+                header::CONTENT_LENGTH,
+                HeaderValue::from_str(&file_bytes.len().to_string()).unwrap(),
+            );
+
+            let body = Body::from(file_bytes);
+            let mut response = Response::new(body);
+            *response.headers_mut() = headers;
+            *response.status_mut() = StatusCode::OK;
+
+            Ok(response)
+        }
         None => Err(StatusCode::NOT_FOUND),
     }
 }

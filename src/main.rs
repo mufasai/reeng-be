@@ -105,6 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/termins/:termin_id/review", post(termins::review_termin))
         .route("/api/termins/:termin_id/approve", post(termins::approve_termin))
         .route("/api/termins/:termin_id/pay", post(termins::pay_termin))
+        .route("/api/termins/:termin_id/download-bukti-pembayaran", get(termins::download_bukti_pembayaran))
         .route("/api/termin-files", post(termins::create_termin_file))
         .route("/api/termins/:termin_id/files", get(termins::list_termin_files))
         .route("/api/termin-files/:file_id/delete", axum::routing::delete(termins::delete_termin_file))
