@@ -554,7 +554,11 @@ pub struct Termin {
     pub jumlah_dibayar: Option<i64>,
     pub referensi_pembayaran: Option<String>,  // Nomor referensi pembayaran (e.g., TRF-12345B)
     pub catatan_pembayaran: Option<String>,
-    pub bukti_pembayaran: Option<String>,
+    #[serde(skip_serializing)]  // Hide base64 string from response (too long & unclear)
+    pub bukti_pembayaran: Option<String>,  // Base64 data URL of payment proof
+    pub bukti_pembayaran_filename: Option<String>,  // Original filename (e.g., "kwintansi pak adnan.pdf")
+    pub bukti_pembayaran_mime_type: Option<String>,  // MIME type (e.g., "application/pdf")
+    pub bukti_pembayaran_size: Option<i64>,  // File size in bytes
     
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -658,7 +662,11 @@ pub struct TerminWithSiteInfo {
     pub jumlah_dibayar: Option<i64>,
     pub referensi_pembayaran: Option<String>,
     pub catatan_pembayaran: Option<String>,
+    #[serde(skip_serializing)]  // Hide base64 string from response (too long & unclear)
     pub bukti_pembayaran: Option<String>,
+    pub bukti_pembayaran_filename: Option<String>,
+    pub bukti_pembayaran_mime_type: Option<String>,
+    pub bukti_pembayaran_size: Option<i64>,
     
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,

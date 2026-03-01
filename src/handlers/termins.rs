@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
+    extract::{Path, State, Multipart, Request, FromRequest},
+    http::{StatusCode, header},
     Json,
 };
 use std::sync::Arc;
 use surrealdb::sql::Thing;
+use base64::Engine;
 use crate::models::{
     ApiResponse, Site, Termin, TerminFile, TerminWithSiteInfo, TerminSiteInfo, 
     CreateTerminRequest, UpdateTerminRequest,
@@ -293,6 +294,9 @@ pub async fn list_termins(
             referensi_pembayaran: termin.referensi_pembayaran,
             catatan_pembayaran: termin.catatan_pembayaran,
             bukti_pembayaran: termin.bukti_pembayaran,
+            bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
+            bukti_pembayaran_size: termin.bukti_pembayaran_size,
             created_at: termin.created_at,
             updated_at: termin.updated_at,
         };
@@ -368,6 +372,9 @@ pub async fn get_termins_by_project(
             referensi_pembayaran: termin.referensi_pembayaran,
             catatan_pembayaran: termin.catatan_pembayaran,
             bukti_pembayaran: termin.bukti_pembayaran,
+            bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
+            bukti_pembayaran_size: termin.bukti_pembayaran_size,
             created_at: termin.created_at,
             updated_at: termin.updated_at,
         };
@@ -443,6 +450,9 @@ pub async fn get_termins_by_site(
             referensi_pembayaran: termin.referensi_pembayaran,
             catatan_pembayaran: termin.catatan_pembayaran,
             bukti_pembayaran: termin.bukti_pembayaran,
+            bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
+            bukti_pembayaran_size: termin.bukti_pembayaran_size,
             created_at: termin.created_at,
             updated_at: termin.updated_at,
         };
@@ -686,11 +696,115 @@ pub async fn approve_termin(
 pub async fn pay_termin(
     State(state): State<Arc<AppState>>,
     Path(termin_id): Path<String>,
-    Json(req): Json<PayTerminRequest>,
+    request: Request,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
     let thing = Thing::try_from(("termins", termin_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
+    // Deteksi Content-Type untuk menentukan format request
+    let content_type = request
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    let bukti_pembayaran: Option<String>;
+    let bukti_pembayaran_filename: Option<String>;
+    let bukti_pembayaran_mime_type: Option<String>;
+    let bukti_pembayaran_size: Option<i64>;
+    let payer_name: String;
+    let jumlah_dibayar: i64;
+    let referensi_pembayaran: String;
+    let catatan_pembayaran: Option<String>;
+
+    if content_type.starts_with("multipart/form-data") {
+        // Handle multipart/form-data (untuk upload file)
+        let mut multipart = Multipart::from_request(request, &state)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        let mut payer_name_opt: Option<String> = None;
+        let mut jumlah_dibayar_opt: Option<i64> = None;
+        let mut referensi_pembayaran_opt: Option<String> = None;
+        let mut catatan_pembayaran_opt: Option<String> = None;
+        let mut file_data: Option<Vec<u8>> = None;
+        let mut file_content_type: Option<String> = None;
+        let mut file_name: Option<String> = None;
+
+        while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+            let name = field.name().unwrap_or("").to_string();
+            
+            match name.as_str() {
+                "bukti_pembayaran" => {
+                    file_name = field.file_name().map(|s| s.to_string());
+                    file_content_type = field.content_type().map(|s| s.to_string());
+                    let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    file_data = Some(bytes.to_vec());
+                }
+                "payer_name" | "approved_by" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    payer_name_opt = Some(text);
+                }
+                "jumlah_dibayar" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    jumlah_dibayar_opt = text.parse().ok();
+                }
+                "referensi_pembayaran" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    referensi_pembayaran_opt = Some(text);
+                }
+                "catatan_pembayaran" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    catatan_pembayaran_opt = Some(text);
+                }
+                _ => {}
+            }
+        }
+
+        // Validasi field required
+        payer_name = payer_name_opt.ok_or(StatusCode::BAD_REQUEST)?;
+        jumlah_dibayar = jumlah_dibayar_opt.ok_or(StatusCode::BAD_REQUEST)?;
+        referensi_pembayaran = referensi_pembayaran_opt.ok_or(StatusCode::BAD_REQUEST)?;
+        catatan_pembayaran = catatan_pembayaran_opt;
+
+        // Simpan metadata file saja, TIDAK simpan base64 ke database (terlalu besar)
+        if let Some(data) = file_data {
+            let file_size = data.len() as i64;
+            let mime_type = file_content_type.unwrap_or_else(|| "application/pdf".to_string());
+            
+            // TODO: Simpan file ke file system atau cloud storage di sini
+            // Untuk saat ini, hanya simpan metadata tanpa base64
+            
+            bukti_pembayaran = None;  // Tidak simpan base64 ke database
+            bukti_pembayaran_filename = file_name;
+            bukti_pembayaran_mime_type = Some(mime_type);
+            bukti_pembayaran_size = Some(file_size);
+        } else {
+            bukti_pembayaran = None;
+            bukti_pembayaran_filename = None;
+            bukti_pembayaran_mime_type = None;
+            bukti_pembayaran_size = None;
+        }
+    } else {
+        // Handle application/json (untuk pembayaran tanpa file)
+        let body_bytes = axum::body::to_bytes(request.into_body(), usize::MAX)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        
+        let req: PayTerminRequest = serde_json::from_slice(&body_bytes)
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        payer_name = req.payer_name;
+        jumlah_dibayar = req.jumlah_dibayar;
+        referensi_pembayaran = req.referensi_pembayaran;
+        catatan_pembayaran = req.catatan_pembayaran;
+        bukti_pembayaran = req.bukti_pembayaran;
+        bukti_pembayaran_filename = None;  // JSON mode doesn't include file upload
+        bukti_pembayaran_mime_type = None;
+        bukti_pembayaran_size = None;
+    }
+
+    // Update termin dengan data pembayaran
     let query = r#"
         UPDATE $termin_id SET 
             status = 'paid',
@@ -700,16 +814,22 @@ pub async fn pay_termin(
             referensi_pembayaran = $referensi_pembayaran,
             catatan_pembayaran = $catatan_pembayaran,
             bukti_pembayaran = $bukti_pembayaran,
+            bukti_pembayaran_filename = $bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type = $bukti_pembayaran_mime_type,
+            bukti_pembayaran_size = $bukti_pembayaran_size,
             updated_at = time::now()
     "#;
 
     let mut result = state.db.query(query)
         .bind(("termin_id", thing))
-        .bind(("paid_by", req.payer_name.clone()))
-        .bind(("jumlah_dibayar", req.jumlah_dibayar))
-        .bind(("referensi_pembayaran", req.referensi_pembayaran.clone()))
-        .bind(("catatan_pembayaran", req.catatan_pembayaran.clone()))
-        .bind(("bukti_pembayaran", req.bukti_pembayaran.clone()))
+        .bind(("paid_by", payer_name))
+        .bind(("jumlah_dibayar", jumlah_dibayar))
+        .bind(("referensi_pembayaran", referensi_pembayaran))
+        .bind(("catatan_pembayaran", catatan_pembayaran))
+        .bind(("bukti_pembayaran", bukti_pembayaran))
+        .bind(("bukti_pembayaran_filename", bukti_pembayaran_filename))
+        .bind(("bukti_pembayaran_mime_type", bukti_pembayaran_mime_type))
+        .bind(("bukti_pembayaran_size", bukti_pembayaran_size))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
