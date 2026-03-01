@@ -1,10 +1,16 @@
 use axum::{
-    extract::{Path, State},
-    http::StatusCode,
+    extract::{Path, State, Multipart, Request, FromRequest},
+    http::{StatusCode, header},
     Json,
 };
 use std::sync::Arc;
-use crate::models::{ApiResponse, Termin, TerminFile, CreateTerminRequest, CreateTerminFileRequest};
+use surrealdb::sql::Thing;
+use base64::Engine;
+use crate::models::{
+    ApiResponse, Site, Termin, TerminFile, TerminWithSiteInfo, TerminSiteInfo, 
+    CreateTerminRequest, UpdateTerminRequest,
+    CreateTerminFileRequest, SubmitTerminRequest, ReviewTerminRequest, ApproveTerminRequest, PayTerminRequest,
+};
 use crate::state::AppState;
 
 // ==================== TERMIN HANDLERS ====================
@@ -13,30 +19,207 @@ pub async fn create_termin(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateTerminRequest>,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
-    let query = r#"
+    // Step 1: Fetch the site to get maximal_budget for validation
+    let fetch_site_query = "SELECT * FROM type::thing($site_id)";
+    let mut site_result = state.db.query(fetch_site_query)
+        .bind(("site_id", req.site_id.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let site: Option<Site> = site_result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let site = site.ok_or(StatusCode::NOT_FOUND)?;
+    
+    // Step 2: Validate percentage pattern (30%-50%-10%-10%) for termin_ke 1-4
+    let expected_percentage = match req.termin_ke {
+        1 => 30,
+        2 => 50,
+        3 => 10,
+        4 => 10,
+        _ => {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some(format!(
+                    "Validation failed: termin_ke must be between 1-4. Got: {}",
+                    req.termin_ke
+                )),
+            }));
+        }
+    };
+    
+    if req.percentage != expected_percentage {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!(
+                "Validation failed: Termin {} harus memiliki percentage {}%, bukan {}%. Pola yang benar: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%",
+                req.termin_ke, expected_percentage, req.percentage
+            )),
+        }));
+    }
+    
+    // Step 3: Validate previous termin dependency (termin can only be created if previous termin is approved)
+    if req.termin_ke > 1 {
+        let previous_termin_ke = req.termin_ke - 1;
+        let check_previous_query = r#"
+            SELECT * FROM termins 
+            WHERE site_id = type::thing($site_id) 
+            AND termin_ke = $previous_termin_ke 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        "#;
+        
+        let mut previous_result = state.db.query(check_previous_query)
+            .bind(("site_id", req.site_id.clone()))
+            .bind(("previous_termin_ke", previous_termin_ke))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let previous_termin: Option<Termin> = previous_result.take(0)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        match previous_termin {
+            None => {
+                return Ok(Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some(format!(
+                        "Validation failed: Termin {} belum dibuat. Termin harus dibuat secara berurutan.",
+                        previous_termin_ke
+                    )),
+                }));
+            }
+            Some(prev) => {
+                if prev.status != "approved" && prev.status != "paid" {
+                    return Ok(Json(ApiResponse {
+                        success: false,
+                        data: None,
+                        message: Some(format!(
+                            "Validation failed: Termin {} harus disetujui direktur (status: approved) terlebih dahulu sebelum mengajukan Termin {}. Status Termin {} saat ini: {}",
+                            previous_termin_ke, req.termin_ke, previous_termin_ke, prev.status
+                        )),
+                    }));
+                }
+            }
+        }
+    }
+    
+    // Step 4: Validate 70% maximum payment limit
+    // Get sum of all existing termins for this site
+    let sum_query = r#"
+        SELECT * FROM termins 
+        WHERE site_id = type::thing($site_id)
+    "#;
+    
+    let mut sum_result = state.db.query(sum_query)
+        .bind(("site_id", req.site_id.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let existing_termins: Vec<Termin> = sum_result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let current_total: i64 = existing_termins.iter().map(|t| t.jumlah).sum();
+    let max_allowed = (site.maximal_budget * 70) / 100; // 70% dari maximal_budget
+    let new_total = current_total + req.jumlah;
+    
+    if new_total > max_allowed {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!(
+                "Validation failed: Total pembayaran (Rp {}) melebihi batas maksimal 70% dari nilai site (Rp {}). Total saat ini: Rp {}, Termin baru: Rp {}, Sisa kuota: Rp {}",
+                new_total, max_allowed, current_total, req.jumlah, max_allowed - current_total
+            )),
+        }));
+    }
+    
+    // Step 5: Determine status and submit tracking based on submitted_by
+    let (status, submitted_by, _submitted_at) = if let Some(submitter) = &req.submitted_by {
+        ("pending_review".to_string(), Some(submitter.clone()), Some("time::now()"))
+    } else {
+        (req.status.clone().unwrap_or_else(|| "draft".to_string()), None, None)
+    };
+    
+    // Step 6: Create the termin
+    let query = if submitted_by.is_some() {
+        r#"
         CREATE termins CONTENT {
             project_id: type::thing($project_id),
             site_id: type::thing($site_id),
             type_termin: $type_termin,
             tgl_terima: $tgl_terima,
             jumlah: $jumlah,
+            termin_ke: $termin_ke,
+            percentage: $percentage,
             status: $status,
             keterangan: $keterangan,
+            submitted_by: $submitted_by,
+            submitted_at: time::now(),
+            reviewed_by: NONE,
+            reviewed_at: NONE,
+            catatan_review: NONE,
+            approved_by: NONE,
+            approved_at: NONE,
+            catatan_approval: NONE,
+            paid_by: NONE,
+            paid_at: NONE,
+            jumlah_dibayar: NONE,
+            referensi_pembayaran: NONE,
+            catatan_pembayaran: NONE,
+            bukti_pembayaran: NONE,
             created_at: time::now(),
             updated_at: time::now()
         }
-    "#;
+        "#
+    } else {
+        r#"
+        CREATE termins CONTENT {
+            project_id: type::thing($project_id),
+            site_id: type::thing($site_id),
+            type_termin: $type_termin,
+            tgl_terima: $tgl_terima,
+            jumlah: $jumlah,
+            termin_ke: $termin_ke,
+            percentage: $percentage,
+            status: $status,
+            keterangan: $keterangan,
+            submitted_by: NONE,
+            submitted_at: NONE,
+            reviewed_by: NONE,
+            reviewed_at: NONE,
+            catatan_review: NONE,
+            approved_by: NONE,
+            approved_at: NONE,
+            catatan_approval: NONE,
+            paid_by: NONE,
+            paid_at: NONE,
+            jumlah_dibayar: NONE,
+            referensi_pembayaran: NONE,
+            catatan_pembayaran: NONE,
+            bukti_pembayaran: NONE,
+            created_at: time::now(),
+            updated_at: time::now()
+        }
+        "#
+    };
 
-    let status = req.status.unwrap_or_else(|| "pending".to_string());
-
-    let mut result = state.db.query(query)
+    let mut query_builder = state.db.query(query)
         .bind(("project_id", req.project_id.clone()))
         .bind(("site_id", req.site_id.clone()))
         .bind(("type_termin", req.type_termin.clone()))
         .bind(("tgl_terima", req.tgl_terima.clone()))
         .bind(("jumlah", req.jumlah))
+        .bind(("termin_ke", req.termin_ke))
+        .bind(("percentage", req.percentage))
         .bind(("status", status))
-        .bind(("keterangan", req.keterangan.clone()))
+        .bind(("keterangan", req.keterangan.clone()));
+    
+    if let Some(submitter) = submitted_by {
+        query_builder = query_builder.bind(("submitted_by", submitter));
+    }
+    
+    let mut result = query_builder
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -54,18 +237,76 @@ pub async fn create_termin(
 
 pub async fn list_termins(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<ApiResponse<Vec<Termin>>>, StatusCode> {
+) -> Result<Json<ApiResponse<Vec<TerminWithSiteInfo>>>, StatusCode> {
+    // Fetch all termins
     let query = "SELECT * FROM termins ORDER BY created_at DESC";
 
     let mut result = state.db.query(query)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let termins: Vec<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termins: Vec<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Map to TerminWithSiteInfo
+    let mut termins_with_site: Vec<TerminWithSiteInfo> = Vec::new();
+    
+    for termin in termins {
+        // Fetch site details
+        let site_name = if let Some(ref site_id) = termin.site_id {
+            let site_query = "SELECT * FROM type::thing($site_id)";
+            let mut site_result = state.db.query(site_query)
+                .bind(("site_id", site_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let site: Option<Site> = site_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            site.map(|s| s.site_name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
+        // Build TerminWithSiteInfo
+        let termin_with_site = TerminWithSiteInfo {
+            id: termin.id,
+            project_id: termin.project_id,
+            site_id: Some(TerminSiteInfo { site_name }),
+            type_termin: termin.type_termin,
+            tgl_terima: termin.tgl_terima,
+            jumlah: termin.jumlah,
+            termin_ke: termin.termin_ke,
+            percentage: termin.percentage,
+            status: termin.status,
+            keterangan: termin.keterangan,
+            submitted_by: termin.submitted_by,
+            submitted_at: termin.submitted_at,
+            reviewed_by: termin.reviewed_by,
+            reviewed_at: termin.reviewed_at,
+            catatan_review: termin.catatan_review,
+            approved_by: termin.approved_by,
+            approved_at: termin.approved_at,
+            catatan_approval: termin.catatan_approval,
+            paid_by: termin.paid_by,
+            paid_at: termin.paid_at,
+            jumlah_dibayar: termin.jumlah_dibayar,
+            referensi_pembayaran: termin.referensi_pembayaran,
+            catatan_pembayaran: termin.catatan_pembayaran,
+            bukti_pembayaran: termin.bukti_pembayaran,
+            bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
+            bukti_pembayaran_size: termin.bukti_pembayaran_size,
+            created_at: termin.created_at,
+            updated_at: termin.updated_at,
+        };
+        
+        termins_with_site.push(termin_with_site);
+    }
 
     Ok(Json(ApiResponse {
         success: true,
-        data: Some(termins),
+        data: Some(termins_with_site),
         message: None,
     }))
 }
@@ -73,7 +314,8 @@ pub async fn list_termins(
 pub async fn get_termins_by_project(
     State(state): State<Arc<AppState>>,
     Path(project_id): Path<String>,
-) -> Result<Json<ApiResponse<Vec<Termin>>>, StatusCode> {
+) -> Result<Json<ApiResponse<Vec<TerminWithSiteInfo>>>, StatusCode> {
+    // Fetch all termins for the project
     let query = "SELECT * FROM termins WHERE project_id = type::thing('projects', $id) ORDER BY created_at DESC";
 
     let mut result = state.db.query(query)
@@ -81,11 +323,68 @@ pub async fn get_termins_by_project(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let termins: Vec<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termins: Vec<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Map to TerminWithSiteInfo
+    let mut termins_with_site: Vec<TerminWithSiteInfo> = Vec::new();
+    
+    for termin in termins {
+        // Fetch site details
+        let site_name = if let Some(ref site_id) = termin.site_id {
+            let site_query = "SELECT * FROM type::thing($site_id)";
+            let mut site_result = state.db.query(site_query)
+                .bind(("site_id", site_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let site: Option<Site> = site_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            site.map(|s| s.site_name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
+        // Build TerminWithSiteInfo
+        let termin_with_site = TerminWithSiteInfo {
+            id: termin.id,
+            project_id: termin.project_id,
+            site_id: Some(TerminSiteInfo { site_name }),
+            type_termin: termin.type_termin,
+            tgl_terima: termin.tgl_terima,
+            jumlah: termin.jumlah,
+            termin_ke: termin.termin_ke,
+            percentage: termin.percentage,
+            status: termin.status,
+            keterangan: termin.keterangan,
+            submitted_by: termin.submitted_by,
+            submitted_at: termin.submitted_at,
+            reviewed_by: termin.reviewed_by,
+            reviewed_at: termin.reviewed_at,
+            catatan_review: termin.catatan_review,
+            approved_by: termin.approved_by,
+            approved_at: termin.approved_at,
+            catatan_approval: termin.catatan_approval,
+            paid_by: termin.paid_by,
+            paid_at: termin.paid_at,
+            jumlah_dibayar: termin.jumlah_dibayar,
+            referensi_pembayaran: termin.referensi_pembayaran,
+            catatan_pembayaran: termin.catatan_pembayaran,
+            bukti_pembayaran: termin.bukti_pembayaran,
+            bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
+            bukti_pembayaran_size: termin.bukti_pembayaran_size,
+            created_at: termin.created_at,
+            updated_at: termin.updated_at,
+        };
+        
+        termins_with_site.push(termin_with_site);
+    }
 
     Ok(Json(ApiResponse {
         success: true,
-        data: Some(termins),
+        data: Some(termins_with_site),
         message: None,
     }))
 }
@@ -93,7 +392,8 @@ pub async fn get_termins_by_project(
 pub async fn get_termins_by_site(
     State(state): State<Arc<AppState>>,
     Path(site_id): Path<String>,
-) -> Result<Json<ApiResponse<Vec<Termin>>>, StatusCode> {
+) -> Result<Json<ApiResponse<Vec<TerminWithSiteInfo>>>, StatusCode> {
+    // Fetch all termins for the site
     let query = "SELECT * FROM termins WHERE site_id = type::thing('sites', $id) ORDER BY created_at DESC";
 
     let mut result = state.db.query(query)
@@ -101,12 +401,475 @@ pub async fn get_termins_by_site(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let termins: Vec<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termins: Vec<Termin> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Map to TerminWithSiteInfo
+    let mut termins_with_site: Vec<TerminWithSiteInfo> = Vec::new();
+    
+    for termin in termins {
+        // Fetch site details
+        let site_name = if let Some(ref site_id) = termin.site_id {
+            let site_query = "SELECT * FROM type::thing($site_id)";
+            let mut site_result = state.db.query(site_query)
+                .bind(("site_id", site_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let site: Option<Site> = site_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            site.map(|s| s.site_name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
+        // Build TerminWithSiteInfo
+        let termin_with_site = TerminWithSiteInfo {
+            id: termin.id,
+            project_id: termin.project_id,
+            site_id: Some(TerminSiteInfo { site_name }),
+            type_termin: termin.type_termin,
+            tgl_terima: termin.tgl_terima,
+            jumlah: termin.jumlah,
+            termin_ke: termin.termin_ke,
+            percentage: termin.percentage,
+            status: termin.status,
+            keterangan: termin.keterangan,
+            submitted_by: termin.submitted_by,
+            submitted_at: termin.submitted_at,
+            reviewed_by: termin.reviewed_by,
+            reviewed_at: termin.reviewed_at,
+            catatan_review: termin.catatan_review,
+            approved_by: termin.approved_by,
+            approved_at: termin.approved_at,
+            catatan_approval: termin.catatan_approval,
+            paid_by: termin.paid_by,
+            paid_at: termin.paid_at,
+            jumlah_dibayar: termin.jumlah_dibayar,
+            referensi_pembayaran: termin.referensi_pembayaran,
+            catatan_pembayaran: termin.catatan_pembayaran,
+            bukti_pembayaran: termin.bukti_pembayaran,
+            bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
+            bukti_pembayaran_size: termin.bukti_pembayaran_size,
+            created_at: termin.created_at,
+            updated_at: termin.updated_at,
+        };
+        
+        termins_with_site.push(termin_with_site);
+    }
 
     Ok(Json(ApiResponse {
         success: true,
-        data: Some(termins),
+        data: Some(termins_with_site),
         message: None,
+    }))
+}
+
+pub async fn get_termin_by_id(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let query = "SELECT * FROM $termin_id";
+
+    let mut result = state.db.query(query)
+        .bind(("termin_id", thing))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match termin {
+        Some(termin) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(termin),
+            message: None,
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn update_termin(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+    Json(req): Json<UpdateTerminRequest>,
+) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Check if termin exists and is in draft status
+    let check_query = "SELECT * FROM $termin_id";
+    let mut check_result = state.db.query(check_query)
+        .bind(("termin_id", thing.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let existing: Option<Termin> = check_result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    if existing.is_none() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+
+    let existing = existing.unwrap();
+    if existing.status != "draft" {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Only draft termins can be updated".to_string()),
+        }));
+    }
+
+    // Build dynamic update query
+    let mut set_clauses = vec!["updated_at = time::now()"];
+    let mut bindings = Vec::new();
+
+    if req.type_termin.is_some() {
+        set_clauses.push("type_termin = $type_termin");
+        bindings.push(("type_termin", req.type_termin.clone()));
+    }
+    if req.tgl_terima.is_some() {
+        set_clauses.push("tgl_terima = $tgl_terima");
+        bindings.push(("tgl_terima", req.tgl_terima.clone()));
+    }
+    if req.jumlah.is_some() {
+        set_clauses.push("jumlah = $jumlah");
+    }
+    if req.keterangan.is_some() {
+        set_clauses.push("keterangan = $keterangan");
+        bindings.push(("keterangan", req.keterangan.clone()));
+    }
+
+    let set_clause = set_clauses.join(", ");
+    let query = format!("UPDATE $termin_id SET {}", set_clause);
+
+    let mut db_query = state.db.query(&query)
+        .bind(("termin_id", thing));
+
+    for (key, value) in bindings {
+        db_query = db_query.bind((key, value));
+    }
+    if let Some(jumlah) = req.jumlah {
+        db_query = db_query.bind(("jumlah", jumlah));
+    }
+
+    let mut result = db_query.await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let updated: Option<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match updated {
+        Some(termin) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(termin),
+            message: Some("Termin updated successfully".to_string()),
+        })),
+        None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn submit_termin(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+    Json(req): Json<SubmitTerminRequest>,
+) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let query = r#"
+        UPDATE $termin_id SET 
+            status = 'pending_review',
+            submitted_by = $submitted_by,
+            submitted_at = time::now(),
+            updated_at = time::now()
+    "#;
+
+    let mut result = state.db.query(query)
+        .bind(("termin_id", thing))
+        .bind(("submitted_by", req.submitter_name.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match termin {
+        Some(termin) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(termin),
+            message: Some("Termin submitted for review".to_string()),
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn review_termin(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+    Json(req): Json<ReviewTerminRequest>,
+) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let new_status = if req.approve { "reviewed" } else { "draft" };
+
+    let query = r#"
+        UPDATE $termin_id SET 
+            status = $status,
+            reviewed_by = $reviewed_by,
+            reviewed_at = time::now(),
+            catatan_review = $catatan_review,
+            updated_at = time::now()
+    "#;
+
+    let mut result = state.db.query(query)
+        .bind(("termin_id", thing))
+        .bind(("status", new_status))
+        .bind(("reviewed_by", req.reviewer_name.clone()))
+        .bind(("catatan_review", req.catatan_review.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let message = if req.approve {
+        "Termin reviewed and approved by Field Head. Waiting for Director approval.".to_string()
+    } else {
+        "Termin rejected by Field Head. Returned to draft.".to_string()
+    };
+
+    match termin {
+        Some(termin) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(termin),
+            message: Some(message),
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn approve_termin(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+    Json(req): Json<ApproveTerminRequest>,
+) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let new_status = if req.approve { "approved" } else { "draft" };
+
+    let query = r#"
+        UPDATE $termin_id SET 
+            status = $status,
+            approved_by = $approved_by,
+            approved_at = time::now(),
+            catatan_approval = $catatan_approval,
+            updated_at = time::now()
+    "#;
+
+    let mut result = state.db.query(query)
+        .bind(("termin_id", thing))
+        .bind(("status", new_status))
+        .bind(("approved_by", req.approver_name.clone()))
+        .bind(("catatan_approval", req.catatan_approval.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let message = if req.approve {
+        "Termin approved by Director. Waiting for payment by Finance.".to_string()
+    } else {
+        "Termin rejected by Director. Returned to draft.".to_string()
+    };
+
+    match termin {
+        Some(termin) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(termin),
+            message: Some(message),
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn pay_termin(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+    request: Request,
+) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Deteksi Content-Type untuk menentukan format request
+    let content_type = request
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    let bukti_pembayaran: Option<String>;
+    let bukti_pembayaran_filename: Option<String>;
+    let bukti_pembayaran_mime_type: Option<String>;
+    let bukti_pembayaran_size: Option<i64>;
+    let payer_name: String;
+    let jumlah_dibayar: i64;
+    let referensi_pembayaran: String;
+    let catatan_pembayaran: Option<String>;
+
+    if content_type.starts_with("multipart/form-data") {
+        // Handle multipart/form-data (untuk upload file)
+        let mut multipart = Multipart::from_request(request, &state)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        let mut payer_name_opt: Option<String> = None;
+        let mut jumlah_dibayar_opt: Option<i64> = None;
+        let mut referensi_pembayaran_opt: Option<String> = None;
+        let mut catatan_pembayaran_opt: Option<String> = None;
+        let mut file_data: Option<Vec<u8>> = None;
+        let mut file_content_type: Option<String> = None;
+        let mut file_name: Option<String> = None;
+
+        while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+            let name = field.name().unwrap_or("").to_string();
+            
+            match name.as_str() {
+                "bukti_pembayaran" => {
+                    file_name = field.file_name().map(|s| s.to_string());
+                    file_content_type = field.content_type().map(|s| s.to_string());
+                    let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    file_data = Some(bytes.to_vec());
+                }
+                "payer_name" | "approved_by" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    payer_name_opt = Some(text);
+                }
+                "jumlah_dibayar" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    jumlah_dibayar_opt = text.parse().ok();
+                }
+                "referensi_pembayaran" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    referensi_pembayaran_opt = Some(text);
+                }
+                "catatan_pembayaran" => {
+                    let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    catatan_pembayaran_opt = Some(text);
+                }
+                _ => {}
+            }
+        }
+
+        // Validasi field required
+        payer_name = payer_name_opt.ok_or(StatusCode::BAD_REQUEST)?;
+        jumlah_dibayar = jumlah_dibayar_opt.ok_or(StatusCode::BAD_REQUEST)?;
+        referensi_pembayaran = referensi_pembayaran_opt.ok_or(StatusCode::BAD_REQUEST)?;
+        catatan_pembayaran = catatan_pembayaran_opt;
+
+        // Simpan metadata file saja, TIDAK simpan base64 ke database (terlalu besar)
+        if let Some(data) = file_data {
+            let file_size = data.len() as i64;
+            let mime_type = file_content_type.unwrap_or_else(|| "application/pdf".to_string());
+            
+            // TODO: Simpan file ke file system atau cloud storage di sini
+            // Untuk saat ini, hanya simpan metadata tanpa base64
+            
+            bukti_pembayaran = None;  // Tidak simpan base64 ke database
+            bukti_pembayaran_filename = file_name;
+            bukti_pembayaran_mime_type = Some(mime_type);
+            bukti_pembayaran_size = Some(file_size);
+        } else {
+            bukti_pembayaran = None;
+            bukti_pembayaran_filename = None;
+            bukti_pembayaran_mime_type = None;
+            bukti_pembayaran_size = None;
+        }
+    } else {
+        // Handle application/json (untuk pembayaran tanpa file)
+        let body_bytes = axum::body::to_bytes(request.into_body(), usize::MAX)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        
+        let req: PayTerminRequest = serde_json::from_slice(&body_bytes)
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        payer_name = req.payer_name;
+        jumlah_dibayar = req.jumlah_dibayar;
+        referensi_pembayaran = req.referensi_pembayaran;
+        catatan_pembayaran = req.catatan_pembayaran;
+        bukti_pembayaran = req.bukti_pembayaran;
+        bukti_pembayaran_filename = None;  // JSON mode doesn't include file upload
+        bukti_pembayaran_mime_type = None;
+        bukti_pembayaran_size = None;
+    }
+
+    // Update termin dengan data pembayaran
+    let query = r#"
+        UPDATE $termin_id SET 
+            status = 'paid',
+            paid_by = $paid_by,
+            paid_at = time::now(),
+            jumlah_dibayar = $jumlah_dibayar,
+            referensi_pembayaran = $referensi_pembayaran,
+            catatan_pembayaran = $catatan_pembayaran,
+            bukti_pembayaran = $bukti_pembayaran,
+            bukti_pembayaran_filename = $bukti_pembayaran_filename,
+            bukti_pembayaran_mime_type = $bukti_pembayaran_mime_type,
+            bukti_pembayaran_size = $bukti_pembayaran_size,
+            updated_at = time::now()
+    "#;
+
+    let mut result = state.db.query(query)
+        .bind(("termin_id", thing))
+        .bind(("paid_by", payer_name))
+        .bind(("jumlah_dibayar", jumlah_dibayar))
+        .bind(("referensi_pembayaran", referensi_pembayaran))
+        .bind(("catatan_pembayaran", catatan_pembayaran))
+        .bind(("bukti_pembayaran", bukti_pembayaran))
+        .bind(("bukti_pembayaran_filename", bukti_pembayaran_filename))
+        .bind(("bukti_pembayaran_mime_type", bukti_pembayaran_mime_type))
+        .bind(("bukti_pembayaran_size", bukti_pembayaran_size))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match termin {
+        Some(termin) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(termin),
+            message: Some("Payment confirmed. Termin completed.".to_string()),
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+pub async fn delete_termin(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Cascade delete: first delete associated files
+    let delete_files = "DELETE termin_files WHERE termin_id = $termin_id";
+    state.db.query(delete_files)
+        .bind(("termin_id", thing.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Then delete the termin
+    let delete_termin = "DELETE $termin_id";
+    state.db.query(delete_termin)
+        .bind(("termin_id", thing))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Termin and associated files deleted successfully".to_string()),
     }))
 }
 

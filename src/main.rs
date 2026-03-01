@@ -5,7 +5,7 @@ mod state;
 use axum::{
     extract::Json,
     http::Method,
-    routing::{get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
@@ -44,17 +44,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/api/health", get(health_check))
         // Auth routes
+        .route("/api/auth/register", post(auth::register))
         .route("/api/auth/login", post(auth::login))
+        // User management routes
+        .route("/api/users", get(auth::get_all_users))
+        .route("/api/users/:user_id", get(auth::get_user_by_id))
+        .route("/api/users/:user_id", put(auth::update_user))
+        .route("/api/users/:user_id", delete(auth::delete_user))
         // Project routes
         .route("/api/projects", post(project::create_project))
         .route("/api/projects", get(project::list_projects))
+        .route("/api/projects/:id", get(project::get_project))
+        .route("/api/projects/:id", put(project::update_project))
+        .route("/api/projects/:id", delete(project::delete_project))
         // Site routes
         .route("/api/sites", post(site::create_site))
         .route("/api/sites", get(site::list_sites))
         .route("/api/sites/project/:project_id", get(site::get_sites_by_project))
+        .route("/api/sites/:id", put(site::update_site))
+        .route("/api/sites/:id", delete(site::delete_site))
         // People routes
         .route("/api/people", post(people::create_people))
         .route("/api/people", get(people::list_people))
+        .route("/api/people/:id", get(people::get_people))
+        .route("/api/people/:id", put(people::update_people))
+        .route("/api/people/:id", delete(people::delete_people))
         // Cost routes
         .route("/api/costs", post(costs::create_cost))
         .route("/api/costs", get(costs::list_costs))
@@ -84,6 +98,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/termins", get(termins::list_termins))
         .route("/api/termins/project/:project_id", get(termins::get_termins_by_project))
         .route("/api/termins/site/:site_id", get(termins::get_termins_by_site))
+        .route("/api/termins/:termin_id", get(termins::get_termin_by_id))
+        .route("/api/termins/:termin_id", put(termins::update_termin))
+        .route("/api/termins/:termin_id", axum::routing::delete(termins::delete_termin))
+        .route("/api/termins/:termin_id/submit", post(termins::submit_termin))
+        .route("/api/termins/:termin_id/review", post(termins::review_termin))
+        .route("/api/termins/:termin_id/approve", post(termins::approve_termin))
+        .route("/api/termins/:termin_id/pay", post(termins::pay_termin))
         .route("/api/termin-files", post(termins::create_termin_file))
         .route("/api/termins/:termin_id/files", get(termins::list_termin_files))
         .route("/api/termin-files/:file_id/delete", axum::routing::delete(termins::delete_termin_file))
@@ -95,11 +116,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Server starting on http://{}", addr);
     println!("📝 Available endpoints:");
     println!("  GET    /api/health");
-    println!("\n🔐 Auth:");
+    println!("\n🔐 Auth & User Management:");
+    println!("  POST   /api/auth/register");
     println!("  POST   /api/auth/login");
+    println!("  GET    /api/users");
+    println!("  GET    /api/users/:user_id");
+    println!("  PUT    /api/users/:user_id");
+    println!("  DELETE /api/users/:user_id");
     println!("\n📊 Projects:");
     println!("  POST   /api/projects");
     println!("  GET    /api/projects");
+    println!("  GET    /api/projects/:id");
+    println!("  PUT    /api/projects/:id");
+    println!("  DELETE /api/projects/:id");
     println!("\n🏗️  Sites:");
     println!("  POST   /api/sites");
     println!("  GET    /api/sites");
@@ -107,6 +136,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n👥 People:");
     println!("  POST   /api/people");
     println!("  GET    /api/people");
+    println!("  GET    /api/people/:id");
+    println!("  PUT    /api/people/:id");
+    println!("  DELETE /api/people/:id");
     println!("\n💰 Costs:");
     println!("  POST   /api/costs");
     println!("  GET    /api/costs");
@@ -136,12 +168,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  GET    /api/termins");
     println!("  GET    /api/termins/project/:project_id");
     println!("  GET    /api/termins/site/:site_id");
+    println!("  GET    /api/termins/:termin_id");
+    println!("  PUT    /api/termins/:termin_id");
+    println!("  DELETE /api/termins/:termin_id");
+    println!("  POST   /api/termins/:termin_id/submit");
+    println!("  POST   /api/termins/:termin_id/review");
+    println!("  POST   /api/termins/:termin_id/approve");
+    println!("  POST   /api/termins/:termin_id/pay");
     println!("  POST   /api/termin-files");
     println!("  GET    /api/termins/:termin_id/files");
     println!("  DELETE /api/termin-files/:file_id/delete");
-    println!("\n✅ Login credentials for testing:");
-    println!("   Email: admin@smartelco.com");
-    println!("   Password: admin123");
+    println!("\n📝 Available roles for registration:");
+    println!("   - backoffice admin");
+    println!("   - management");
+    println!("   - team leader");
+    println!("   - finance");
+    println!("   - engineer");
+    println!("   - admin");
+    println!("   - direktur");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

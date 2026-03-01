@@ -10,6 +10,57 @@
 			"name": "Auth",
 			"item": [
 				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.id) {",
+									"        var userId = jsonData.data.id.split(':')[1];",
+									"        pm.environment.set(\"user_id\", userId);",
+									"        console.log(\"User ID saved: \" + userId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\",\n  \"role\": \"engineer\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Register a new user with role selection.\n\n**Available Roles:**\n- backoffice admin\n- management\n- team leader\n- finance\n- engineer\n- admin\n- direktur",
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Login",
 					"event": [
 						{
@@ -38,7 +89,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"admin@smartelco.com\",\n  \"password\": \"admin123\"\n}"
+							"raw": "{\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/auth/login",
@@ -48,6 +99,92 @@
 							"path": [
 								"auth",
 								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe Updated\",\n  \"role\": \"team leader\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "Update user information. All fields are optional:\n- name\n- email\n- role\n- password",
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"{{user_id}}"
 							]
 						}
 					},
@@ -96,6 +233,69 @@
 							],
 							"path": [
 								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Project",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Network Expansion Jakarta - Updated\",\n  \"cost\": 1500000000,\n  \"status\": \"in_progress\",\n  \"keterangan\": \"Updated: Project sudah dimulai\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Project",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}"
 							]
 						}
 					},
@@ -170,7 +370,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/sites",
@@ -219,6 +419,51 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update Site",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sites/{{site_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"{{site_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Site",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/sites/{{site_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"{{site_id}}"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -263,6 +508,69 @@
 							],
 							"path": [
 								"people"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Person by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/people/{{people_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people",
+								"{{people_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Person",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"jabatan_kerja\": \"Senior Project Manager\",\n  \"status_pernikahan\": \"Menikah\",\n  \"pendidikan_terakhir\": \"S1\",\n  \"nama_kampus_sekolah\": \"Universitas Indonesia\",\n  \"jurusan_sekolah\": \"Teknik Elektro\",\n  \"tahun_lulus\": \"2012\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/people/{{people_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people",
+								"{{people_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Person",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/people/{{people_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"people",
+								"{{people_id}}"
 							]
 						}
 					},
@@ -717,7 +1025,25 @@
 			"name": "Termins",
 			"item": [
 				{
-					"name": "Create Termin",
+					"name": "📖 READ ME FIRST - Workflow & Validation Rules",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						},
+						"description": "🔒 TERMIN BUSINESS RULES & VALIDATIONS\n\n═══════════════════════════════════════════\n\n✅ WORKFLOW:\n1. Draft → Buat termin (engineer)\n2. Submit → Kirim untuk review (engineer) \n3. Review → Cek oleh Admin Area/Field Head\n4. Approve → Setujui oleh Direktur\n5. Pay → Bayar oleh Keuangan\n\n═══════════════════════════════════════════\n\n🔒 VALIDASI (v1.3.1 - FLEXIBLE AMOUNT):\n\n1️⃣ POLA PERCENTAGE TERKUNCI (Label/Struktur):\n   - Termin 1 HARUS 30%\n   - Termin 2 HARUS 50%\n   - Termin 3 HARUS 10%\n   - Termin 4 HARUS 10%\n   ❌ Tidak bisa pakai percentage lain!\n   📝 Percentage adalah LABEL termin, bukan constraint jumlah\n\n2️⃣ URUTAN SEQUENTIAL:\n   - Termin 2 hanya bisa dibuat SETELAH Termin 1 status \"approved\"\n   - Termin 3 hanya bisa dibuat SETELAH Termin 2 status \"approved\"\n   - Termin 4 hanya bisa dibuat SETELAH Termin 3 status \"approved\"\n   ❌ Tidak bisa skip atau paralel!\n\n3️⃣ MAKSIMAL 70% DARI SITE BUDGET (Hard Limit):\n   - Total semua termin ≤ 70% × site.maximal_budget\n   - Sistem hitung otomatis total kumulatif\n   ❌ Overpayment tidak mungkin!\n\n4️⃣ JUMLAH FLEXIBLE (NEW!):\n   ✅ Jumlah TIDAK wajib = percentage × budget\n   ✅ Anda bebas isi jumlah berapa saja asal total ≤ 70%\n   ✅ Percentage tetap terkunci untuk struktur termin\n   📌 Contoh: Termin 2 (50%) bisa diisi 20jt, tidak harus 50jt\n\n═══════════════════════════════════════════\n\n📋 CONTOH SKENARIO VALID:\n\nSite budget: 100,000,000 (100 juta)\nMax payment: 70,000,000 (70% = 70 juta)\n\n✅ Termin 1 (30%): 25,000,000 → Approve\n✅ Termin 2 (50%): 30,000,000 → Total: 55jt ✅\n✅ Termin 3 (10%): 10,000,000 → Total: 65jt ✅\n✅ Termin 4 (10%):  5,000,000 → Total: 70jt ✅ (exactly!)\n\n💡 CATATAN: Jumlah flexible agar fit dalam 70% limit!\n   - T1 tidak harus 30jt (30%)\n   - T2 tidak harus 50jt (50%)\n   - Yang penting: percentage benar + total ≤ 70%\n\n═══════════════════════════════════════════\n\n⚠️ ERROR SCENARIOS (Test Cases Below):\n\n❌ Wrong Percentage: Termin 1 dengan 40% → DITOLAK\n❌ Skip Order: Termin 2 sebelum T1 approved → DITOLAK\n❌ Exceed 70%: Total > 70% site budget → DITOLAK\n❌ Invalid termin_ke: termin_ke = 5 → DITOLAK\n\n═══════════════════════════════════════════\n\n📝 TESTING FLOW:\n1. Buat site dengan maximal_budget yang cukup (min 100jt)\n2. Test termin dengan jumlah flexible dalam 70% limit\n3. Approve setiap termin sebelum buat termin berikutnya\n4. Test validation dengan error scenarios (❌ requests)\n\n═══════════════════════════════════════════"
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 1 (VALID - 30%)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -728,7 +1054,163 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1 - 30%\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 150000000,\n  \"status\": \"pending\",\n  \"keterangan\": \"Pembayaran termin pertama setelah pekerjaan 30% selesai\"\n}"
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 2 (VALID - 50%)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 3 (VALID - 10%)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_3\",\n  \"tgl_terima\": \"2026-03-01\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 3,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 3 - 10% dari budget\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "✅ Create Termin 4 (VALID - 10%)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_4\",\n  \"tgl_terima\": \"2026-03-15\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 4,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 4 - 10% dari budget (final)\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "❌ TEST: Wrong Percentage Pattern",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 40000000,\n  \"termin_ke\": 1,\n  \"percentage\": 40,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena Termin 1 harus 30%\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "❌ TEST: Skip Sequential Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Test validasi - seharusnya ditolak jika Termin 1 belum approved\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "❌ TEST: Invalid termin_ke (5)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_5\",\n  \"tgl_terima\": \"2026-03-20\",\n  \"jumlah\": 5000000,\n  \"termin_ke\": 5,\n  \"percentage\": 10,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena termin_ke hanya 1-4\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/termins",
@@ -792,6 +1274,187 @@
 								"termins",
 								"site",
 								"{{site_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Termin by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Termin (Draft Only)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 400000000,\n  \"keterangan\": \"Updated: Pembayaran termin kedua 50%\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Termin for Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"submitter_name\": \"Field Engineer\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/submit",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"submit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review Termin (Field Head)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reviewer_name\": \"John Doe\",\n  \"catatan_review\": \"review oleh head area - dokumen lengkap dan sesuai\",\n  \"approve\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/review",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"review"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Termin (Director)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/approve",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"approve"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Pay Termin (Finance)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"payer_name\": \"Siti Nurhaliza (Finance)\",\n  \"jumlah_dibayar\": 25000000,\n  \"referensi_pembayaran\": \"TRF-12345B\",\n  \"catatan_pembayaran\": \"Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425\",\n  \"bukti_pembayaran\": \"https://storage.smartelco.com/bukti/termin1-payment.pdf\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"description": "⚠️ PENTING - Field Descriptions:\n\n- `referensi_pembayaran` = NOMOR REFERENSI (text) seperti \"TRF-12345B\", \"CEK-001\"\n- `bukti_pembayaran` = URL/PATH FILE (string) seperti \"https://storage.../proof.pdf\"\n\n❌ JANGAN TERTUKAR! Referensi adalah nomor, Bukti adalah file path/URL",
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/pay",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"pay"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Termin",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}"
 							]
 						}
 					},
