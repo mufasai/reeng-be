@@ -11,7 +11,7 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, people, costs, materials, regions, files, termins};
+use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -69,6 +69,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/people/:id", get(people::get_people))
         .route("/api/people/:id", put(people::update_people))
         .route("/api/people/:id", delete(people::delete_people))
+        // Team routes
+        .route("/api/teams", post(teams::create_team))
+        .route("/api/teams", get(teams::list_teams))
+        .route("/api/teams/:team_id", get(teams::get_team))
+        .route("/api/teams/:team_id", put(teams::update_team))
+        .route("/api/teams/:team_id", delete(teams::delete_team))
+        .route("/api/teams/:team_id/members", get(teams::list_team_members))
         // Cost routes
         .route("/api/costs", post(costs::create_cost))
         .route("/api/costs", get(costs::list_costs))
@@ -93,6 +100,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/site-files", post(files::create_site_file))
         .route("/api/sites/:site_id/files", get(files::list_site_files))
         .route("/api/site-files/:file_id/delete", axum::routing::delete(files::delete_site_file))
+        // Multipart file upload routes
+        .route("/api/projects/:project_id/upload", post(files::upload_project_file_multipart))
+        .route("/api/sites/:site_id/upload", post(files::upload_site_file_multipart))
+        .route("/api/project-files/:file_id/download", get(files::download_project_file))
+        .route("/api/site-files/:file_id/download", get(files::download_site_file))
         // Termin routes
         .route("/api/termins", post(termins::create_termin))
         .route("/api/termins", get(termins::list_termins))
@@ -109,6 +121,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/termin-files", post(termins::create_termin_file))
         .route("/api/termins/:termin_id/files", get(termins::list_termin_files))
         .route("/api/termin-files/:file_id/delete", axum::routing::delete(termins::delete_termin_file))
+        // Multipart termin file upload
+        .route("/api/termins/:termin_id/upload", post(termins::upload_termin_file_multipart))
+        .route("/api/termin-files/:file_id/download", get(termins::download_termin_file))
         .with_state(state)
         .layer(cors);
 

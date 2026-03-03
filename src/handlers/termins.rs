@@ -1032,3 +1032,151 @@ pub async fn delete_termin_file(
         message: None,
     }))
 }
+
+// ==================== MULTIPART FILE UPLOAD FOR TERMIN ====================
+
+pub async fn upload_termin_file_multipart(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+    mut multipart: Multipart,
+) -> Result<Json<ApiResponse<TerminFile>>, StatusCode> {
+    let mut title: Option<String> = None;
+    let mut category: Option<String> = None;
+    let mut file_data: Option<Vec<u8>> = None;
+    let mut file_content_type: Option<String> = None;
+    let mut file_name: Option<String> = None;
+
+    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+        let name = field.name().unwrap_or("").to_string();
+        
+        match name.as_str() {
+            "file" => {
+                file_name = field.file_name().map(|s| s.to_string());
+                file_content_type = field.content_type().map(|s| s.to_string());
+                let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                file_data = Some(bytes.to_vec());
+            }
+            "title" => {
+                let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                title = Some(text);
+            }
+            "category" => {
+                let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                category = Some(text);
+            }
+            _ => {}
+        }
+    }
+
+    // Validate required fields
+    let file_bytes = file_data.ok_or(StatusCode::BAD_REQUEST)?;
+    let filename = file_name.ok_or(StatusCode::BAD_REQUEST)?;
+    let title_str = title.unwrap_or_else(|| filename.clone());
+    let mime_type = file_content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    let file_size = file_bytes.len() as i64;
+
+    // Convert to base64 data URL
+    let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+    let data_url = format!("data:{};base64,{}", mime_type, base64_data);
+
+    // Save to database
+    let query = r#"
+        CREATE termin_files CONTENT {
+            termin_id: type::thing('termins', $termin_id),
+            category: $category,
+            title: $title,
+            filename: $filename,
+            original_name: $filename,
+            file_data: $file_data,
+            key: $filename,
+            mime_type: $mime_type,
+            size: $size,
+            uploaded_at: time::now(),
+            created_at: time::now(),
+            updated_at: time::now()
+        }
+    "#;
+
+    let mut result = state.db.query(query)
+        .bind(("termin_id", termin_id))
+        .bind(("category", category))
+        .bind(("title", title_str))
+        .bind(("filename", filename))
+        .bind(("file_data", data_url))
+        .bind(("mime_type", mime_type))
+        .bind(("size", file_size))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let file: Option<TerminFile> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match file {
+        Some(file) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(file),
+            message: Some("Termin file uploaded successfully".to_string()),
+        })),
+        None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn download_termin_file(
+    State(state): State<Arc<AppState>>,
+    Path(file_id): Path<String>,
+) -> Result<Response<Body>, StatusCode> {
+    let thing = Thing::try_from(("termin_files", file_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let query = "SELECT * FROM $file_id";
+    let mut result = state.db.query(query)
+        .bind(("file_id", thing))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let file: Option<TerminFile> = result.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match file {
+        Some(file) => {
+            let data_url = file.file_data.ok_or(StatusCode::NOT_FOUND)?;
+            let filename = file.filename;
+            let mime_type = file.mime_type;
+
+            // Parse data URL
+            let parts: Vec<&str> = data_url.split(',').collect();
+            if parts.len() != 2 {
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+
+            let base64_data = parts[1];
+            let file_bytes = base64::engine::general_purpose::STANDARD
+                .decode(base64_data)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            // Build response with headers
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_str(&mime_type)
+                    .unwrap_or(HeaderValue::from_static("application/octet-stream")),
+            );
+            headers.insert(
+                header::CONTENT_DISPOSITION,
+                HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
+                    .unwrap_or(HeaderValue::from_static("attachment")),
+            );
+            headers.insert(
+                header::CONTENT_LENGTH,
+                HeaderValue::from_str(&file_bytes.len().to_string()).unwrap(),
+            );
+
+            let body = Body::from(file_bytes);
+            let mut response = Response::new(body);
+            *response.headers_mut() = headers;
+            *response.status_mut() = StatusCode::OK;
+
+            Ok(response)
+        }
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}

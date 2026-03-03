@@ -28,6 +28,8 @@ pub enum UserRole {
     Management,
     #[serde(rename = "team leader")]
     TeamLeader,
+    #[serde(rename = "head office")]
+    HeadOffice,
     Finance,
     Engineer,
     Admin,
@@ -320,6 +322,15 @@ pub struct CreateTeamRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTeamRequest {
+    pub nama: Option<String>,
+    pub project_id: Option<String>,
+    pub site_id: Option<String>,
+    pub leader_id: Option<String>,
+    pub active: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TeamMemberInput {
     pub people_id: String,
     pub role: Option<String>,
@@ -447,6 +458,8 @@ pub struct ProjectFile {
     pub title: String,
     pub filename: String,
     pub original_name: String,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
     pub bucket: Option<String>,
     pub key: String,
     pub mime_type: String,
@@ -484,6 +497,8 @@ pub struct SiteFile {
     pub title: String,
     pub filename: String,
     pub original_name: String,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
     pub bucket: Option<String>,
     pub key: String,
     pub mime_type: String,
@@ -686,6 +701,8 @@ pub struct TerminFile {
     pub title: String,
     pub filename: String,
     pub original_name: String,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
     pub bucket: Option<String>,
     pub key: String,
     pub mime_type: String,

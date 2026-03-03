@@ -6,6 +6,30 @@
 
 ## 📋 Changelog
 
+### v1.7.0 (2026-03-03)
+**👥 Teams CRUD & 📁 Multipart File Uploads (Project, Site, Termin)**
+- ✅ **NEW MODULE:** Teams Management - Full CRUD operations
+  - `POST /teams` - Create team dengan members
+  - `GET /teams` - List all teams
+  - `GET /teams/:team_id` - Get team detail
+  - `PUT /teams/:team_id` - Update team info
+  - `DELETE /teams/:team_id` - Delete team (cascade delete members)
+  - `GET /teams/:team_id/members` - List team members
+- ✅ **NEW ROLE:** `head office` - Role untuk Head Office user
+- ✅ **MULTIPART FILE UPLOADS:** Project, Site, dan Termin sekarang support upload file real dengan base64 storage
+  - `POST /projects/:id/upload` - Upload file ke project (multipart)
+  - `POST /sites/:id/upload` - Upload file ke site (multipart)
+  - `POST /termins/:id/upload` - Upload file ke termin (multipart)
+- ✅ **DOWNLOAD ENDPOINTS:** Download file yang sudah diupload
+  - `GET /project-files/:file_id/download` - Download project file
+  - `GET /site-files/:file_id/download` - Download site file
+  - `GET /termin-files/:file_id/download` - Download termin file
+- ✅ **FILE STORAGE:** File disimpan sebagai base64 data URL di field `file_data` (hidden dari response)
+- ✅ **CLEAN MODELS:** Field `file_data` menggunakan `#[serde(skip_serializing)]` untuk response yang bersih
+- 🎯 **Impact:** Complete file management system untuk Project, Site, Termin dengan download support
+- 📦 **Storage:** Base64 storage di database, tidak perlu S3 atau disk storage
+- 👥 **Teams:** Manage tim dengan leader, members, vendor info, device tracking
+
 ### v1.6.0 (2026-03-01)
 **📥 Unified Payment Endpoint & File Download**
 - ✅ **UNIFIED ENDPOINT:** `/termins/:id/pay` sekarang mendukung 2 content types:

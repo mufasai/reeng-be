@@ -1568,6 +1568,329 @@
 			]
 		},
 		{
+			"name": "Teams",
+			"item": [
+				{
+					"name": "Create Team",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nama\": \"Team Alpha Engineering\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"people_id_here\",\n  \"members\": [\n    {\n      \"people_id\": \"member1_id\",\n      \"role\": \"Engineer\",\n      \"vendor\": \"PT ABC Contractor\"\n    },\n    {\n      \"people_id\": \"member2_id\",\n      \"role\": \"Technician\",\n      \"vendor\": \"PT XYZ Services\"\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/teams",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams"
+							]
+						},
+						"description": "Create new team with leader and members. Members array bisa kosong jika team belum punya anggota."
+					},
+					"response": []
+				},
+				{
+					"name": "List Teams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams"
+							]
+						},
+						"description": "Get list of all teams"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team Detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams/{{team_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"{{team_id_only}}"
+							]
+						},
+						"description": "Get specific team detail by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Team",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nama\": \"Team Alpha Engineering Updated\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"new_leader_id\",\n  \"active\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/teams/{{team_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"{{team_id_only}}"
+							]
+						},
+						"description": "Update team information. All fields are optional."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Team",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams/{{team_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"{{team_id_only}}"
+							]
+						},
+						"description": "Delete team dan cascade delete semua team members"
+					},
+					"response": []
+				},
+				{
+					"name": "List Team Members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams/{{team_id_only}}/members",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"{{team_id_only}}",
+								"members"
+							]
+						},
+						"description": "Get list of all members in a team"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Project File (Multipart)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "File to upload (PDF, JPG, PNG, etc)"
+								},
+								{
+									"key": "title",
+									"value": "Project Document",
+									"type": "text",
+									"description": "File title/description"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/{{project_id_only}}/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"{{project_id_only}}",
+								"upload"
+							]
+						},
+						"description": "Upload file ke project dengan multipart form-data. File disimpan sebagai base64 di database."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Site File (Multipart)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "File to upload (PDF, JPG, PNG, etc)"
+								},
+								{
+									"key": "title",
+									"value": "Site Document",
+									"type": "text",
+									"description": "File title/description"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/sites/{{site_id_only}}/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sites",
+								"{{site_id_only}}",
+								"upload"
+							]
+						},
+						"description": "Upload file ke site dengan multipart form-data. File disimpan sebagai base64 di database."
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Termin File (Multipart)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "File to upload (PDF, JPG, PNG, etc)"
+								},
+								{
+									"key": "title",
+									"value": "Termin Document",
+									"type": "text",
+									"description": "File title/description"
+								},
+								{
+									"key": "category",
+									"value": "invoice",
+									"type": "text",
+									"description": "File category (optional)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/termins/{{termin_id_only}}/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termins",
+								"{{termin_id_only}}",
+								"upload"
+							]
+						},
+						"description": "Upload file ke termin dengan multipart form-data. File disimpan sebagai base64 di database."
+					},
+					"response": []
+				},
+				{
+					"name": "Download Project File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/project-files/{{file_id_only}}/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"project-files",
+								"{{file_id_only}}",
+								"download"
+							]
+						},
+						"description": "Download project file. Gunakan 'Send and Download' di Postman."
+					},
+					"response": []
+				},
+				{
+					"name": "Download Site File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/site-files/{{file_id_only}}/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"site-files",
+								"{{file_id_only}}",
+								"download"
+							]
+						},
+						"description": "Download site file. Gunakan 'Send and Download' di Postman."
+					},
+					"response": []
+				},
+				{
+					"name": "Download Termin File",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/termin-files/{{file_id_only}}/download",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"termin-files",
+								"{{file_id_only}}",
+								"download"
+							]
+						},
+						"description": "Download termin file. Gunakan 'Send and Download' di Postman."
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "Health Check",
 			"request": {
 				"method": "GET",
@@ -1639,6 +1962,11 @@
 		{
 			"key": "termin_id_only",
 			"value": "your_termin_id_here",
+			"type": "string"
+		},
+		{
+			"key": "team_id_only",
+			"value": "your_team_id_here",
 			"type": "string"
 		}
 	]
