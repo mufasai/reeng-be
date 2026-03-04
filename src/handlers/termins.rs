@@ -17,14 +17,29 @@ use crate::state::AppState;
 
 // ==================== TERMIN HANDLERS ====================
 
+// Helper function to strip table prefix if present
+fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
+    let prefix = format!("{}:", table);
+    id_str.strip_prefix(&prefix).unwrap_or(id_str)
+}
+
 pub async fn create_termin(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateTerminRequest>,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    // Parse and clean IDs
+    let project_id_clean = strip_table_prefix(&req.project_id, "projects");
+    let project_thing = Thing::try_from(("projects", project_id_clean))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    
+    let site_id_clean = strip_table_prefix(&req.site_id, "sites");
+    let site_thing = Thing::try_from(("sites", site_id_clean))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
     // Step 1: Fetch the site to get maximal_budget for validation
-    let fetch_site_query = "SELECT * FROM type::thing($site_id)";
+    let fetch_site_query = "SELECT * FROM $site_id";
     let mut site_result = state.db.query(fetch_site_query)
-        .bind(("site_id", req.site_id.clone()))
+        .bind(("site_id", site_thing.clone()))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
@@ -65,14 +80,14 @@ pub async fn create_termin(
         let previous_termin_ke = req.termin_ke - 1;
         let check_previous_query = r#"
             SELECT * FROM termins 
-            WHERE site_id = type::thing($site_id) 
+            WHERE site_id = $site_id 
             AND termin_ke = $previous_termin_ke 
             ORDER BY created_at DESC 
             LIMIT 1
         "#;
         
         let mut previous_result = state.db.query(check_previous_query)
-            .bind(("site_id", req.site_id.clone()))
+            .bind(("site_id", site_thing.clone()))
             .bind(("previous_termin_ke", previous_termin_ke))
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -110,11 +125,11 @@ pub async fn create_termin(
     // Get sum of all existing termins for this site
     let sum_query = r#"
         SELECT * FROM termins 
-        WHERE site_id = type::thing($site_id)
+        WHERE site_id = $site_id
     "#;
     
     let mut sum_result = state.db.query(sum_query)
-        .bind(("site_id", req.site_id.clone()))
+        .bind(("site_id", site_thing.clone()))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
@@ -146,69 +161,67 @@ pub async fn create_termin(
     // Step 6: Create the termin
     let query = if submitted_by.is_some() {
         r#"
-        CREATE termins CONTENT {
-            project_id: type::thing($project_id),
-            site_id: type::thing($site_id),
-            type_termin: $type_termin,
-            tgl_terima: $tgl_terima,
-            jumlah: $jumlah,
-            termin_ke: $termin_ke,
-            percentage: $percentage,
-            status: $status,
-            keterangan: $keterangan,
-            submitted_by: $submitted_by,
-            submitted_at: time::now(),
-            reviewed_by: NONE,
-            reviewed_at: NONE,
-            catatan_review: NONE,
-            approved_by: NONE,
-            approved_at: NONE,
-            catatan_approval: NONE,
-            paid_by: NONE,
-            paid_at: NONE,
-            jumlah_dibayar: NONE,
-            referensi_pembayaran: NONE,
-            catatan_pembayaran: NONE,
-            bukti_pembayaran: NONE,
-            created_at: time::now(),
-            updated_at: time::now()
-        }
+        CREATE termins SET 
+            project_id = $project_id,
+            site_id = $site_id,
+            type_termin = $type_termin,
+            tgl_terima = $tgl_terima,
+            jumlah = $jumlah,
+            termin_ke = $termin_ke,
+            percentage = $percentage,
+            status = $status,
+            keterangan = $keterangan,
+            submitted_by = $submitted_by,
+            submitted_at = time::now(),
+            reviewed_by = NONE,
+            reviewed_at = NONE,
+            catatan_review = NONE,
+            approved_by = NONE,
+            approved_at = NONE,
+            catatan_approval = NONE,
+            paid_by = NONE,
+            paid_at = NONE,
+            jumlah_dibayar = NONE,
+            referensi_pembayaran = NONE,
+            catatan_pembayaran = NONE,
+            bukti_pembayaran = NONE,
+            created_at = time::now(),
+            updated_at = time::now()
         "#
     } else {
         r#"
-        CREATE termins CONTENT {
-            project_id: type::thing($project_id),
-            site_id: type::thing($site_id),
-            type_termin: $type_termin,
-            tgl_terima: $tgl_terima,
-            jumlah: $jumlah,
-            termin_ke: $termin_ke,
-            percentage: $percentage,
-            status: $status,
-            keterangan: $keterangan,
-            submitted_by: NONE,
-            submitted_at: NONE,
-            reviewed_by: NONE,
-            reviewed_at: NONE,
-            catatan_review: NONE,
-            approved_by: NONE,
-            approved_at: NONE,
-            catatan_approval: NONE,
-            paid_by: NONE,
-            paid_at: NONE,
-            jumlah_dibayar: NONE,
-            referensi_pembayaran: NONE,
-            catatan_pembayaran: NONE,
-            bukti_pembayaran: NONE,
-            created_at: time::now(),
-            updated_at: time::now()
-        }
+        CREATE termins SET 
+            project_id = $project_id,
+            site_id = $site_id,
+            type_termin = $type_termin,
+            tgl_terima = $tgl_terima,
+            jumlah = $jumlah,
+            termin_ke = $termin_ke,
+            percentage = $percentage,
+            status = $status,
+            keterangan = $keterangan,
+            submitted_by = NONE,
+            submitted_at = NONE,
+            reviewed_by = NONE,
+            reviewed_at = NONE,
+            catatan_review = NONE,
+            approved_by = NONE,
+            approved_at = NONE,
+            catatan_approval = NONE,
+            paid_by = NONE,
+            paid_at = NONE,
+            jumlah_dibayar = NONE,
+            referensi_pembayaran = NONE,
+            catatan_pembayaran = NONE,
+            bukti_pembayaran = NONE,
+            created_at = time::now(),
+            updated_at = time::now()
         "#
     };
 
     let mut query_builder = state.db.query(query)
-        .bind(("project_id", req.project_id.clone()))
-        .bind(("site_id", req.site_id.clone()))
+        .bind(("project_id", project_thing))
+        .bind(("site_id", site_thing))
         .bind(("type_termin", req.type_termin.clone()))
         .bind(("tgl_terima", req.tgl_terima.clone()))
         .bind(("jumlah", req.jumlah))

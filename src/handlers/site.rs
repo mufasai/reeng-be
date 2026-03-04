@@ -5,35 +5,28 @@ use surrealdb::sql::Thing;
 use crate::models::{ApiResponse, CreateSiteRequest, UpdateSiteRequest, Site, Team};
 use crate::state::AppState;
 
+// Helper function to strip table prefix from ID strings
+fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
+    let prefix = format!("{}:", table);
+    id_str.strip_prefix(&prefix).unwrap_or(id_str)
+}
+
 pub async fn create_site(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Json(req): Json<CreateSiteRequest>,
 ) -> Result<Json<ApiResponse<Site>>, StatusCode> {
+    // Parse and clean project_id
+    let project_id_clean = strip_table_prefix(&req.project_id, "projects");
+    let project_thing = Thing::try_from(("projects", project_id_clean))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
     // Build query to create site with proper record references
-    let query = "CREATE sites CONTENT {
-        project_id: type::thing($project_id),
-        site_name: $site_name,
-        site_info: $site_info,
-        pekerjaan: $pekerjaan,
-        lokasi: $lokasi,
-        latitude: $latitude,
-        longitude: $longitude,
-        nomor_kontrak: $nomor_kontrak,
-        start: $start,
-        end: $end,
-        maximal_budget: $maximal_budget,
-        cost_estimated: $cost_estimated,
-        pemberi_tugas: $pemberi_tugas,
-        penerima_tugas: $penerima_tugas,
-        site_document: $site_document,
-        created_at: time::now(),
-        updated_at: time::now()
-    }";
+    let query = "CREATE sites SET project_id = $project_id, site_name = $site_name, site_info = $site_info, pekerjaan = $pekerjaan, lokasi = $lokasi, latitude = $latitude, longitude = $longitude, nomor_kontrak = $nomor_kontrak, start = $start, end = $end, maximal_budget = $maximal_budget, cost_estimated = $cost_estimated, pemberi_tugas = $pemberi_tugas, penerima_tugas = $penerima_tugas, site_document = $site_document, created_at = time::now(), updated_at = time::now()";
 
     let mut response = state
         .db
         .query(query)
-        .bind(("project_id", req.project_id.clone()))
+        .bind(("project_id", project_thing.clone()))
         .bind(("site_name", req.site_name.clone()))
         .bind(("site_info", req.site_info.clone()))
         .bind(("pekerjaan", req.pekerjaan.clone()))
@@ -75,21 +68,19 @@ pub async fn create_site(
                 })?;
 
             // Create team using query
-            let team_query = "CREATE teams CONTENT {
-                nama: $nama,
-                project_id: type::thing($project_id),
-                site_id: type::thing($site_id),
-                active: true,
-                created_at: time::now(),
-                updated_at: time::now()
-            }";
+            let site_id_clean = strip_table_prefix(&site_id_str, "sites");
+            let site_thing = Thing::try_from(("sites", site_id_clean))
+                .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+            let team_query = "CREATE teams SET nama = $nama, project_id = $project_id, site_id = $site_id, active = $active, created_at = time::now(), updated_at = time::now()";
 
             let mut team_response = state
                 .db
                 .query(team_query)
                 .bind(("nama", format!("Team {}", req.site_name)))
-                .bind(("project_id", req.project_id.clone()))
-                .bind(("site_id", site_id_str.clone()))
+                .bind(("project_id", project_thing.clone()))
+                .bind(("site_id", site_thing))
+                .bind(("active", true))
                 .await
                 .map_err(|e| {
                     eprintln!("Database error creating team: {}", e);
@@ -107,19 +98,22 @@ pub async fn create_site(
                     .unwrap_or_default();
 
                 // Add team members
+                let team_id_clean = strip_table_prefix(&team_id_str, "teams");
+                let team_thing = Thing::try_from(("teams", team_id_clean))
+                    .map_err(|_| StatusCode::BAD_REQUEST)?;
+
                 for people_id_str in member_ids {
-                    let member_query = "CREATE team_peoples CONTENT {
-                        team_id: type::thing($team_id),
-                        people_id: type::thing($people_id),
-                        created_at: time::now(),
-                        updated_at: time::now()
-                    }";
+                    let people_id_clean = strip_table_prefix(&people_id_str, "people");
+                    let people_thing = Thing::try_from(("people", people_id_clean))
+                        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+                    let member_query = "CREATE team_peoples SET team_id = $team_id, people_id = $people_id, created_at = time::now(), updated_at = time::now()";
 
                     let _ = state
                         .db
                         .query(member_query)
-                        .bind(("team_id", team_id_str.clone()))
-                        .bind(("people_id", people_id_str.clone()))
+                        .bind(("team_id", team_thing.clone()))
+                        .bind(("people_id", people_thing))
                         .await
                         .map_err(|e| {
                             eprintln!("Database error creating team_people: {}", e);
@@ -231,7 +225,7 @@ pub async fn update_site(
     let mut update_parts = vec!["updated_at = time::now()".to_string()];
     
     if req.project_id.is_some() {
-        update_parts.push("project_id = type::thing($project_id)".to_string());
+        update_parts.push("project_id = $project_id".to_string());
     }
     if req.site_name.is_some() {
         update_parts.push("site_name = $site_name".to_string());
@@ -285,7 +279,10 @@ pub async fn update_site(
 
     // Bind all the optional parameters
     if let Some(project_id) = req.project_id {
-        query_builder = query_builder.bind(("project_id", project_id));
+        let project_id_clean = strip_table_prefix(&project_id, "projects");
+        let project_thing = Thing::try_from(("projects", project_id_clean))
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        query_builder = query_builder.bind(("project_id", project_thing));
     }
     if let Some(site_name) = req.site_name {
         query_builder = query_builder.bind(("site_name", site_name));

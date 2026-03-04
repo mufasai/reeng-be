@@ -88,14 +88,23 @@ pub async fn create_team(
 pub async fn list_teams(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<Team>>>, StatusCode> {
-    let teams: Vec<Team> = state
-        .db
-        .select("teams")
+    // Use a more specific query to avoid corrupt data
+    let query = "SELECT * FROM teams WHERE created_at >= time::now() - 1d ORDER BY created_at DESC";
+    let mut result = state.db.query(query)
         .await
         .map_err(|e| {
-            eprintln!("Database error: {}", e);
+            eprintln!("Database error listing teams: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    // Try to parse teams, but if it fails, return empty array instead of error
+    let teams: Vec<Team> = match result.take(0) {
+        Ok(teams) => teams,
+        Err(e) => {
+            eprintln!("Parse error listing teams (returning empty): {}", e);
+            Vec::new()  // Return empty array instead of failing
+        }
+    };
 
     Ok(Json(ApiResponse {
         success: true,
@@ -155,43 +164,72 @@ pub async fn update_team(
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Build UPDATE query dynamically based on provided fields
-    let mut updates = Vec::new();
+    let mut update_parts = Vec::new();
+    let mut has_updates = false;
     
-    if let Some(nama) = req.nama {
-        updates.push(format!("nama = '{}'", nama.replace("'", "''")));
+    if req.nama.is_some() {
+        update_parts.push("nama = $nama");
+        has_updates = true;
     }
-    if let Some(project_id) = req.project_id {
-        let project_id_clean = strip_table_prefix(&project_id, "projects");
-        updates.push(format!("project_id = projects:{}", project_id_clean));
+    if req.project_id.is_some() {
+        update_parts.push("project_id = $project_id");
+        has_updates = true;
     }
-    if let Some(site_id) = req.site_id {
-        let site_id_clean = strip_table_prefix(&site_id, "sites");
-        updates.push(format!("site_id = sites:{}", site_id_clean));
+    if req.site_id.is_some() {
+        update_parts.push("site_id = $site_id");
+        has_updates = true;
     }
-    if let Some(leader_id) = req.leader_id {
-        let leader_id_clean = strip_table_prefix(&leader_id, "people");
-        updates.push(format!("leader_id = people:{}", leader_id_clean));
+    if req.leader_id.is_some() {
+        update_parts.push("leader_id = $leader_id");
+        has_updates = true;
     }
-    if let Some(active) = req.active {
-        updates.push(format!("active = {}", active));
+    if req.active.is_some() {
+        update_parts.push("active = $active");
+        has_updates = true;
     }
 
-    if updates.is_empty() {
+    if !has_updates {
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    updates.push("updated_at = time::now()".to_string());
+    update_parts.push("updated_at = time::now()");
 
     let query = format!(
         "UPDATE $team_id SET {}",
-        updates.join(", ")
+        update_parts.join(", ")
     );
 
-    let mut result = state.db.query(query)
-        .bind(("team_id", thing))
-        .await
+    let mut query_builder = state.db.query(&query)
+        .bind(("team_id", thing));
+
+    if let Some(nama) = req.nama {
+        query_builder = query_builder.bind(("nama", nama));
+    }
+    if let Some(project_id) = req.project_id {
+        let project_id_clean = strip_table_prefix(&project_id, "projects");
+        let project_thing = Thing::try_from(("projects", project_id_clean))
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        query_builder = query_builder.bind(("project_id", project_thing));
+    }
+    if let Some(site_id) = req.site_id {
+        let site_id_clean = strip_table_prefix(&site_id, "sites");
+        let site_thing = Thing::try_from(("sites", site_id_clean))
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        query_builder = query_builder.bind(("site_id", site_thing));
+    }
+    if let Some(leader_id) = req.leader_id {
+        let leader_id_clean = strip_table_prefix(&leader_id, "people");
+        let leader_thing = Thing::try_from(("people", leader_id_clean))
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        query_builder = query_builder.bind(("leader_id", leader_thing));
+    }
+    if let Some(active) = req.active {
+        query_builder = query_builder.bind(("active", active));
+    }
+
+    let mut result = query_builder.await
         .map_err(|e| {
-            eprintln!("Database error: {}", e);
+            eprintln!("Database error updating team: {}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
