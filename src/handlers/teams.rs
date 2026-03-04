@@ -148,6 +148,41 @@ pub async fn get_team(
     }
 }
 
+pub async fn get_team_by_leader(
+    State(state): State<Arc<AppState>>,
+    Path(leader_id): Path<String>,
+) -> Result<Json<ApiResponse<Team>>, StatusCode> {
+    // Helper function to strip table prefix if present
+    fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
+        let prefix = format!("{}:", table);
+        id_str.strip_prefix(&prefix).unwrap_or(id_str)
+    }
+
+    let leader_id_clean = strip_table_prefix(&leader_id, "people");
+    let leader_thing = Thing::try_from(("people", leader_id_clean))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let query = "SELECT * FROM teams WHERE leader_id = $leader_id LIMIT 1";
+    let mut result = state.db.query(query)
+        .bind(("leader_id", leader_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let team: Option<Team> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match team {
+        Some(team) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(team),
+            message: None,
+        })),
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
 pub async fn update_team(
     State(state): State<Arc<AppState>>,
     Path(team_id): Path<String>,

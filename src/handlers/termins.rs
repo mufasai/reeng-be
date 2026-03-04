@@ -283,11 +283,27 @@ pub async fn list_termins(
             String::new()
         };
         
+        // Fetch project details
+        let project_name = if let Some(ref project_id) = termin.project_id {
+            let project_query = "SELECT * FROM type::thing($project_id)";
+            let mut project_result = state.db.query(project_query)
+                .bind(("project_id", project_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let project: Option<crate::models::Project> = project_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            project.map(|p| p.name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
         // Build TerminWithSiteInfo
         let termin_with_site = TerminWithSiteInfo {
             id: termin.id,
             project_id: termin.project_id,
-            site_id: Some(TerminSiteInfo { site_name }),
+            site_id: Some(TerminSiteInfo { site_name, project_name }),
             type_termin: termin.type_termin,
             tgl_terima: termin.tgl_terima,
             jumlah: termin.jumlah,
@@ -361,11 +377,27 @@ pub async fn get_termins_by_project(
             String::new()
         };
         
+        // Fetch project details
+        let project_name = if let Some(ref project_id) = termin.project_id {
+            let project_query = "SELECT * FROM type::thing($project_id)";
+            let mut project_result = state.db.query(project_query)
+                .bind(("project_id", project_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let project: Option<crate::models::Project> = project_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            project.map(|p| p.name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
         // Build TerminWithSiteInfo
         let termin_with_site = TerminWithSiteInfo {
             id: termin.id,
             project_id: termin.project_id,
-            site_id: Some(TerminSiteInfo { site_name }),
+            site_id: Some(TerminSiteInfo { site_name, project_name }),
             type_termin: termin.type_termin,
             tgl_terima: termin.tgl_terima,
             jumlah: termin.jumlah,
@@ -439,11 +471,27 @@ pub async fn get_termins_by_site(
             String::new()
         };
         
+        // Fetch project details
+        let project_name = if let Some(ref project_id) = termin.project_id {
+            let project_query = "SELECT * FROM type::thing($project_id)";
+            let mut project_result = state.db.query(project_query)
+                .bind(("project_id", project_id.to_string()))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            let project: Option<crate::models::Project> = project_result.take(0)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            
+            project.map(|p| p.name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        
         // Build TerminWithSiteInfo
         let termin_with_site = TerminWithSiteInfo {
             id: termin.id,
             project_id: termin.project_id,
-            site_id: Some(TerminSiteInfo { site_name }),
+            site_id: Some(TerminSiteInfo { site_name, project_name }),
             type_termin: termin.type_termin,
             tgl_terima: termin.tgl_terima,
             jumlah: termin.jumlah,

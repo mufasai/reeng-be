@@ -72,6 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Team routes
         .route("/api/teams", post(teams::create_team))
         .route("/api/teams", get(teams::list_teams))
+        .route("/api/teams/leader/:leader_id", get(teams::get_team_by_leader))
         .route("/api/teams/:team_id", get(teams::get_team))
         .route("/api/teams/:team_id", put(teams::update_team))
         .route("/api/teams/:team_id", delete(teams::delete_team))

@@ -1237,7 +1237,8 @@
 							"path": [
 								"termins"
 							]
-						}
+						},
+						"description": "📋 Get all termins with enriched data (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n📝 **RESPONSE EXAMPLE:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"termins:xxx\",\n      \"project_id\": \"projects:yyy\",\n      \"site_id\": {\n        \"site_name\": \"Site Jakarta Selatan\",\n        \"project_name\": \"Network Expansion Jakarta\"\n      },\n      \"termin_ke\": 1,\n      \"percentage\": 30,\n      \"status\": \"draft\",\n      ...\n    }\n  ]\n}\n```\n\n🎯 **Impact:** Frontend bisa langsung akses project_name tanpa query tambahan!"
 					},
 					"response": []
 				},
@@ -1256,7 +1257,8 @@
 								"project",
 								"{{project_id_only}}"
 							]
-						}
+						},
+						"description": "📋 Get all termins for specific project (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n🎯 **Use Case:** Melihat semua termin dalam satu project dengan info lengkap site & project"
 					},
 					"response": []
 				},
@@ -1275,7 +1277,8 @@
 								"site",
 								"{{site_id_only}}"
 							]
-						}
+						},
+						"description": "📋 Get all termins for specific site (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n🎯 **Use Case:** Melihat semua termin (1-4) dalam satu site dengan info project parent"
 					},
 					"response": []
 				},
@@ -1293,7 +1296,8 @@
 								"termins",
 								"{{termin_id_only}}"
 							]
-						}
+						},
+						"description": "🔍 Get single termin detail by ID (v1.7.1)\n\n✅ **RESPONSE:** Returns standard Termin object (tidak ada enrichment untuk single get)\n\n📝 Note: Untuk mendapatkan site_name dan project_name, gunakan list endpoints."
 					},
 					"response": []
 				},
@@ -1636,6 +1640,26 @@
 							]
 						},
 						"description": "Get specific team detail by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Team by Leader ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/teams/leader/{{leader_id_only}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"teams",
+								"leader",
+								"{{leader_id_only}}"
+							]
+						},
+						"description": "Get team detail by leader ID\n\n✅ **RESPONSE:** Returns team where the specified person is the leader\n\n🎯 **Use Case:** Cek team mana yang dipimpin oleh seorang leader tertentu\n\n⚠️ **Note:** Returns 404 if person is not a leader of any team"
 					},
 					"response": []
 				},

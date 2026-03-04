@@ -636,6 +636,7 @@ pub struct PayTerminRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminSiteInfo {
     pub site_name: String,
+    pub project_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -6,6 +6,20 @@
 
 ## 📋 Changelog
 
+### v1.7.1 (2026-03-04)
+**📌 Termin Response Enhancement - Project Name Display**
+- ✅ **ENHANCED RESPONSE:** Termin list endpoints sekarang include `project_name`
+  - Field `site_id` dalam response berisi object: `{ site_name: string, project_name: string }`
+  - Berlaku untuk: `GET /termins`, `GET /termins/project/:id`, `GET /termins/site/:id`
+- ✅ **BACKEND OPTIMIZATION:** Auto-fetch project name dari database (no frontend query needed)
+- ✅ **MODEL UPDATE:** `TerminSiteInfo` struct ditambahkan field `project_name`
+- ✅ **NEW ENDPOINT:** `GET /teams/leader/:leader_id` - Get team by leader ID
+  - Query team berdasarkan leader_id (person yang jadi leader)
+  - Useful untuk cek team mana yang dipimpin oleh seseorang
+- 🎯 **Impact:** Frontend bisa langsung tampilkan project name di menu termin (1-4) tanpa query tambahan
+- 📊 **Use Case:** User dapat melihat "Project → Site → Termin" hierarchy dengan jelas
+- 🔧 **Updated Handlers:** `list_termins`, `get_termins_by_project`, `get_termins_by_site`, `get_team_by_leader`
+
 ### v1.7.0 (2026-03-03)
 **👥 Teams CRUD & 📁 Multipart File Uploads (Project, Site, Termin)**
 - ✅ **NEW MODULE:** Teams Management - Full CRUD operations
@@ -1141,15 +1155,43 @@
 
 **Response:** Array of termins, sorted by `created_at DESC`
 
+**✅ v1.7.1 Enhancement:** Response includes enriched `site_id` field with both `site_name` and `project_name`
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "termins:xxx",
+      "project_id": "projects:yyy",
+      "site_id": {
+        "site_name": "Site Jakarta Selatan",
+        "project_name": "Network Expansion Jakarta"
+      },
+      "termin_ke": 1,
+      "percentage": 30,
+      "status": "draft",
+      "jumlah": 15000000,
+      ...
+    }
+  ]
+}
+```
+
 ### Get Termins by Project
 **GET** `/termins/project/:project_id`
 
 **Response:** Array of termins for specific project
 
+**✅ v1.7.1 Enhancement:** Response includes enriched `site_id` field with both `site_name` and `project_name`
+
 ### Get Termins by Site
 **GET** `/termins/site/:site_id`
 
 **Response:** Array of termins for specific site
+
+**✅ v1.7.1 Enhancement:** Response includes enriched `site_id` field with both `site_name` and `project_name`
 
 ### Update Termin (Draft Only)
 **PUT** `/termins/:termin_id`
