@@ -287,6 +287,18 @@ pub struct Team {
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
     pub leader_id: Option<Thing>,  // FK to people table
     pub active: bool,
+    // Employee detail fields (populated from Excel upload)
+    pub nik: Option<String>,
+    pub nama_karyawan: Option<String>,
+    pub tanggal_lahir: Option<String>,
+    pub tempat_lahir: Option<String>,
+    pub agama: Option<String>,
+    pub jenis_kelamin: Option<String>,
+    pub no_ktp: Option<String>,
+    pub no_hp: Option<String>,
+    pub alamat_email: Option<String>,
+    pub jabatan_kerja: Option<String>,
+    pub regional: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -335,6 +347,16 @@ pub struct TeamMemberInput {
     pub people_id: String,
     pub role: Option<String>,
     pub vendor: Option<String>,
+}
+
+// ==================== TEAM UPLOAD RESULT ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamUploadResult {
+    pub total_rows: usize,
+    pub success_count: usize,
+    pub failed_count: usize,
+    pub errors: Vec<String>,
 }
 
 // ==================== COST MODELS ====================
