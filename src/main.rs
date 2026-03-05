@@ -79,6 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/teams/:team_id", put(teams::update_team))
         .route("/api/teams/:team_id", delete(teams::delete_team))
         .route("/api/teams/:team_id/members", get(teams::list_team_members))
+        .route("/api/teams/upload", post(teams::upload_teams_excel))
         // Cost routes
         .route("/api/costs", post(costs::create_cost))
         .route("/api/costs", get(costs::list_costs))
@@ -131,7 +132,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(cors);
 
     // Start server
-    let addr = "0.0.0.0:3000";
+    let addr = "0.0.0.0:3001";
     println!("🚀 Server starting on http://{}", addr);
     println!("📝 Available endpoints:");
     println!("  GET    /api/health");
@@ -158,6 +159,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  GET    /api/people/:id");
     println!("  PUT    /api/people/:id");
     println!("  DELETE /api/people/:id");
+    println!("\n👥 Teams:");
+    println!("  POST   /api/teams/upload  (Excel upload)");
     println!("\n💰 Costs:");
     println!("  POST   /api/costs");
     println!("  GET    /api/costs");

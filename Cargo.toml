@@ -16,4 +16,4 @@ dotenv = "0.15"
 uuid = { version = "1.6", features = ["v4"] }
 surrealdb = { version = "2", features = ["protocol-http"] }
 base64 = "0.21"
-calamine = { version = "0.24", features = ["dates"] }
+calamine = { version = "0.26", features = ["dates"] }
