@@ -5,7 +5,8 @@ Backend API untuk Reengineering Tracking Tool dengan sistem manajemen Project, S
 ## ✨ Key Features
 
 - 🔐 **Authentication & User Management** - JWT-based auth dengan role-based access control
-- 📊 **Excel Bulk Import** - Import Project + Sites dari Excel (Sheet 3 parsing, auto-mapping 15+ columns)
+- 📊 **Excel Bulk Import** - Import Project + Sites dari Excel dengan smart type detection (FILTER, COMBAT, L2H, etc.)
+- 🏷️ **Auto Project Type Detection** - Project type & name auto-extracted dari Column B (TIPE PROJECT)
 - 📁 **Project Management** - Full CRUD untuk Projects dengan keterangan, budget tracking, dates
 - 🏗️ **Site Management** - Site creation dengan team assignment, lokasi, budget, kontrak
 - 👥 **Team & People** - Team creation dengan leader & members, personnel tracking
@@ -188,35 +189,62 @@ Backend akan running di **http://localhost:3000**
 ```bash
 # Upload Excel file untuk create Project + Sites
 curl -X POST http://localhost:3000/api/projects/import-excel \
-  -F 'file=@OSP_Project_Report_Update-20260215-PEKALONGAN.xlsx'
+  -F 'file=@EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx'
 ```
 
 ### Excel Format Requirements
 - **Sheet:** "Active Project Details" (Sheet 3)
-- **Filename:** `OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`
+- **Filename (Flexible):** 
+  - `EPROC{DATE}_{Details}_{Type}_{Location}.xlsx` (e.g., Filter, Combat, L2H)
+  - `OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`
 - **Row 2:** Total values (BOQ AKTUAL @ column I, TOTAL NILAI PO @ column M)
-- **Row 5:** Column headers
-- **Row 6+:** Site data
+- **Row 5:** Column headers (including **TIPE PROJECT** at column B)
+- **Row 6:** First data row - **Column B determines project type & name**
+- **Row 6+:** Site data (100+ rows supported)
+
+### Project Auto-Generation ⭐ NEW
+**Project name format:** `{TIPE} Project {LOKASI}`
+
+Examples based on Column B (TIPE PROJECT):
+- Column B = "FILTER" → Project name: **"FILTER Project Jakarta"**
+- Column B = "COMBAT" → Project name: **"COMBAT Project Surabaya"**
+- Column B = "L2H" → Project name: **"L2H Project Bandung"**
+
+**Supported project types:**
+- COMBAT, L2H, BLACK SITE, REFINEN, FILTER, BEBAN OPERASIONAL
+
+**Auto-extracted from Excel:**
+- ✅ Project type: From Column B (TIPE PROJECT) Row 6
+- ✅ Project name: `{TIPE} Project {LOKASI}`
+- ✅ Location: Last part of filename (e.g., "Jakarta", "Jabo", "PEKALONGAN")
+- ✅ Date: First 8-digit number in filename (YYYYMMDD)
+- ✅ Budget: Row 2 totals (Column I & M)
 
 ### Column Mapping (15+ fields)
-| Excel Column | Index | Maps To | Type |
-|--------------|-------|---------|------|
-| L: NAMA LOP [SITE] | 11 | `site_name` | string (required) |
-| D: WTIEL | 3 | `lokasi` | string |
-| K: NAMA PO | 10 | `pekerjaan` | string |
-| J: NOMOR PO | 9 | `nomor_kontrak` | string (auto-gen if empty) |
-| G: TANGGAL WO | 6 | `start` | date |
-| O: TANGGAL | 14 | `end` | date (fallback to start) |
-| M: NILAI PO | 12 | `maximal_budget` | i64 |
-| H: BOQ KONTRAK | 7 | `cost_estimated` | i64 |
-| B+N+P (combined) | - | `site_info` | string |
+| Excel Column | Index | Maps To | Type | Notes |
+|--------------|-------|---------|------|-------|
+| **B: TIPE PROJECT** | **1** | **`project.tipe`** | **enum** | **⭐ Determines project type & name** |
+| L: NAMA LOP [SITE] | 11 | `site_name` | string | required |
+| D: WTIEL | 3 | `lokasi` | string | |
+| K: NAMA PO | 10 | `pekerjaan` | string | |
+| J: NOMOR PO | 9 | `nomor_kontrak` | string | auto-gen if empty |
+| G: TANGGAL WO | 6 | `start` | date | |
+| O: TANGGAL | 14 | `end` | date | fallback to start |
+| M: NILAI PO | 12 | `maximal_budget` | i64 | |
+| H: BOQ KONTRAK | 7 | `cost_estimated` | i64 | |
+| B+N+P (combined) | - | `site_info` | string | includes type, status, notes |
 
 ### Response Example
 ```json
 {
   "success": true,
   "data": {
-    "project": { "id": "projects:xxx", "name": "OSP Project PEKALONGAN", ... },
+    "project": { 
+      "id": "projects:xxx", 
+      "name": "FILTER Project Jakarta", 
+      "tipe": "FILTER",
+      ... 
+    },
     "total_rows": 36,
     "sites_created": 36,
     "sites_failed": 0,
@@ -224,7 +252,7 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
     "errors": [],
     "summary": {
       "project_id": "projects:xxx",
-      "project_name": "OSP Project PEKALONGAN",
+      "project_name": "FILTER Project Jakarta",
       "total_budget": 257091760,
       "sites_count": 36,
       "message": "Import completed: 36 sites created, 0 failed out of 36 rows"
@@ -234,11 +262,14 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 ```
 
 ### Benefits
-- ⚡ **Fast:** Import 36 sites in seconds (vs hours manual entry)
+- ⚡ **Fast:** Import 100+ sites in seconds (vs hours manual entry)
 - 🔄 **Atomic:** All-or-nothing per site (continues on error)
-- 📊 **Detailed:** Per-row error reporting
-- 🔗 **Relational:** Auto-links all sites to project
-- 🎯 **Smart:** Auto-extract project info from filename & totals
+- 📊 **Detailed:** Per-row error reporting with field-level info
+- 🔗 **Relational:** Auto-links all sites to project via project_id
+- 🎯 **Smart:** Auto-extract project type, name, location, date from Excel
+- 🏷️ **Type-aware:** Supports 6 project types (FILTER, COMBAT, L2H, etc.)
+- 📝 **Flexible:** Multiple filename formats supported
+- 🛡️ **Resilient:** Skips empty rows, auto-generates missing fields
 
 ## 🔧 Development
 

@@ -13,16 +13,20 @@
 - ✅ **SMART PARSING:** Auto-extract project info from filename and Row 2 totals
 - ✅ **SHEET 3 SUPPORT:** Parse "Active Project Details" sheet specifically
 - ✅ **COLUMN MAPPING:** 15+ Excel columns mapped to Site model fields
-- ✅ **ATOMIC CREATION:** Create 1 Project + 36 Sites in single request
+- ✅ **ATOMIC CREATION:** Create 1 Project + 100+ Sites in single request
 - ✅ **ERROR HANDLING:** Continue-on-error with detailed per-row error reporting
 - ✅ **AUTO-GENERATE:** Missing nomor_kontrak auto-generated with timestamp
 - ✅ **DATE FLEXIBILITY:** Support Excel datetime, YYYY-MM-DD, DD/MM/YYYY formats
 - ✅ **RELATIONAL:** All sites automatically linked to created project
+- 🏷️ **TYPE AUTO-DETECT:** ⭐ NEW - Project type & name from Column B (TIPE PROJECT)
+  - Supported types: COMBAT, L2H, BLACK SITE, REFINEN, FILTER, BEBAN OPERASIONAL
+  - Project name format: `{TIPE} Project {LOKASI}` (e.g., "FILTER Project Jakarta")
+  - Column B Row 6 determines project type for all sites
 - 📦 **Dependencies:** Added `calamine = { version = "0.24", features = ["dates"] }` for Excel parsing
 - 📝 **Response:** Complete import summary with project, sites array, error list, statistics
-- 🎯 **Impact:** Drastically reduce data entry time - import 36 sites in seconds vs hours of manual entry
-- 💡 **Use Case:** Bulk onboarding of OSP projects from Telkom Excel reports
-- 🔧 **New Handler:** `src/handlers/bulk_import.rs` (400+ lines)
+- 🎯 **Impact:** Drastically reduce data entry time - import 100+ sites in seconds vs hours of manual entry
+- 💡 **Use Case:** Bulk onboarding of OSP/Filter/Combat projects from Telkom Excel reports
+- 🔧 **New Handler:** `src/handlers/bulk_import.rs` (450+ lines with type detection)
 - 📚 **Models:** `BulkImportExcelResponse`, `ImportError`, `ImportSummary`
 
 ### v1.7.1 (2026-03-04)
@@ -486,19 +490,34 @@
 **Excel File Structure Requirements:**
 
 1. **Sheet:** Must have sheet named **"Active Project Details"** (Sheet 3)
-2. **Filename Format:** `OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`
-   - Example: `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`
-   - Project name extracted from filename: `OSP Project PEKALONGAN`
-   - Project date extracted: `2026-02-15`
+
+2. **Filename Format (Flexible):**
+   - **EPROC Format:** `EPROC{DATE}_{Company}_{Type}_{Category}_{Batch}_{Location}.xlsx`
+     - Example: `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`
+     - Project name: `FILTER Project Jabo`
+   - **SST Format:** `EPROC{DATE}_SST_{Type}_{Category}_{Details}_{Location}.xlsx`
+     - Example: `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`
+     - Project name: `FILTER Project Jakarta`
+   - **OSP Format:** `OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`
+     - Example: `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`
+     - Project name: `{TIPE} Project PEKALONGAN` (TIPE from Column B)
+   - **Auto-extraction:**
+     - Location: Last part of filename (e.g., "Jabo", "Jakarta", "PEKALONGAN")
+     - Date: First 8-digit number in filename (YYYYMMDD format)
 
 3. **Excel Layout:**
    - **Row 2:** Summary totals
      - Column I (index 8): BOQ AKTUAL → Project `value`
      - Column M (index 12): TOTAL NILAI PO → Project `cost`
    - **Row 5 (index 4):** Column headers
-   - **Row 6+ (index 5+):** Site data rows
+   - **Row 6 (index 5):** First data row - **Column B contains TIPE PROJECT**
+   - **Row 6+ (index 5+):** Site data rows (all sites will use same TIPE)
 
 4. **Column Mapping (0-indexed):**
+   - **Column B (1):** TIPE PROJECT → `project.tipe` & `project.name` ⭐ **NEW**
+     - Supported types: COMBAT, L2H, BLACK SITE, REFINEN, FILTER, BEBAN OPERASIONAL
+     - Project name format: `{TIPE} Project {LOKASI}`
+     - Example: "FILTER Project Jakarta", "COMBAT Project Surabaya"
    - **Column L (11):** NAMA LOP [SITE] → `site_name` *(required)*
    - **Column D (3):** WTIEL → `lokasi`
    - **Column K (10):** NAMA PO → `pekerjaan`
@@ -507,9 +526,7 @@
    - **Column O (14):** TANGGAL → `end` (date, fallback to start)
    - **Column M (12):** NILAI PO → `maximal_budget` (integer)
    - **Column H (7):** BOQ KONTRAK → `cost_estimated` (integer)
-   - **Column B (1):** TIPE PROJECT → Combined in `site_info`
-   - **Column N (13):** LAST STATUS → Combined in `site_info`
-   - **Column P (15):** KETERANGAN → Combined in `site_info`
+   - **Column B+N+P (1,13,15):** Combined → `site_info` (includes TIPE, STATUS, KETERANGAN)
 
 5. **Auto-generated Fields:**
    - `pemberi_tugas`: "PT Telkom Indonesia"
@@ -525,13 +542,13 @@
   "data": {
     "project": {
       "id": "projects:cyhxgkwerejwfv3rb61a",
-      "name": "OSP Project PEKALONGAN",
-      "lokasi": "PEKALONGAN",
+      "name": "FILTER Project Jakarta",
+      "lokasi": "Jakarta",
       "value": 257091760,
       "cost": 87204220,
-      "keterangan": "Progress Projek OSP Telkom Akses - Import from Excel",
-      "tipe": "BEBAN OPERASIONAL",
-      "tgi_start": "2026-02-15",
+      "keterangan": "Progress Projek FILTER - Import from Excel: EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx",
+      "tipe": "FILTER",
+      "tgi_start": "2026-02-06",
       "tgi_end": null,
       "status": "active",
       "created_at": "2026-03-05T02:11:42.123456Z",
