@@ -352,6 +352,36 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Bulk Import from Excel",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/OSP Project Report_Update-20260215-PEKALONGAN.xlsx",
+									"description": "Excel file with format: Sheet 3 'Active Project Details'"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/projects/import-excel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"projects",
+								"import-excel"
+							]
+						},
+						"description": "Bulk import Project and Sites from Excel file.\n\n**Excel Format:**\n- **Sheet:** \"Active Project Details\" (Sheet 3)\n- **Row 2:** Total values (BOQ AKTUAL in column I, TOTAL NILAI PO in column M)\n- **Row 5:** Headers (NO, TIPE PROJECT, AREA, etc.)\n- **Row 6+:** Site data (36 rows max)\n\n**Filename Format:** \n`OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`\n\n**Column Mapping:**\n- L: NAMA LOP [SITE] → site_name\n- D: WTIEL → lokasi\n- K: NAMA PO → pekerjaan\n- J: NOMOR PO → nomor_kontrak\n- G: TANGGAL WO → start\n- M: NILAI PO → maximal_budget\n- H: BOQ KONTRAK → cost_estimated\n- B+N+P: Combined → site_info\n\n**Auto-generated:**\n- Project name from filename\n- Project date from filename\n- Project budget from Row 2 totals"
+					},
+					"response": []
 				}
 			]
 		},

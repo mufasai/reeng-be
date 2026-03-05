@@ -6,6 +6,25 @@
 
 ## 📋 Changelog
 
+### v1.8.0 (2026-03-05)
+**📊 Excel Bulk Import - Projects & Sites Creation**
+- ✅ **NEW ENDPOINT:** `POST /projects/import-excel` - Bulk import from Excel
+- ✅ **MULTIPART UPLOAD:** Accept .xlsx files via multipart/form-data
+- ✅ **SMART PARSING:** Auto-extract project info from filename and Row 2 totals
+- ✅ **SHEET 3 SUPPORT:** Parse "Active Project Details" sheet specifically
+- ✅ **COLUMN MAPPING:** 15+ Excel columns mapped to Site model fields
+- ✅ **ATOMIC CREATION:** Create 1 Project + 36 Sites in single request
+- ✅ **ERROR HANDLING:** Continue-on-error with detailed per-row error reporting
+- ✅ **AUTO-GENERATE:** Missing nomor_kontrak auto-generated with timestamp
+- ✅ **DATE FLEXIBILITY:** Support Excel datetime, YYYY-MM-DD, DD/MM/YYYY formats
+- ✅ **RELATIONAL:** All sites automatically linked to created project
+- 📦 **Dependencies:** Added `calamine = { version = "0.24", features = ["dates"] }` for Excel parsing
+- 📝 **Response:** Complete import summary with project, sites array, error list, statistics
+- 🎯 **Impact:** Drastically reduce data entry time - import 36 sites in seconds vs hours of manual entry
+- 💡 **Use Case:** Bulk onboarding of OSP projects from Telkom Excel reports
+- 🔧 **New Handler:** `src/handlers/bulk_import.rs` (400+ lines)
+- 📚 **Models:** `BulkImportExcelResponse`, `ImportError`, `ImportSummary`
+
 ### v1.7.1 (2026-03-04)
 **📌 Termin Response Enhancement - Project Name Display**
 - ✅ **ENHANCED RESPONSE:** Termin list endpoints sekarang include `project_name`
@@ -452,6 +471,162 @@
   "message": null
 }
 ```
+
+### Bulk Import from Excel
+**POST** `/projects/import-excel`
+
+**Content-Type:** `multipart/form-data`
+
+**Request (Multipart Form):**
+- **Field name:** `file`
+- **Type:** File upload
+- **Accepted formats:** `.xlsx` (Excel 2007+)
+- **Max size:** 10MB (recommended)
+
+**Excel File Structure Requirements:**
+
+1. **Sheet:** Must have sheet named **"Active Project Details"** (Sheet 3)
+2. **Filename Format:** `OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`
+   - Example: `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`
+   - Project name extracted from filename: `OSP Project PEKALONGAN`
+   - Project date extracted: `2026-02-15`
+
+3. **Excel Layout:**
+   - **Row 2:** Summary totals
+     - Column I (index 8): BOQ AKTUAL → Project `value`
+     - Column M (index 12): TOTAL NILAI PO → Project `cost`
+   - **Row 5 (index 4):** Column headers
+   - **Row 6+ (index 5+):** Site data rows
+
+4. **Column Mapping (0-indexed):**
+   - **Column L (11):** NAMA LOP [SITE] → `site_name` *(required)*
+   - **Column D (3):** WTIEL → `lokasi`
+   - **Column K (10):** NAMA PO → `pekerjaan`
+   - **Column J (9):** NOMOR PO → `nomor_kontrak`
+   - **Column G (6):** TANGGAL WO → `start` (date)
+   - **Column O (14):** TANGGAL → `end` (date, fallback to start)
+   - **Column M (12):** NILAI PO → `maximal_budget` (integer)
+   - **Column H (7):** BOQ KONTRAK → `cost_estimated` (integer)
+   - **Column B (1):** TIPE PROJECT → Combined in `site_info`
+   - **Column N (13):** LAST STATUS → Combined in `site_info`
+   - **Column P (15):** KETERANGAN → Combined in `site_info`
+
+5. **Auto-generated Fields:**
+   - `pemberi_tugas`: "PT Telkom Indonesia"
+   - `penerima_tugas`: "Vendor/Pelaksana"
+   - `nomor_kontrak`: Auto-generated if empty (`PO-{row}-{timestamp}`)
+   - `latitude`, `longitude`: null (can be updated later)
+   - `site_document`: null
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "projects:cyhxgkwerejwfv3rb61a",
+      "name": "OSP Project PEKALONGAN",
+      "lokasi": "PEKALONGAN",
+      "value": 257091760,
+      "cost": 87204220,
+      "keterangan": "Progress Projek OSP Telkom Akses - Import from Excel",
+      "tipe": "BEBAN OPERASIONAL",
+      "tgi_start": "2026-02-15",
+      "tgi_end": null,
+      "status": "active",
+      "created_at": "2026-03-05T02:11:42.123456Z",
+      "updated_at": "2026-03-05T02:11:42.123456Z"
+    },
+    "total_rows": 36,
+    "sites_created": 36,
+    "sites_failed": 0,
+    "created_sites": [
+      {
+        "id": "sites:smks0uk6zupih39jzsf2",
+        "project_id": "projects:cyhxgkwerejwfv3rb61a",
+        "site_name": "PT3-24-BLU-FY-JAWA TENGAH_5330_add",
+        "site_info": "PT3_PT4_SMG | Status: 8. REKONSILIASI MATERIAL | done BACT, ogp pelurusan matrial",
+        "pekerjaan": "OSP FO LOKASI BLU-FY-JawaTengah_5330_add WITEL PEKALONGAN",
+        "lokasi": "PEKALONGAN",
+        "latitude": null,
+        "longitude": null,
+        "nomor_kontrak": "4200032602",
+        "start": "2024-10-18",
+        "end": "2026-03-05",
+        "maximal_budget": 0,
+        "cost_estimated": 8020646,
+        "pemberi_tugas": "PT Telkom Indonesia",
+        "penerima_tugas": "Vendor/Pelaksana",
+        "site_document": null,
+        "created_at": "2026-03-05T02:11:42.913959Z",
+        "updated_at": "2026-03-05T02:11:42.913960Z"
+      }
+      // ... 35 more sites
+    ],
+    "errors": [],
+    "summary": {
+      "project_id": "projects:cyhxgkwerejwfv3rb61a",
+      "project_name": "OSP Project PEKALONGAN",
+      "total_budget": 257091760,
+      "sites_count": 36,
+      "message": "Import completed: 36 sites created, 0 failed out of 36 rows"
+    }
+  },
+  "message": null
+}
+```
+
+**Error Response Fields:**
+```json
+{
+  "success": true,
+  "data": {
+    "errors": [
+      {
+        "row_number": 15,
+        "field": "site_name",
+        "message": "Site name (Column L) is required but empty",
+        "data": null
+      },
+      {
+        "row_number": 22,
+        "field": "database",
+        "message": "Failed to create site: database error",
+        "data": {
+          "site_name": "Test Site"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Error Scenarios:**
+- **400 Bad Request:** No file uploaded, or invalid filename
+- **500 Internal Server Error:** Excel parsing failed, database error, or invalid sheet structure
+
+**Notes:**
+- ✅ **Atomic:** Creates 1 Project + N Sites in single operation
+- ✅ **Resilient:** Continues processing even if some rows fail
+- ✅ **Informative:** Returns detailed error per row
+- ✅ **Flexible:** Skips empty rows automatically
+- ✅ **Relational:** All sites linked to created project via `project_id`
+- ⚠️ **Date Parsing:** Supports Excel datetime, "YYYY-MM-DD", "DD/MM/YYYY" formats
+- 💡 **Tip:** Use Postman's file upload feature to test with actual Excel file
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:3000/api/projects/import-excel \
+  -F 'file=@/path/to/OSP Project Report_Update-20260215-PEKALONGAN.xlsx'
+```
+
+**Postman Setup:**
+1. Create new POST request
+2. URL: `{{base_url}}/projects/import-excel`
+3. Body → `form-data`
+4. Add key `file` with type `File`
+5. Select your Excel file
+6. Send request
 
 ---
 

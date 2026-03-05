@@ -768,6 +768,36 @@ pub struct UpdateUserRequest {
     pub password: Option<String>,
 }
 
+// ==================== BULK IMPORT MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulkImportExcelResponse {
+    pub project: Project,
+    pub total_rows: usize,
+    pub sites_created: usize,
+    pub sites_failed: usize,
+    pub created_sites: Vec<Site>,
+    pub errors: Vec<ImportError>,
+    pub summary: ImportSummary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportError {
+    pub row_number: usize,
+    pub field: String,
+    pub message: String,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportSummary {
+    pub project_id: String,
+    pub project_name: String,
+    pub total_budget: i64,
+    pub sites_count: usize,
+    pub message: String,
+}
+
 // ==================== RESPONSE WRAPPER ====================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -11,7 +11,7 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams};
+use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams, bulk_import};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -57,6 +57,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/projects/:id", get(project::get_project))
         .route("/api/projects/:id", put(project::update_project))
         .route("/api/projects/:id", delete(project::delete_project))
+        // Bulk Import route
+        .route("/api/projects/import-excel", post(bulk_import::bulk_import_from_excel))
         // Site routes
         .route("/api/sites", post(site::create_site))
         .route("/api/sites", get(site::list_sites))
