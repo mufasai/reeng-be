@@ -499,7 +499,7 @@ pub async fn upload_teams_excel(
             created_at = time::now(), \
             updated_at = time::now()";
 
-        let result = state.db.query(query)
+        let mut result = state.db.query(query)
             .bind(("nama", nama))
             .bind(("nik", nik))
             .bind(("nama_karyawan", nama_karyawan))
@@ -515,10 +515,16 @@ pub async fn upload_teams_excel(
             .await;
 
         match result {
-            Ok(mut response) => {
-                match response.check() {
-                    Ok(_) => {
+            Ok(ref mut res) => {
+                // Take the result to ensure the query is executed
+                match res.take::<Option<Team>>(0) {
+                    Ok(Some(_)) => {
                         success_count += 1;
+                    }
+                    Ok(None) => {
+                        failed_count += 1;
+                        errors.push(format!("Row {}: No data returned from database", row_num));
+                        eprintln!("Error inserting team row {}: No data returned", row_num);
                     }
                     Err(e) => {
                         failed_count += 1;

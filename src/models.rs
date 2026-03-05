@@ -80,6 +80,8 @@ pub enum ProjectType {
     Filter,
     #[serde(rename = "BEBAN OPERASIONAL")]
     BebanOperasional,
+    #[serde(rename = "OSP")]
+    Osp,
 }
 
 // ==================== PEOPLE MODELS ====================
