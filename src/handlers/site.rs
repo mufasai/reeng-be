@@ -2,7 +2,7 @@ use axum::{extract::Json, http::StatusCode};
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 
-use crate::models::{ApiResponse, CreateSiteRequest, UpdateSiteRequest, Site, Team};
+use crate::models::{ApiResponse, CreateSiteRequest, UpdateSiteRequest, Site, Team, SiteTeamMember, SiteTeamMemberDetail, AddSiteTeamMemberRequest, UpdateSiteTeamMemberRequest, TeamMasterInfo};
 use crate::state::AppState;
 
 // Helper function to strip table prefix from ID strings
@@ -459,6 +459,19 @@ pub async fn delete_site(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
+    // Delete site_team_members (Tim Struktur) associated with this site
+    let delete_site_team_members_query = "DELETE site_team_members WHERE site_id = $site_id";
+
+    state
+        .db
+        .query(delete_site_team_members_query)
+        .bind(("site_id", site_thing.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error deleting site_team_members: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
     // Finally, delete the site itself
     let delete_query = "DELETE type::thing($site_id)";
     
@@ -476,5 +489,300 @@ pub async fn delete_site(
         success: true,
         data: None,
         message: Some("Site and all related data deleted successfully".to_string()),
+    }))
+}
+
+// ==================== TIM STRUKTUR (SITE TEAM STRUCTURE) HANDLERS ====================
+
+/// GET /api/sites/:site_id/team-structure
+/// List all members in a site's Tim Struktur, enriched with master team data
+pub async fn get_site_team_structure(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<SiteTeamMemberDetail>>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let query = "SELECT * FROM site_team_members WHERE site_id = $site_id ORDER BY created_at ASC";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site team structure: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let members: Vec<SiteTeamMember> = response.take(0).map_err(|e| {
+        eprintln!("Parse error site_team_members: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Enrich each member entry with master team data (N queries, acceptable for small teams)
+    let mut details: Vec<SiteTeamMemberDetail> = Vec::new();
+    for member in members {
+        let mut detail = SiteTeamMemberDetail {
+            id: member.id,
+            site_id: member.site_id,
+            team_master_id: member.team_master_id.clone(),
+            role: member.role,
+            vendor: member.vendor,
+            nik: None,
+            nama: None,
+            no_hp: None,
+            jabatan: None,
+            regional: None,
+            created_at: member.created_at,
+            updated_at: member.updated_at,
+        };
+
+        if let Some(ref team_thing) = member.team_master_id {
+            let master_query = "SELECT nik, nama_karyawan, no_hp, jabatan_kerja, regional FROM type::thing($team_id)";
+            if let Ok(mut master_res) = state
+                .db
+                .query(master_query)
+                .bind(("team_id", team_thing.clone()))
+                .await
+            {
+                let infos: Vec<TeamMasterInfo> = master_res.take(0).unwrap_or_default();
+                if let Some(info) = infos.into_iter().next() {
+                    detail.nik = info.nik;
+                    detail.nama = info.nama_karyawan;
+                    detail.no_hp = info.no_hp;
+                    detail.jabatan = info.jabatan_kerja;
+                    detail.regional = info.regional;
+                }
+            }
+        }
+
+        details.push(detail);
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(details),
+        message: None,
+    }))
+}
+
+/// POST /api/sites/:site_id/team-structure
+/// Add a master team member to a site's Tim Struktur
+pub async fn add_site_team_member(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    Json(req): Json<AddSiteTeamMemberRequest>,
+) -> Result<Json<ApiResponse<SiteTeamMemberDetail>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let team_master_id_clean = strip_table_prefix(&req.team_master_id, "teams");
+    let team_master_thing = Thing::try_from(("teams", team_master_id_clean))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Prevent duplicate: same master team member in same site
+    let check_query = "SELECT id FROM site_team_members WHERE site_id = $site_id AND team_master_id = $team_master_id LIMIT 1";
+    let mut check_res = state
+        .db
+        .query(check_query)
+        .bind(("site_id", site_thing.clone()))
+        .bind(("team_master_id", team_master_thing.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error checking duplicate site team member: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let existing: Vec<SiteTeamMember> = check_res.take(0).unwrap_or_default();
+    if !existing.is_empty() {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Member already added to this site's team structure".to_string()),
+        }));
+    }
+
+    // Insert into site_team_members
+    let insert_query = "CREATE site_team_members SET \
+        site_id = $site_id, \
+        team_master_id = $team_master_id, \
+        role = $role, \
+        vendor = $vendor, \
+        created_at = time::now(), \
+        updated_at = time::now()";
+
+    let mut insert_res = state
+        .db
+        .query(insert_query)
+        .bind(("site_id", site_thing))
+        .bind(("team_master_id", team_master_thing.clone()))
+        .bind(("role", req.role.clone()))
+        .bind(("vendor", req.vendor.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error creating site team member: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let created: Vec<SiteTeamMember> = insert_res.take(0).map_err(|e| {
+        eprintln!("Parse error creating site team member: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let member = created.into_iter().next().ok_or_else(|| {
+        eprintln!("No site_team_members record returned after creation");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Enrich with master team data
+    let mut detail = SiteTeamMemberDetail {
+        id: member.id,
+        site_id: member.site_id,
+        team_master_id: member.team_master_id,
+        role: member.role,
+        vendor: member.vendor,
+        nik: None,
+        nama: None,
+        no_hp: None,
+        jabatan: None,
+        regional: None,
+        created_at: member.created_at,
+        updated_at: member.updated_at,
+    };
+
+    let master_query = "SELECT nik, nama_karyawan, no_hp, jabatan_kerja, regional FROM type::thing($team_id)";
+    if let Ok(mut master_res) = state
+        .db
+        .query(master_query)
+        .bind(("team_id", team_master_thing))
+        .await
+    {
+        let infos: Vec<TeamMasterInfo> = master_res.take(0).unwrap_or_default();
+        if let Some(info) = infos.into_iter().next() {
+            detail.nik = info.nik;
+            detail.nama = info.nama_karyawan;
+            detail.no_hp = info.no_hp;
+            detail.jabatan = info.jabatan_kerja;
+            detail.regional = info.regional;
+        }
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(detail),
+        message: Some("Team member added to site structure successfully".to_string()),
+    }))
+}
+
+/// PUT /api/sites/:site_id/team-structure/:member_id
+/// Update role/vendor of a member in a site's Tim Struktur
+pub async fn update_site_team_member(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path((site_id, member_id)): axum::extract::Path<(String, String)>,
+    Json(req): Json<UpdateSiteTeamMemberRequest>,
+) -> Result<Json<ApiResponse<SiteTeamMemberDetail>>, StatusCode> {
+    let _site_thing = parse_thing_id(&site_id)?;
+    let member_thing = parse_thing_id(&member_id)?;
+
+    // Build dynamic SET clause
+    let mut set_parts = vec!["updated_at = time::now()".to_string()];
+    if req.role.is_some() {
+        set_parts.push("role = $role".to_string());
+    }
+    if req.vendor.is_some() {
+        set_parts.push("vendor = $vendor".to_string());
+    }
+
+    let update_query = format!("UPDATE type::thing($member_id) SET {}", set_parts.join(", "));
+
+    let mut qb = state
+        .db
+        .query(&update_query)
+        .bind(("member_id", member_thing));
+
+    if let Some(role) = req.role {
+        qb = qb.bind(("role", role));
+    }
+    if let Some(vendor) = req.vendor {
+        qb = qb.bind(("vendor", vendor));
+    }
+
+    let mut res = qb.await.map_err(|e| {
+        eprintln!("Database error updating site team member: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let updated: Vec<SiteTeamMember> = res.take(0).map_err(|e| {
+        eprintln!("Parse error updating site team member: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let member = updated.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    // Enrich with master team data
+    let mut detail = SiteTeamMemberDetail {
+        id: member.id,
+        site_id: member.site_id,
+        team_master_id: member.team_master_id.clone(),
+        role: member.role,
+        vendor: member.vendor,
+        nik: None,
+        nama: None,
+        no_hp: None,
+        jabatan: None,
+        regional: None,
+        created_at: member.created_at,
+        updated_at: member.updated_at,
+    };
+
+    if let Some(ref team_thing) = member.team_master_id {
+        let master_query = "SELECT nik, nama_karyawan, no_hp, jabatan_kerja, regional FROM type::thing($team_id)";
+        if let Ok(mut master_res) = state
+            .db
+            .query(master_query)
+            .bind(("team_id", team_thing.clone()))
+            .await
+        {
+            let infos: Vec<TeamMasterInfo> = master_res.take(0).unwrap_or_default();
+            if let Some(info) = infos.into_iter().next() {
+                detail.nik = info.nik;
+                detail.nama = info.nama_karyawan;
+                detail.no_hp = info.no_hp;
+                detail.jabatan = info.jabatan_kerja;
+                detail.regional = info.regional;
+            }
+        }
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(detail),
+        message: Some("Tim Struktur member updated successfully".to_string()),
+    }))
+}
+
+/// DELETE /api/sites/:site_id/team-structure/:member_id
+/// Remove a member from a site's Tim Struktur
+pub async fn remove_site_team_member(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path((site_id, member_id)): axum::extract::Path<(String, String)>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let _site_thing = parse_thing_id(&site_id)?;
+    let member_thing = parse_thing_id(&member_id)?;
+
+    let delete_query = "DELETE type::thing($member_id)";
+    state
+        .db
+        .query(delete_query)
+        .bind(("member_id", member_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error removing site team member: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: None,
+        message: Some("Team member removed from site structure".to_string()),
     }))
 }

@@ -90,8 +90,8 @@ pub async fn create_team(
 pub async fn list_teams(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<Team>>>, StatusCode> {
-    // Use a more specific query to avoid corrupt data
-    let query = "SELECT * FROM teams WHERE created_at >= time::now() - 1d ORDER BY created_at DESC";
+    // List all master teams (data master) ordered by creation date
+    let query = "SELECT * FROM teams ORDER BY created_at DESC";
     let mut result = state.db.query(query)
         .await
         .map_err(|e| {

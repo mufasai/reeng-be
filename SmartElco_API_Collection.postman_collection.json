@@ -1,2027 +1,2083 @@
 {
-	"info": {
-		"_postman_id": "smartelco-api-2026",
-		"name": "SmartElco API Collection",
-		"description": "Complete API collection for SmartElco Reengineering Tool Backend",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Auth",
-			"item": [
-				{
-					"name": "Register",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    var jsonData = pm.response.json();",
-									"    if (jsonData.data && jsonData.data.id) {",
-									"        var userId = jsonData.data.id.split(':')[1];",
-									"        pm.environment.set(\"user_id\", userId);",
-									"        console.log(\"User ID saved: \" + userId);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\",\n  \"role\": \"engineer\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"description": "Register a new user with role selection.\n\n**Available Roles:**\n- backoffice admin\n- management\n- team leader\n- finance\n- engineer\n- admin\n- direktur",
-						"url": {
-							"raw": "{{base_url}}/auth/register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"register"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"if (pm.response.code === 200) {",
-									"    var jsonData = pm.response.json();",
-									"    if (jsonData.token) {",
-									"        pm.environment.set(\"auth_token\", jsonData.token);",
-									"        console.log(\"Token saved to environment\");",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"auth",
-								"login"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Users",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/users",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"users"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get User By ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/users/{{user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"users",
-								"{{user_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update User",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"John Doe Updated\",\n  \"role\": \"team leader\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"description": "Update user information. All fields are optional:\n- name\n- email\n- role\n- password",
-						"url": {
-							"raw": "{{base_url}}/users/{{user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"users",
-								"{{user_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete User",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/users/{{user_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"users",
-								"{{user_id}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Projects",
-			"item": [
-				{
-					"name": "Create Project",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Network Expansion Jakarta\",\n  \"lokasi\": \"Jakarta\",\n  \"value\": 5000000000,\n  \"cost\": 0,\n  \"tipe\": \"COMBAT\",\n  \"keterangan\": \"Ekspansi jaringan fiber optik Jakarta 2026\",\n  \"tgi_start\": \"2026-03-01\",\n  \"tgi_end\": \"2026-12-31\",\n  \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/projects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Projects",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/projects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Project by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/projects/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects",
-								"{{project_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Project",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Network Expansion Jakarta - Updated\",\n  \"cost\": 1500000000,\n  \"status\": \"in_progress\",\n  \"keterangan\": \"Updated: Project sudah dimulai\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/projects/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects",
-								"{{project_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Project",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/projects/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects",
-								"{{project_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Project - L2H Type",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"L2H Project Surabaya\",\n  \"lokasi\": \"Surabaya\",\n  \"value\": 3000000000,\n  \"cost\": 0,\n  \"tipe\": \"L2H\",\n  \"keterangan\": \"Light to Home project untuk area Surabaya\",\n  \"tgi_start\": \"2026-04-01\",\n  \"tgi_end\": \"2026-10-31\",\n  \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/projects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Project - BLACK SITE",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Black Site Bandung\",\n  \"lokasi\": \"Bandung\",\n  \"value\": 2000000000,\n  \"cost\": 0,\n  \"tipe\": \"BLACK SITE\",\n  \"keterangan\": \"Black site maintenance project\",\n  \"tgi_start\": \"2026-05-01\",\n  \"tgi_end\": \"2026-08-31\",\n  \"status\": \"active\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/projects",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Bulk Import from Excel",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "file",
-									"type": "file",
-									"src": "/path/to/OSP Project Report_Update-20260215-PEKALONGAN.xlsx",
-									"description": "Excel file with format: Sheet 3 'Active Project Details'"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/projects/import-excel",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects",
-								"import-excel"
-							]
-						},
-						"description": "Bulk import Project and Sites from Excel file.\n\n**Excel Format:**\n- **Sheet:** \"Active Project Details\" (Sheet 3)\n- **Row 2:** Total values (BOQ AKTUAL in column I, TOTAL NILAI PO in column M)\n- **Row 5:** Headers (NO, TIPE PROJECT, AREA, etc.)\n- **Row 6+:** Site data (up to 100+ rows)\n\n**Filename Examples:** \n- `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`\n- `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`\n- `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`\n\n**Column Mapping:**\n- B: TIPE PROJECT → project type & name (FILTER, COMBAT, L2H, etc.)\n- L: NAMA LOP [SITE] → site_name\n- D: WTIEL → lokasi\n- K: NAMA PO → pekerjaan\n- J: NOMOR PO → nomor_kontrak\n- G: TANGGAL WO → start\n- M: NILAI PO → maximal_budget\n- H: BOQ KONTRAK → cost_estimated\n- B+N+P: Combined → site_info\n\n**Auto-generated:**\n- **Project name:** '{TIPE} Project {LOKASI}' (e.g., 'FILTER Project Jakarta')\n- **Project type:** Parsed from Column B Row 6 (TIPE PROJECT)\n- **Project date:** Extracted from filename (YYYYMMDD format)\n- **Project lokasi:** Extracted from last part of filename\n- **Project budget:** From Row 2 totals (Column I & M)"
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Sites",
-			"item": [
-				{
-					"name": "Create Site",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/sites",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Sites",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/sites",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Sites by Project",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/sites/project/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites",
-								"project",
-								"{{project_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Site",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/sites/{{site_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites",
-								"{{site_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Site",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/sites/{{site_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites",
-								"{{site_id}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "People",
-			"item": [
-				{
-					"name": "Create Person",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Budi Santoso\",\n  \"tanggal_lahir\": \"1990-05-15\",\n  \"tempat_lahir\": \"Jakarta\",\n  \"agama\": \"Islam\",\n  \"jenis_kelamin\": \"Laki-laki\",\n  \"no_ktp\": \"3174012345678901\",\n  \"no_hp\": \"081234567890\",\n  \"email\": \"budi@smartelco.com\",\n  \"jabatan_kerja\": \"Teknisi Senior\",\n  \"regional\": \"Jakarta\",\n  \"lokasi_kerja\": \"Jakarta Pusat\",\n  \"pekerjaan\": \"Instalasi Fiber\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/people",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"people"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All People",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/people",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"people"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Person by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/people/{{people_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"people",
-								"{{people_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update Person",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"jabatan_kerja\": \"Senior Project Manager\",\n  \"status_pernikahan\": \"Menikah\",\n  \"pendidikan_terakhir\": \"S1\",\n  \"nama_kampus_sekolah\": \"Universitas Indonesia\",\n  \"jurusan_sekolah\": \"Teknik Elektro\",\n  \"tahun_lulus\": \"2012\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/people/{{people_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"people",
-								"{{people_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Person",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/people/{{people_id}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"people",
-								"{{people_id}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Costs",
-			"item": [
-				{
-					"name": "Create Cost",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1\",\n  \"tgl_pengajuan\": \"2026-02-20\",\n  \"jumlah_pengajuan\": 100000000,\n  \"status\": \"pending\",\n  \"catatan_tolak\": null\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/costs",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"costs"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Costs",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/costs",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"costs"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Costs by Project",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/costs/project/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"costs",
-								"project",
-								"{{project_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Costs by Site",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/costs/site/{{site_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"costs",
-								"site",
-								"{{site_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Approve Cost",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"acc_by\": \"user:admin123\",\n  \"acc_name\": \"John Doe\",\n  \"jumlah_acc\": 95000000\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/costs/{{cost_id_only}}/approve",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"costs",
-								"{{cost_id_only}}",
-								"approve"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Materials",
-			"item": [
-				{
-					"name": "Create Material",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"skp\": \"SKP-2026-001\",\n  \"name\": \"Kabel Fiber Optik 100m\",\n  \"unit\": \"Roll\",\n  \"qty\": 50,\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"tgl\": \"2026-02-20\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/materials",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"materials"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Materials",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/materials",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"materials"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Materials by Project",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/materials/project/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"materials",
-								"project",
-								"{{project_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Materials by Site",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/materials/site/{{site_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"materials",
-								"site",
-								"{{site_id_only}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Areas & Regions",
-			"item": [
-				{
-					"name": "Create Area",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nama_area\": \"Jakarta\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/areas",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"areas"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Areas",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/areas",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"areas"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Create Region",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"area_id\": \"{{area_id}}\",\n  \"kode_region\": \"JKT-PUSAT\",\n  \"nama_region\": \"Jakarta Pusat\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/regions",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"regions"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Regions",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/regions",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"regions"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Regions by Area",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/regions/area/{{area_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"regions",
-								"area",
-								"{{area_id_only}}"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Files",
-			"item": [
-				{
-					"name": "Upload Project File",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"title\": \"Project Documentation\",\n  \"filename\": \"doc_2026_02_20.pdf\",\n  \"original_name\": \"Project Plan.pdf\",\n  \"bucket\": \"smartelco-files\",\n  \"key\": \"projects/xyz/doc.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size\": 2048576,\n  \"disk\": \"s3\",\n  \"visibility\": \"private\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/project-files",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"project-files"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Project Files",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/projects/{{project_id_only}}/files",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects",
-								"{{project_id_only}}",
-								"files"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Project File",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/project-files/{{file_id_only}}/delete",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"project-files",
-								"{{file_id_only}}",
-								"delete"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Upload Site File",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"site_id\": \"{{site_id}}\",\n  \"title\": \"Site Documentation\",\n  \"filename\": \"site_doc_2026_02_20.pdf\",\n  \"original_name\": \"Site Plan.pdf\",\n  \"bucket\": \"smartelco-files\",\n  \"key\": \"sites/xyz/doc.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size\": 1048576,\n  \"disk\": \"s3\",\n  \"visibility\": \"private\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/site-files",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"site-files"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Site Files",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/sites/{{site_id_only}}/files",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites",
-								"{{site_id_only}}",
-								"files"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Site File",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/site-files/{{file_id_only}}/delete",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"site-files",
-								"{{file_id_only}}",
-								"delete"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Termins",
-			"item": [
-				{
-					"name": "📖 READ ME FIRST - Workflow & Validation Rules",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						},
-						"description": "🔒 TERMIN BUSINESS RULES & VALIDATIONS\n\n═══════════════════════════════════════════\n\n✅ WORKFLOW:\n1. Draft → Buat termin (engineer)\n2. Submit → Kirim untuk review (engineer) \n3. Review → Cek oleh Admin Area/Field Head\n4. Approve → Setujui oleh Direktur\n5. Pay → Bayar oleh Keuangan\n\n═══════════════════════════════════════════\n\n🔒 VALIDASI (v1.3.1 - FLEXIBLE AMOUNT):\n\n1️⃣ POLA PERCENTAGE TERKUNCI (Label/Struktur):\n   - Termin 1 HARUS 30%\n   - Termin 2 HARUS 50%\n   - Termin 3 HARUS 10%\n   - Termin 4 HARUS 10%\n   ❌ Tidak bisa pakai percentage lain!\n   📝 Percentage adalah LABEL termin, bukan constraint jumlah\n\n2️⃣ URUTAN SEQUENTIAL:\n   - Termin 2 hanya bisa dibuat SETELAH Termin 1 status \"approved\"\n   - Termin 3 hanya bisa dibuat SETELAH Termin 2 status \"approved\"\n   - Termin 4 hanya bisa dibuat SETELAH Termin 3 status \"approved\"\n   ❌ Tidak bisa skip atau paralel!\n\n3️⃣ MAKSIMAL 70% DARI SITE BUDGET (Hard Limit):\n   - Total semua termin ≤ 70% × site.maximal_budget\n   - Sistem hitung otomatis total kumulatif\n   ❌ Overpayment tidak mungkin!\n\n4️⃣ JUMLAH FLEXIBLE (NEW!):\n   ✅ Jumlah TIDAK wajib = percentage × budget\n   ✅ Anda bebas isi jumlah berapa saja asal total ≤ 70%\n   ✅ Percentage tetap terkunci untuk struktur termin\n   📌 Contoh: Termin 2 (50%) bisa diisi 20jt, tidak harus 50jt\n\n═══════════════════════════════════════════\n\n📋 CONTOH SKENARIO VALID:\n\nSite budget: 100,000,000 (100 juta)\nMax payment: 70,000,000 (70% = 70 juta)\n\n✅ Termin 1 (30%): 25,000,000 → Approve\n✅ Termin 2 (50%): 30,000,000 → Total: 55jt ✅\n✅ Termin 3 (10%): 10,000,000 → Total: 65jt ✅\n✅ Termin 4 (10%):  5,000,000 → Total: 70jt ✅ (exactly!)\n\n💡 CATATAN: Jumlah flexible agar fit dalam 70% limit!\n   - T1 tidak harus 30jt (30%)\n   - T2 tidak harus 50jt (50%)\n   - Yang penting: percentage benar + total ≤ 70%\n\n═══════════════════════════════════════════\n\n⚠️ ERROR SCENARIOS (Test Cases Below):\n\n❌ Wrong Percentage: Termin 1 dengan 40% → DITOLAK\n❌ Skip Order: Termin 2 sebelum T1 approved → DITOLAK\n❌ Exceed 70%: Total > 70% site budget → DITOLAK\n❌ Invalid termin_ke: termin_ke = 5 → DITOLAK\n\n═══════════════════════════════════════════\n\n📝 TESTING FLOW:\n1. Buat site dengan maximal_budget yang cukup (min 100jt)\n2. Test termin dengan jumlah flexible dalam 70% limit\n3. Approve setiap termin sebelum buat termin berikutnya\n4. Test validation dengan error scenarios (❌ requests)\n\n═══════════════════════════════════════════"
-					},
-					"response": []
-				},
-				{
-					"name": "✅ Create Termin 1 (VALID - 30%)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "✅ Create Termin 2 (VALID - 50%)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "✅ Create Termin 3 (VALID - 10%)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_3\",\n  \"tgl_terima\": \"2026-03-01\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 3,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 3 - 10% dari budget\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "✅ Create Termin 4 (VALID - 10%)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_4\",\n  \"tgl_terima\": \"2026-03-15\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 4,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 4 - 10% dari budget (final)\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "❌ TEST: Wrong Percentage Pattern",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 40000000,\n  \"termin_ke\": 1,\n  \"percentage\": 40,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena Termin 1 harus 30%\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "❌ TEST: Skip Sequential Order",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Test validasi - seharusnya ditolak jika Termin 1 belum approved\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "❌ TEST: Invalid termin_ke (5)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_5\",\n  \"tgl_terima\": \"2026-03-20\",\n  \"jumlah\": 5000000,\n  \"termin_ke\": 5,\n  \"percentage\": 10,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena termin_ke hanya 1-4\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List All Termins",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins"
-							]
-						},
-						"description": "📋 Get all termins with enriched data (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n📝 **RESPONSE EXAMPLE:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"termins:xxx\",\n      \"project_id\": \"projects:yyy\",\n      \"site_id\": {\n        \"site_name\": \"Site Jakarta Selatan\",\n        \"project_name\": \"Network Expansion Jakarta\"\n      },\n      \"termin_ke\": 1,\n      \"percentage\": 30,\n      \"status\": \"draft\",\n      ...\n    }\n  ]\n}\n```\n\n🎯 **Impact:** Frontend bisa langsung akses project_name tanpa query tambahan!"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Termins by Project",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins/project/{{project_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"project",
-								"{{project_id_only}}"
-							]
-						},
-						"description": "📋 Get all termins for specific project (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n🎯 **Use Case:** Melihat semua termin dalam satu project dengan info lengkap site & project"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Termins by Site",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins/site/{{site_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"site",
-								"{{site_id_only}}"
-							]
-						},
-						"description": "📋 Get all termins for specific site (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n🎯 **Use Case:** Melihat semua termin (1-4) dalam satu site dengan info project parent"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Termin by ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}"
-							]
-						},
-						"description": "🔍 Get single termin detail by ID (v1.7.1)\n\n✅ **RESPONSE:** Returns standard Termin object (tidak ada enrichment untuk single get)\n\n📝 Note: Untuk mendapatkan site_name dan project_name, gunakan list endpoints."
-					},
-					"response": []
-				},
-				{
-					"name": "Update Termin (Draft Only)",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 400000000,\n  \"keterangan\": \"Updated: Pembayaran termin kedua 50%\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Submit Termin for Review",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"submitter_name\": \"Field Engineer\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/submit",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"submit"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Review Termin (Field Head)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"reviewer_name\": \"John Doe\",\n  \"catatan_review\": \"review oleh head area - dokumen lengkap dan sesuai\",\n  \"approve\": true\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/review",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"review"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Approve Termin (Director)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/approve",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"approve"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Pay Termin (Finance)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "payer_name",
-									"value": "7lwx51qk56xe13arIctI",
-									"description": "ID user yang login (tanpa 'users:' prefix)",
-									"type": "text"
-								},
-								{
-									"key": "jumlah_dibayar",
-									"value": "25000000",
-									"description": "Jumlah yang dibayarkan dalam Rupiah",
-									"type": "text"
-								},
-								{
-									"key": "referensi_pembayaran",
-									"value": "TRF-12345B",
-									"description": "Nomor referensi pembayaran (TRF, CEK, INV, dll)",
-									"type": "text"
-								},
-								{
-									"key": "catatan_pembayaran",
-									"value": "Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425",
-									"description": "Catatan pembayaran (optional)",
-									"type": "text"
-								},
-								{
-									"key": "bukti_pembayaran",
-									"type": "file",
-									"src": [],
-									"description": "Upload file bukti pembayaran (PDF, JPG, PNG, ...)"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/pay",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"pay"
-							]
-						},
-						"description": "Endpoint untuk pembayaran termin oleh Finance. Mendukung upload file bukti pembayaran.\n\n**Form Fields:**\n- `payer_name` - ID user finance yang melakukan pembayaran\n- `jumlah_dibayar` - Jumlah yang dibayarkan (dalam Rupiah)\n- `referensi_pembayaran` - Nomor referensi pembayaran (TRF, CEK, INV, dll)\n- `catatan_pembayaran` - Catatan tambahan (optional)\n- `bukti_pembayaran` - File upload bukti pembayaran (PDF, JPG, PNG)\n\n**Note:** Gunakan tombol \"Send and Download\" di Postman untuk menguji fitur download file."
-					},
-					"response": []
-				},
-				{
-					"name": "Download Bukti Pembayaran",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/download-bukti-pembayaran",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"download-bukti-pembayaran"
-							]
-						},
-						"description": "📥 **Download Bukti Pembayaran File**\n\nEndpoint untuk download file bukti pembayaran yang telah diupload.\n\n**Method:** GET\n\n**Response:**\n- File akan di-download langsung dengan nama file asli\n- Content-Type sesuai dengan mime type file (application/pdf, image/jpeg, dll)\n- Content-Disposition: attachment untuk trigger download\n\n**Cara Test di Postman:**\n1. Klik tombol **Send and Download** (klik dropdown di sebelah tombol Send)\n2. Pilih lokasi penyimpanan file\n3. File akan tersimpan dengan nama asli (e.g., \"kwintansi pak adnan.pdf\")\n\n**Error Responses:**\n- 404: Termin tidak ditemukan atau belum ada bukti pembayaran\n- 400: Invalid termin ID format\n- 500: Error saat decode/process file"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Termin",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Upload Termin File",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"termin_id\": \"{{termin_id}}\",\n  \"category\": \"invoice\",\n  \"title\": \"Invoice Termin 1\",\n  \"filename\": \"invoice_term1.pdf\",\n  \"original_name\": \"Invoice.pdf\",\n  \"bucket\": \"smartelco-files\",\n  \"key\": \"termins/xyz/invoice.pdf\",\n  \"mime_type\": \"application/pdf\",\n  \"size\": 1048576,\n  \"disk\": \"s3\",\n  \"visibility\": \"private\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/termin-files",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termin-files"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "List Termin Files",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/files",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"files"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Termin File",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termin-files/{{file_id_only}}/delete",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termin-files",
-								"{{file_id_only}}",
-								"delete"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Teams",
-			"item": [
-				{
-					"name": "Create Team",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nama\": \"Team Alpha Engineering\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"people_id_here\",\n  \"members\": [\n    {\n      \"people_id\": \"member1_id\",\n      \"role\": \"Engineer\",\n      \"vendor\": \"PT ABC Contractor\"\n    },\n    {\n      \"people_id\": \"member2_id\",\n      \"role\": \"Technician\",\n      \"vendor\": \"PT XYZ Services\"\n    }\n  ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/teams",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams"
-							]
-						},
-						"description": "Create new team with leader and members. Members array bisa kosong jika team belum punya anggota."
-					},
-					"response": []
-				},
-				{
-					"name": "List Teams",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/teams",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams"
-							]
-						},
-						"description": "Get list of all teams"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Team Detail",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/teams/{{team_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams",
-								"{{team_id_only}}"
-							]
-						},
-						"description": "Get specific team detail by ID"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Team by Leader ID",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/teams/leader/{{leader_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams",
-								"leader",
-								"{{leader_id_only}}"
-							]
-						},
-						"description": "Get team detail by leader ID\n\n✅ **RESPONSE:** Returns team where the specified person is the leader\n\n🎯 **Use Case:** Cek team mana yang dipimpin oleh seorang leader tertentu\n\n⚠️ **Note:** Returns 404 if person is not a leader of any team"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Team",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"nama\": \"Team Alpha Engineering Updated\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"new_leader_id\",\n  \"active\": true\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/teams/{{team_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams",
-								"{{team_id_only}}"
-							]
-						},
-						"description": "Update team information. All fields are optional."
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Team",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/teams/{{team_id_only}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams",
-								"{{team_id_only}}"
-							]
-						},
-						"description": "Delete team dan cascade delete semua team members"
-					},
-					"response": []
-				},
-				{
-					"name": "List Team Members",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/teams/{{team_id_only}}/members",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"teams",
-								"{{team_id_only}}",
-								"members"
-							]
-						},
-						"description": "Get list of all members in a team"
-					},
-					"response": []
-				},
-				{
-					"name": "Upload Project File (Multipart)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "file",
-									"type": "file",
-									"src": [],
-									"description": "File to upload (PDF, JPG, PNG, etc)"
-								},
-								{
-									"key": "title",
-									"value": "Project Document",
-									"type": "text",
-									"description": "File title/description"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/projects/{{project_id_only}}/upload",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"projects",
-								"{{project_id_only}}",
-								"upload"
-							]
-						},
-						"description": "Upload file ke project dengan multipart form-data. File disimpan sebagai base64 di database."
-					},
-					"response": []
-				},
-				{
-					"name": "Upload Site File (Multipart)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "file",
-									"type": "file",
-									"src": [],
-									"description": "File to upload (PDF, JPG, PNG, etc)"
-								},
-								{
-									"key": "title",
-									"value": "Site Document",
-									"type": "text",
-									"description": "File title/description"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/sites/{{site_id_only}}/upload",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"sites",
-								"{{site_id_only}}",
-								"upload"
-							]
-						},
-						"description": "Upload file ke site dengan multipart form-data. File disimpan sebagai base64 di database."
-					},
-					"response": []
-				},
-				{
-					"name": "Upload Termin File (Multipart)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "file",
-									"type": "file",
-									"src": [],
-									"description": "File to upload (PDF, JPG, PNG, etc)"
-								},
-								{
-									"key": "title",
-									"value": "Termin Document",
-									"type": "text",
-									"description": "File title/description"
-								},
-								{
-									"key": "category",
-									"value": "invoice",
-									"type": "text",
-									"description": "File category (optional)"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{base_url}}/termins/{{termin_id_only}}/upload",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termins",
-								"{{termin_id_only}}",
-								"upload"
-							]
-						},
-						"description": "Upload file ke termin dengan multipart form-data. File disimpan sebagai base64 di database."
-					},
-					"response": []
-				},
-				{
-					"name": "Download Project File",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/project-files/{{file_id_only}}/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"project-files",
-								"{{file_id_only}}",
-								"download"
-							]
-						},
-						"description": "Download project file. Gunakan 'Send and Download' di Postman."
-					},
-					"response": []
-				},
-				{
-					"name": "Download Site File",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/site-files/{{file_id_only}}/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"site-files",
-								"{{file_id_only}}",
-								"download"
-							]
-						},
-						"description": "Download site file. Gunakan 'Send and Download' di Postman."
-					},
-					"response": []
-				},
-				{
-					"name": "Download Termin File",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/termin-files/{{file_id_only}}/download",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"termin-files",
-								"{{file_id_only}}",
-								"download"
-							]
-						},
-						"description": "Download termin file. Gunakan 'Send and Download' di Postman."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Health Check",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/health",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"health"
-					]
-				}
-			},
-			"response": []
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3000/api",
-			"type": "string"
-		},
-		{
-			"key": "project_id",
-			"value": "projects:your_project_id_here",
-			"type": "string"
-		},
-		{
-			"key": "project_id_only",
-			"value": "your_project_id_here",
-			"type": "string"
-		},
-		{
-			"key": "site_id",
-			"value": "sites:your_site_id_here",
-			"type": "string"
-		},
-		{
-			"key": "site_id_only",
-			"value": "your_site_id_here",
-			"type": "string"
-		},
-		{
-			"key": "cost_id_only",
-			"value": "your_cost_id_here",
-			"type": "string"
-		},
-		{
-			"key": "area_id",
-			"value": "areas:your_area_id_here",
-			"type": "string"
-		},
-		{
-			"key": "area_id_only",
-			"value": "your_area_id_here",
-			"type": "string"
-		},
-		{
-			"key": "file_id_only",
-			"value": "your_file_id_here",
-			"type": "string"
-		},
-		{
-			"key": "termin_id",
-			"value": "termins:your_termin_id_here",
-			"type": "string"
-		},
-		{
-			"key": "termin_id_only",
-			"value": "your_termin_id_here",
-			"type": "string"
-		},
-		{
-			"key": "team_id_only",
-			"value": "your_team_id_here",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "smartelco-api-2026",
+    "name": "SmartElco API Collection - UPDATE 6 MARET",
+    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 6 MARET 2026:\n- GET /sites/:id/team-structure \u2014 List Tim Struktur per site\n- POST /sites/:id/team-structure \u2014 Add member dari Data Master Team\n- DELETE /sites/:id/team-structure/:member_id \u2014 Remove member dari Tim Struktur\n- FIX: base_url diupdate ke port 3001\n- FIX: GET /teams sekarang tampilkan semua data master (hapus filter 1 hari)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.id) {",
+                  "        var userId = jsonData.data.id.split(':')[1];",
+                  "        pm.environment.set(\"user_id\", userId);",
+                  "        console.log(\"User ID saved: \" + userId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\",\n  \"role\": \"engineer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Register a new user with role selection.\n\n**Available Roles:**\n- backoffice admin\n- management\n- team leader\n- finance\n- engineer\n- admin\n- direktur",
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.environment.set(\"auth_token\", jsonData.token);",
+                  "        console.log(\"Token saved to environment\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"role\": \"team leader\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Update user information. All fields are optional:\n- name\n- email\n- role\n- password",
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Network Expansion Jakarta\",\n  \"lokasi\": \"Jakarta\",\n  \"value\": 5000000000,\n  \"cost\": 0,\n  \"tipe\": \"COMBAT\",\n  \"keterangan\": \"Ekspansi jaringan fiber optik Jakarta 2026\",\n  \"tgi_start\": \"2026-03-01\",\n  \"tgi_end\": \"2026-12-31\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Network Expansion Jakarta - Updated\",\n  \"cost\": 1500000000,\n  \"status\": \"in_progress\",\n  \"keterangan\": \"Updated: Project sudah dimulai\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project - L2H Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"L2H Project Surabaya\",\n  \"lokasi\": \"Surabaya\",\n  \"value\": 3000000000,\n  \"cost\": 0,\n  \"tipe\": \"L2H\",\n  \"keterangan\": \"Light to Home project untuk area Surabaya\",\n  \"tgi_start\": \"2026-04-01\",\n  \"tgi_end\": \"2026-10-31\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project - BLACK SITE",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Black Site Bandung\",\n  \"lokasi\": \"Bandung\",\n  \"value\": 2000000000,\n  \"cost\": 0,\n  \"tipe\": \"BLACK SITE\",\n  \"keterangan\": \"Black site maintenance project\",\n  \"tgi_start\": \"2026-05-01\",\n  \"tgi_end\": \"2026-08-31\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bulk Import from Excel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/OSP Project Report_Update-20260215-PEKALONGAN.xlsx",
+                  "description": "Excel file with format: Sheet 3 'Active Project Details'"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/projects/import-excel",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "import-excel"
+              ]
+            },
+            "description": "Bulk import Project and Sites from Excel file.\n\n**Excel Format:**\n- **Sheet:** \"Active Project Details\" (Sheet 3)\n- **Row 2:** Total values (BOQ AKTUAL in column I, TOTAL NILAI PO in column M)\n- **Row 5:** Headers (NO, TIPE PROJECT, AREA, etc.)\n- **Row 6+:** Site data (up to 100+ rows)\n\n**Filename Examples:** \n- `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`\n- `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`\n- `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`\n\n**Column Mapping:**\n- B: TIPE PROJECT \u2192 project type & name (FILTER, COMBAT, L2H, etc.)\n- L: NAMA LOP [SITE] \u2192 site_name\n- D: WTIEL \u2192 lokasi\n- K: NAMA PO \u2192 pekerjaan\n- J: NOMOR PO \u2192 nomor_kontrak\n- G: TANGGAL WO \u2192 start\n- M: NILAI PO \u2192 maximal_budget\n- H: BOQ KONTRAK \u2192 cost_estimated\n- B+N+P: Combined \u2192 site_info\n\n**Auto-generated:**\n- **Project name:** '{TIPE} Project {LOKASI}' (e.g., 'FILTER Project Jakarta')\n- **Project type:** Parsed from Column B Row 6 (TIPE PROJECT)\n- **Project date:** Extracted from filename (YYYYMMDD format)\n- **Project lokasi:** Extracted from last part of filename\n- **Project budget:** From Row 2 totals (Column I & M)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sites",
+      "item": [
+        {
+          "name": "Create Site",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/sites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Sites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sites",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Sites by Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sites/project/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites",
+                "project",
+                "{{project_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Site",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/sites/{{site_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites",
+                "{{site_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Site",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sites/{{site_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites",
+                "{{site_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tim Struktur - UPDATE 6 MARET",
+          "description": "Tim Struktur: relasi Data Master Team ke Site tertentu. Pilih member dari GET /api/teams, klik -> POST ke endpoint ini.",
+          "item": [
+            {
+              "name": "Get Site Tim Struktur",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/team-structure",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "team-structure"
+                  ]
+                },
+                "description": "Ambil daftar Tim Struktur suatu site, enriched dengan data master team (nik, nama, jabatan, no_hp, regional). Fields: id, site_id, team_master_id, role, vendor, nik, nama, no_hp, jabatan, regional."
+              },
+              "response": []
+            },
+            {
+              "name": "Add Member ke Tim Struktur",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"team_master_id\": \"{{team_id}}\",\n  \"role\": \"member\",\n  \"vendor\": \"Vendor A\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/team-structure",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "team-structure"
+                  ]
+                },
+                "description": "Tambah member dari Data Master Team ke Tim Struktur site. Otomatis enrich response dengan data master (nik, nama, jabatan, no_hp, regional). Cegah duplikat otomatis \u2014 member yang sama tidak bisa ditambah 2x ke site yang sama."
+              },
+              "response": []
+            },
+            {
+              "name": "Remove Member dari Tim Struktur",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/team-structure/{{site_team_member_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "team-structure",
+                    "{{site_team_member_id}}"
+                  ]
+                },
+                "description": "Hapus member dari Tim Struktur site. Tidak menghapus data master team, hanya melepas relasi member dari site ini."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Member di Tim Struktur",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"supervisor\",\n  \"vendor\": \"Vendor B\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/team-structure/{{site_team_member_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "team-structure",
+                    "{{site_team_member_id}}"
+                  ]
+                },
+                "description": "Update role atau vendor dari member yang sudah ada di Tim Struktur. Hanya field yang dikirim yang akan diupdate (partial update). Response include data master team (nik, nama, jabatan, dll).\n\nField yang bisa diupdate:\n- role (optional): e.g. \"leader\", \"member\", \"supervisor\"\n- vendor (optional): e.g. \"Vendor A\", \"Vendor B\""
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "People",
+      "item": [
+        {
+          "name": "Create Person",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Budi Santoso\",\n  \"tanggal_lahir\": \"1990-05-15\",\n  \"tempat_lahir\": \"Jakarta\",\n  \"agama\": \"Islam\",\n  \"jenis_kelamin\": \"Laki-laki\",\n  \"no_ktp\": \"3174012345678901\",\n  \"no_hp\": \"081234567890\",\n  \"email\": \"budi@smartelco.com\",\n  \"jabatan_kerja\": \"Teknisi Senior\",\n  \"regional\": \"Jakarta\",\n  \"lokasi_kerja\": \"Jakarta Pusat\",\n  \"pekerjaan\": \"Instalasi Fiber\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/people",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "people"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All People",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/people",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "people"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Person by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/people/{{people_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "people",
+                "{{people_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Person",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jabatan_kerja\": \"Senior Project Manager\",\n  \"status_pernikahan\": \"Menikah\",\n  \"pendidikan_terakhir\": \"S1\",\n  \"nama_kampus_sekolah\": \"Universitas Indonesia\",\n  \"jurusan_sekolah\": \"Teknik Elektro\",\n  \"tahun_lulus\": \"2012\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/people/{{people_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "people",
+                "{{people_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Person",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/people/{{people_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "people",
+                "{{people_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Costs",
+      "item": [
+        {
+          "name": "Create Cost",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1\",\n  \"tgl_pengajuan\": \"2026-02-20\",\n  \"jumlah_pengajuan\": 100000000,\n  \"status\": \"pending\",\n  \"catatan_tolak\": null\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/costs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "costs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Costs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/costs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "costs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Costs by Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/costs/project/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "costs",
+                "project",
+                "{{project_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Costs by Site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/costs/site/{{site_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "costs",
+                "site",
+                "{{site_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Cost",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acc_by\": \"user:admin123\",\n  \"acc_name\": \"John Doe\",\n  \"jumlah_acc\": 95000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/costs/{{cost_id_only}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "costs",
+                "{{cost_id_only}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Materials",
+      "item": [
+        {
+          "name": "Create Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skp\": \"SKP-2026-001\",\n  \"name\": \"Kabel Fiber Optik 100m\",\n  \"unit\": \"Roll\",\n  \"qty\": 50,\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"tgl\": \"2026-02-20\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/materials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "materials"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Materials",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/materials",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "materials"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Materials by Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/materials/project/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "materials",
+                "project",
+                "{{project_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Materials by Site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/materials/site/{{site_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "materials",
+                "site",
+                "{{site_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Areas & Regions",
+      "item": [
+        {
+          "name": "Create Area",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama_area\": \"Jakarta\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/areas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "areas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Areas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/areas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "areas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Region",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area_id\": \"{{area_id}}\",\n  \"kode_region\": \"JKT-PUSAT\",\n  \"nama_region\": \"Jakarta Pusat\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/regions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "regions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Regions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/regions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "regions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Regions by Area",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/regions/area/{{area_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "regions",
+                "area",
+                "{{area_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Files",
+      "item": [
+        {
+          "name": "Project Files - UPDATE 6 MARET",
+          "item": [
+            {
+              "name": "Upload Project File (Multipart)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "File to upload (PDF, JPG, PNG, etc)"
+                    },
+                    {
+                      "key": "title",
+                      "value": "Project Document",
+                      "type": "text",
+                      "description": "File title/description"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/projects/{{project_id_only}}/upload",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{project_id_only}}",
+                    "upload"
+                  ]
+                },
+                "description": "Upload file ke project dengan multipart form-data. File disimpan sebagai base64 di database."
+              },
+              "response": []
+            },
+            {
+              "name": "List Project Files",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/projects/{{project_id_only}}/files",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "projects",
+                    "{{project_id_only}}",
+                    "files"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Download Project File",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/project-files/{{file_id_only}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "project-files",
+                    "{{file_id_only}}",
+                    "download"
+                  ]
+                },
+                "description": "Download project file. Gunakan 'Send and Download' di Postman."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Project File",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/project-files/{{file_id_only}}/delete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "project-files",
+                    "{{file_id_only}}",
+                    "delete"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Site Files - UPDATE 6 MARET",
+          "item": [
+            {
+              "name": "Upload Site File (Multipart)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "File to upload (PDF, JPG, PNG, etc)"
+                    },
+                    {
+                      "key": "title",
+                      "value": "Site Document",
+                      "type": "text",
+                      "description": "File title/description"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id_only}}/upload",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id_only}}",
+                    "upload"
+                  ]
+                },
+                "description": "Upload file ke site dengan multipart form-data. File disimpan sebagai base64 di database."
+              },
+              "response": []
+            },
+            {
+              "name": "List Site Files",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id_only}}/files",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id_only}}",
+                    "files"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Download Site File",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/site-files/{{file_id_only}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-files",
+                    "{{file_id_only}}",
+                    "download"
+                  ]
+                },
+                "description": "Download site file. Gunakan 'Send and Download' di Postman."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Site File",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/site-files/{{file_id_only}}/delete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-files",
+                    "{{file_id_only}}",
+                    "delete"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Termin Files - UPDATE 6 MARET",
+          "item": [
+            {
+              "name": "Upload Termin File (Multipart)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "File to upload (PDF, JPG, PNG, etc)"
+                    },
+                    {
+                      "key": "title",
+                      "value": "Termin Document",
+                      "type": "text",
+                      "description": "File title/description"
+                    },
+                    {
+                      "key": "category",
+                      "value": "invoice",
+                      "type": "text",
+                      "description": "File category (optional)"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/termins/{{termin_id_only}}/upload",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "termins",
+                    "{{termin_id_only}}",
+                    "upload"
+                  ]
+                },
+                "description": "Upload file ke termin dengan multipart form-data. File disimpan sebagai base64 di database."
+              },
+              "response": []
+            },
+            {
+              "name": "List Termin Files",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/termins/{{termin_id_only}}/files",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "termins",
+                    "{{termin_id_only}}",
+                    "files"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Download Termin File",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/termin-files/{{file_id_only}}/download",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "termin-files",
+                    "{{file_id_only}}",
+                    "download"
+                  ]
+                },
+                "description": "Download termin file. Gunakan 'Send and Download' di Postman."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Termin File",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/termin-files/{{file_id_only}}/delete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "termin-files",
+                    "{{file_id_only}}",
+                    "delete"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Termins",
+      "item": [
+        {
+          "name": "\ud83d\udcd6 READ ME FIRST - Workflow & Validation Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            },
+            "description": "\ud83d\udd12 TERMIN BUSINESS RULES & VALIDATIONS\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\u2705 WORKFLOW:\n1. Draft \u2192 Buat termin (engineer)\n2. Submit \u2192 Kirim untuk review (engineer) \n3. Review \u2192 Cek oleh Admin Area/Field Head\n4. Approve \u2192 Setujui oleh Direktur\n5. Pay \u2192 Bayar oleh Keuangan\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\ud83d\udd12 VALIDASI (v1.3.1 - FLEXIBLE AMOUNT):\n\n1\ufe0f\u20e3 POLA PERCENTAGE TERKUNCI (Label/Struktur):\n   - Termin 1 HARUS 30%\n   - Termin 2 HARUS 50%\n   - Termin 3 HARUS 10%\n   - Termin 4 HARUS 10%\n   \u274c Tidak bisa pakai percentage lain!\n   \ud83d\udcdd Percentage adalah LABEL termin, bukan constraint jumlah\n\n2\ufe0f\u20e3 URUTAN SEQUENTIAL:\n   - Termin 2 hanya bisa dibuat SETELAH Termin 1 status \"approved\"\n   - Termin 3 hanya bisa dibuat SETELAH Termin 2 status \"approved\"\n   - Termin 4 hanya bisa dibuat SETELAH Termin 3 status \"approved\"\n   \u274c Tidak bisa skip atau paralel!\n\n3\ufe0f\u20e3 MAKSIMAL 70% DARI SITE BUDGET (Hard Limit):\n   - Total semua termin \u2264 70% \u00d7 site.maximal_budget\n   - Sistem hitung otomatis total kumulatif\n   \u274c Overpayment tidak mungkin!\n\n4\ufe0f\u20e3 JUMLAH FLEXIBLE (NEW!):\n   \u2705 Jumlah TIDAK wajib = percentage \u00d7 budget\n   \u2705 Anda bebas isi jumlah berapa saja asal total \u2264 70%\n   \u2705 Percentage tetap terkunci untuk struktur termin\n   \ud83d\udccc Contoh: Termin 2 (50%) bisa diisi 20jt, tidak harus 50jt\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\ud83d\udccb CONTOH SKENARIO VALID:\n\nSite budget: 100,000,000 (100 juta)\nMax payment: 70,000,000 (70% = 70 juta)\n\n\u2705 Termin 1 (30%): 25,000,000 \u2192 Approve\n\u2705 Termin 2 (50%): 30,000,000 \u2192 Total: 55jt \u2705\n\u2705 Termin 3 (10%): 10,000,000 \u2192 Total: 65jt \u2705\n\u2705 Termin 4 (10%):  5,000,000 \u2192 Total: 70jt \u2705 (exactly!)\n\n\ud83d\udca1 CATATAN: Jumlah flexible agar fit dalam 70% limit!\n   - T1 tidak harus 30jt (30%)\n   - T2 tidak harus 50jt (50%)\n   - Yang penting: percentage benar + total \u2264 70%\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\u26a0\ufe0f ERROR SCENARIOS (Test Cases Below):\n\n\u274c Wrong Percentage: Termin 1 dengan 40% \u2192 DITOLAK\n\u274c Skip Order: Termin 2 sebelum T1 approved \u2192 DITOLAK\n\u274c Exceed 70%: Total > 70% site budget \u2192 DITOLAK\n\u274c Invalid termin_ke: termin_ke = 5 \u2192 DITOLAK\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\ud83d\udcdd TESTING FLOW:\n1. Buat site dengan maximal_budget yang cukup (min 100jt)\n2. Test termin dengan jumlah flexible dalam 70% limit\n3. Approve setiap termin sebelum buat termin berikutnya\n4. Test validation dengan error scenarios (\u274c requests)\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550"
+          },
+          "response": []
+        },
+        {
+          "name": "\u2705 Create Termin 1 (VALID - 30%)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "\u2705 Create Termin 2 (VALID - 50%)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "\u2705 Create Termin 3 (VALID - 10%)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_3\",\n  \"tgl_terima\": \"2026-03-01\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 3,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 3 - 10% dari budget\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "\u2705 Create Termin 4 (VALID - 10%)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_4\",\n  \"tgl_terima\": \"2026-03-15\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 4,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 4 - 10% dari budget (final)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "\u274c TEST: Wrong Percentage Pattern",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 40000000,\n  \"termin_ke\": 1,\n  \"percentage\": 40,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena Termin 1 harus 30%\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "\u274c TEST: Skip Sequential Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Test validasi - seharusnya ditolak jika Termin 1 belum approved\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "\u274c TEST: Invalid termin_ke (5)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_5\",\n  \"tgl_terima\": \"2026-03-20\",\n  \"jumlah\": 5000000,\n  \"termin_ke\": 5,\n  \"percentage\": 10,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena termin_ke hanya 1-4\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Termins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
+            },
+            "description": "\ud83d\udccb Get all termins with enriched data (v1.7.1)\n\n\u2705 **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n\ud83d\udcdd **RESPONSE EXAMPLE:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"termins:xxx\",\n      \"project_id\": \"projects:yyy\",\n      \"site_id\": {\n        \"site_name\": \"Site Jakarta Selatan\",\n        \"project_name\": \"Network Expansion Jakarta\"\n      },\n      \"termin_ke\": 1,\n      \"percentage\": 30,\n      \"status\": \"draft\",\n      ...\n    }\n  ]\n}\n```\n\n\ud83c\udfaf **Impact:** Frontend bisa langsung akses project_name tanpa query tambahan!"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Termins by Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins/project/{{project_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "project",
+                "{{project_id_only}}"
+              ]
+            },
+            "description": "\ud83d\udccb Get all termins for specific project (v1.7.1)\n\n\u2705 **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n\ud83c\udfaf **Use Case:** Melihat semua termin dalam satu project dengan info lengkap site & project"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Termins by Site",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins/site/{{site_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "site",
+                "{{site_id_only}}"
+              ]
+            },
+            "description": "\ud83d\udccb Get all termins for specific site (v1.7.1)\n\n\u2705 **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n\ud83c\udfaf **Use Case:** Melihat semua termin (1-4) dalam satu site dengan info project parent"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Termin by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}"
+              ]
+            },
+            "description": "\ud83d\udd0d Get single termin detail by ID (v1.7.1)\n\n\u2705 **RESPONSE:** Returns standard Termin object (tidak ada enrichment untuk single get)\n\n\ud83d\udcdd Note: Untuk mendapatkan site_name dan project_name, gunakan list endpoints."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Termin (Draft Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 400000000,\n  \"keterangan\": \"Updated: Pembayaran termin kedua 50%\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Termin for Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"submitter_name\": \"Field Engineer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}/submit",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}",
+                "submit"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Review Termin (Field Head)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewer_name\": \"John Doe\",\n  \"catatan_review\": \"review oleh head area - dokumen lengkap dan sesuai\",\n  \"approve\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}",
+                "review"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Termin (Director)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}/approve",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Pay Termin (Finance)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "payer_name",
+                  "value": "7lwx51qk56xe13arIctI",
+                  "description": "ID user yang login (tanpa 'users:' prefix)",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah_dibayar",
+                  "value": "25000000",
+                  "description": "Jumlah yang dibayarkan dalam Rupiah",
+                  "type": "text"
+                },
+                {
+                  "key": "referensi_pembayaran",
+                  "value": "TRF-12345B",
+                  "description": "Nomor referensi pembayaran (TRF, CEK, INV, dll)",
+                  "type": "text"
+                },
+                {
+                  "key": "catatan_pembayaran",
+                  "value": "Pembayaran termin 1 via transfer BCA. Invoice #INV-2026-0425",
+                  "description": "Catatan pembayaran (optional)",
+                  "type": "text"
+                },
+                {
+                  "key": "bukti_pembayaran",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload file bukti pembayaran (PDF, JPG, PNG, ...)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}/pay",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}",
+                "pay"
+              ]
+            },
+            "description": "Endpoint untuk pembayaran termin oleh Finance. Mendukung upload file bukti pembayaran.\n\n**Form Fields:**\n- `payer_name` - ID user finance yang melakukan pembayaran\n- `jumlah_dibayar` - Jumlah yang dibayarkan (dalam Rupiah)\n- `referensi_pembayaran` - Nomor referensi pembayaran (TRF, CEK, INV, dll)\n- `catatan_pembayaran` - Catatan tambahan (optional)\n- `bukti_pembayaran` - File upload bukti pembayaran (PDF, JPG, PNG)\n\n**Note:** Gunakan tombol \"Send and Download\" di Postman untuk menguji fitur download file."
+          },
+          "response": []
+        },
+        {
+          "name": "Download Bukti Pembayaran",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}/download-bukti-pembayaran",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}",
+                "download-bukti-pembayaran"
+              ]
+            },
+            "description": "\ud83d\udce5 **Download Bukti Pembayaran File**\n\nEndpoint untuk download file bukti pembayaran yang telah diupload.\n\n**Method:** GET\n\n**Response:**\n- File akan di-download langsung dengan nama file asli\n- Content-Type sesuai dengan mime type file (application/pdf, image/jpeg, dll)\n- Content-Disposition: attachment untuk trigger download\n\n**Cara Test di Postman:**\n1. Klik tombol **Send and Download** (klik dropdown di sebelah tombol Send)\n2. Pilih lokasi penyimpanan file\n3. File akan tersimpan dengan nama asli (e.g., \"kwintansi pak adnan.pdf\")\n\n**Error Responses:**\n- 404: Termin tidak ditemukan atau belum ada bukti pembayaran\n- 400: Invalid termin ID format\n- 500: Error saat decode/process file"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Termin",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/termins/{{termin_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins",
+                "{{termin_id_only}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Teams",
+      "item": [
+        {
+          "name": "Create Team",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Team Alpha Engineering\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"people_id_here\",\n  \"members\": [\n    {\n      \"people_id\": \"member1_id\",\n      \"role\": \"Engineer\",\n      \"vendor\": \"PT ABC Contractor\"\n    },\n    {\n      \"people_id\": \"member2_id\",\n      \"role\": \"Technician\",\n      \"vendor\": \"PT XYZ Services\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/teams",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams"
+              ]
+            },
+            "description": "Create new team with leader and members. Members array bisa kosong jika team belum punya anggota."
+          },
+          "response": []
+        },
+        {
+          "name": "List Teams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teams",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams"
+              ]
+            },
+            "description": "Get list of all teams"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Team Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teams/{{team_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams",
+                "{{team_id_only}}"
+              ]
+            },
+            "description": "Get specific team detail by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Team by Leader ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teams/leader/{{leader_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams",
+                "leader",
+                "{{leader_id_only}}"
+              ]
+            },
+            "description": "Get team detail by leader ID\n\n\u2705 **RESPONSE:** Returns team where the specified person is the leader\n\n\ud83c\udfaf **Use Case:** Cek team mana yang dipimpin oleh seorang leader tertentu\n\n\u26a0\ufe0f **Note:** Returns 404 if person is not a leader of any team"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Team",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nama\": \"Team Alpha Engineering Updated\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"new_leader_id\",\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/teams/{{team_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams",
+                "{{team_id_only}}"
+              ]
+            },
+            "description": "Update team information. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Team",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teams/{{team_id_only}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams",
+                "{{team_id_only}}"
+              ]
+            },
+            "description": "Delete team dan cascade delete semua team members"
+          },
+          "response": []
+        },
+        {
+          "name": "List Team Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/teams/{{team_id_only}}/members",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "teams",
+                "{{team_id_only}}",
+                "members"
+              ]
+            },
+            "description": "Get list of all members in a team"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "projects:your_project_id_here",
+      "type": "string"
+    },
+    {
+      "key": "project_id_only",
+      "value": "your_project_id_here",
+      "type": "string"
+    },
+    {
+      "key": "site_id",
+      "value": "sites:your_site_id_here",
+      "type": "string"
+    },
+    {
+      "key": "site_id_only",
+      "value": "your_site_id_here",
+      "type": "string"
+    },
+    {
+      "key": "cost_id_only",
+      "value": "your_cost_id_here",
+      "type": "string"
+    },
+    {
+      "key": "area_id",
+      "value": "areas:your_area_id_here",
+      "type": "string"
+    },
+    {
+      "key": "area_id_only",
+      "value": "your_area_id_here",
+      "type": "string"
+    },
+    {
+      "key": "file_id_only",
+      "value": "your_file_id_here",
+      "type": "string"
+    },
+    {
+      "key": "termin_id",
+      "value": "termins:your_termin_id_here",
+      "type": "string"
+    },
+    {
+      "key": "termin_id_only",
+      "value": "your_termin_id_here",
+      "type": "string"
+    },
+    {
+      "key": "team_id_only",
+      "value": "your_team_id_here",
+      "type": "string"
+    },
+    {
+      "key": "team_id",
+      "value": "teams:your_team_id_here",
+      "type": "string"
+    },
+    {
+      "key": "site_team_member_id",
+      "value": "site_team_members:your_site_team_member_id_here",
+      "type": "string"
+    }
+  ]
 }

@@ -351,6 +351,71 @@ pub struct TeamMemberInput {
     pub vendor: Option<String>,
 }
 
+// ==================== SITE TEAM STRUCTURE MODELS ====================
+// Tim Struktur: links data master team members to a specific site
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteTeamMember {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub team_master_id: Option<Thing>,  // references teams (master data)
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// Enriched Tim Struktur entry with master team member details joined
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteTeamMemberDetail {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub team_master_id: Option<Thing>,
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+    // Populated from teams master record
+    pub nik: Option<String>,
+    pub nama: Option<String>,
+    pub no_hp: Option<String>,
+    pub jabatan: Option<String>,
+    pub regional: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddSiteTeamMemberRequest {
+    pub team_master_id: String,  // ID of master team record to add
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSiteTeamMemberRequest {
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+}
+
+/// Partial view of master team record used for JOIN enrichment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamMasterInfo {
+    pub nik: Option<String>,
+    pub nama_karyawan: Option<String>,
+    pub no_hp: Option<String>,
+    pub jabatan_kerja: Option<String>,
+    pub regional: Option<String>,
+}
+
 // ==================== TEAM UPLOAD RESULT ====================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

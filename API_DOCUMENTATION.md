@@ -1,10 +1,25 @@
 # 📚 Reengineering Tool Backend - API Documentation
 
-**Base URL:** `http://localhost:3000/api`
+**Base URL:** `http://localhost:3001/api`
 
 ---
 
 ## 📋 Changelog
+
+### v1.9.0 (2026-03-06)
+**👥 Tim Struktur - Site Team Structure Management**
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/team-structure` — List Tim Struktur per site
+  - Response enriched dengan data master: `nik`, `nama`, `no_hp`, `jabatan`, `regional`
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/team-structure` — Add member dari Data Master Team
+  - Pick member dari `GET /teams` (data master), klik → otomatis masuk Tim Struktur
+  - Duplicate prevention: member yang sama tidak bisa ditambah 2x ke site yang sama
+  - Body: `{ "team_master_id": "teams:xxx", "role": "member", "vendor": "Vendor A" }`
+- ✅ **NEW ENDPOINT:** `DELETE /sites/:site_id/team-structure/:member_id` — Remove member dari Tim Struktur (tidak menghapus data master)
+- ✅ **FIXED:** `GET /teams` sekarang menampilkan **semua** data master team (sebelumnya ada filter 1 hari yang salah)
+- ✅ **CASCADE DELETE:** Saat site dihapus, semua `site_team_members` ikut terhapus otomatis
+- 🏗️ **NEW TABLE:** `site_team_members` dengan field: `site_id`, `team_master_id`, `role`, `vendor`
+- 📚 **New Models:** `SiteTeamMember`, `SiteTeamMemberDetail`, `AddSiteTeamMemberRequest`, `TeamMasterInfo`
+- 🎯 **Tested Live:** Semua endpoint telah diuji dan verified di backend running
 
 ### v1.8.0 (2026-03-05)
 **📊 Excel Bulk Import - Projects & Sites Creation**
@@ -777,7 +792,148 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 
 ---
 
-## 👥 People API
+## � Tim Struktur (Site Team Structure) API
+
+> **Konsep:** Data Master Team (`/api/teams`) berisi daftar karyawan/member yang telah diupload via Excel.
+> Tim Struktur adalah relasi antara Data Master Team ↔ Site tertentu.
+> Frontend: tampilkan list `/api/teams`, user klik member → POST ke `/api/sites/:id/team-structure`.
+
+### Get Tim Struktur (List Members)
+**GET** `/sites/:site_id/team-structure`
+
+**Path Parameters:**
+- `site_id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_team_members:lgfltwpe8zkktymmh843",
+      "site_id": "sites:zz5gdau1wutgrgpc8we0",
+      "team_master_id": "teams:p84takz9nl6ihpwm05a2",
+      "role": "leader",
+      "vendor": "Vendor A",
+      "nik": "14175063",
+      "nama": "RIVO HIDAYAT",
+      "no_hp": "081284238948",
+      "jabatan": "HEAD COORDINATOR",
+      "regional": "JAKARTA",
+      "created_at": "2026-03-06T07:36:03.277490049Z",
+      "updated_at": "2026-03-06T07:36:03.277491049Z"
+    },
+    {
+      "id": "site_team_members:2zqjo7mgymyhfv8jprrm",
+      "site_id": "sites:zz5gdau1wutgrgpc8we0",
+      "team_master_id": "teams:ill8s861h9w9dl5fbc8n",
+      "role": "member",
+      "vendor": "Vendor D",
+      "nik": "14175062",
+      "nama": "YUDIE RAHMAN",
+      "no_hp": "081299934817",
+      "jabatan": "PROJECT MANAGER",
+      "regional": "JAKARTA",
+      "created_at": "2026-03-06T07:36:18.677497826Z",
+      "updated_at": "2026-03-06T07:36:18.677499826Z"
+    }
+  ],
+  "message": null
+}
+```
+
+**Field Response (dari Data Master Team):**
+| Field | Sumber | Keterangan |
+|---|---|---|
+| `id` | `site_team_members` | ID relasi |
+| `site_id` | `site_team_members` | ID site |
+| `team_master_id` | `site_team_members` | ID record di Data Master Team |
+| `role` | `site_team_members` | Role di tim ini (e.g. "leader", "member") |
+| `vendor` | `site_team_members` | Nama vendor |
+| `nik` | `teams` (master) | NIK karyawan |
+| `nama` | `teams` (master) | Nama karyawan |
+| `no_hp` | `teams` (master) | Nomor HP |
+| `jabatan` | `teams` (master) | Jabatan kerja |
+| `regional` | `teams` (master) | Regional |
+
+---
+
+### Add Member ke Tim Struktur
+**POST** `/sites/:site_id/team-structure`
+
+> **Flow:** Ambil list dari `GET /api/teams`, user pilih member, kirim `team_master_id` ke endpoint ini.
+
+**Path Parameters:**
+- `site_id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Request Body:**
+```json
+{
+  "team_master_id": "teams:p84takz9nl6ihpwm05a2",
+  "role": "leader",
+  "vendor": "Vendor A"
+}
+```
+
+**Field Request:**
+- `team_master_id` (string, required): ID dari Data Master Team (`GET /api/teams` → ambil field `id`)
+- `role` (string, optional): Role dalam Tim Struktur. Contoh: `"leader"`, `"member"`, `"supervisor"`
+- `vendor` (string, optional): Nama vendor
+
+**Response sukses (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "site_team_members:lgfltwpe8zkktymmh843",
+    "site_id": "sites:zz5gdau1wutgrgpc8we0",
+    "team_master_id": "teams:p84takz9nl6ihpwm05a2",
+    "role": "leader",
+    "vendor": "Vendor A",
+    "nik": "14175063",
+    "nama": "RIVO HIDAYAT",
+    "no_hp": "081284238948",
+    "jabatan": "HEAD COORDINATOR",
+    "regional": "JAKARTA",
+    "created_at": "2026-03-06T07:36:03.277490049Z",
+    "updated_at": "2026-03-06T07:36:03.277491049Z"
+  },
+  "message": "Team member added to site structure successfully"
+}
+```
+
+**Response duplikat (200 OK, success=false):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Member already added to this site's team structure"
+}
+```
+
+---
+
+### Remove Member dari Tim Struktur
+**DELETE** `/sites/:site_id/team-structure/:member_id`
+
+> Menghapus relasi member dari Tim Struktur site. **Tidak** menghapus record dari Data Master Team.
+
+**Path Parameters:**
+- `site_id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+- `member_id`: ID record Tim Struktur (field `id` dari response list, format: `site_team_members:xxx`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Team member removed from site structure"
+}
+```
+
+---
+
+## �👥 People API
 
 ### Create Person
 **POST** `/people`
