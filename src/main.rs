@@ -70,6 +70,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:site_id/team-structure", post(site::add_site_team_member))
         .route("/api/sites/:site_id/team-structure/:member_id", put(site::update_site_team_member))
         .route("/api/sites/:site_id/team-structure/:member_id", delete(site::remove_site_team_member))
+        // Site Stage routes
+        .route("/api/sites/:id/stage", post(site::update_site_stage))
+        .route("/api/sites/:id/stage-logs", get(site::get_site_stage_logs))
+        // Site BOQ routes
+        .route("/api/sites/:site_id/boq", get(site::list_site_boq))
+        .route("/api/sites/:site_id/boq", post(site::create_site_boq))
+        .route("/api/site-boq/:boq_id", put(site::update_site_boq))
+        .route("/api/site-boq/:boq_id", delete(site::delete_site_boq))
+        // SKP routes
+        .route("/api/sites/:site_id/skp", get(site::list_skp_by_site))
+        .route("/api/sites/:site_id/skp", post(site::create_skp))
+        .route("/api/skp/:skp_id", get(site::get_skp))
+        .route("/api/skp/:skp_id", put(site::update_skp))
+        .route("/api/skp/:skp_id", delete(site::delete_skp))
+        // Site Evidence routes
+        .route("/api/sites/:site_id/evidence", get(site::list_site_evidence))
+        .route("/api/sites/:site_id/evidence", post(site::create_site_evidence))
+        .route("/api/site-evidence/:evidence_id", delete(site::delete_site_evidence))
         // People routes
         .route("/api/people", post(people::create_people))
         .route("/api/people", get(people::list_people))

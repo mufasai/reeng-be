@@ -2,7 +2,14 @@ use axum::{extract::Json, http::StatusCode};
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 
-use crate::models::{ApiResponse, CreateSiteRequest, UpdateSiteRequest, Site, Team, SiteTeamMember, SiteTeamMemberDetail, AddSiteTeamMemberRequest, UpdateSiteTeamMemberRequest, TeamMasterInfo};
+use crate::models::{
+    ApiResponse, CreateSiteRequest, UpdateSiteRequest, UpdateSiteStageRequest,
+    Site, SiteStageLog, Team, SiteTeamMember, SiteTeamMemberDetail,
+    AddSiteTeamMemberRequest, UpdateSiteTeamMemberRequest, TeamMasterInfo,
+    SiteBoq, CreateSiteBoqRequest, UpdateSiteBoqRequest,
+    Skp, CreateSkpRequest, UpdateSkpRequest,
+    SiteEvidence, CreateSiteEvidenceRequest,
+};
 use crate::state::AppState;
 
 // Helper function to strip table prefix from ID strings
@@ -784,5 +791,593 @@ pub async fn remove_site_team_member(
         success: true,
         data: None,
         message: Some("Team member removed from site structure".to_string()),
+    }))
+}
+
+// ==================== STAGE HANDLERS ====================
+
+/// POST /api/sites/:id/stage
+/// Update stage site + catat log perubahan
+/// Stage order: imported → assigned → permit_process → permit_ready →
+///              akses_process → akses_ready → implementasi →
+///              rfi_done → rfs_done → dokumen_done → bast → invoice → completed
+pub async fn update_site_stage(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    Json(req): Json<UpdateSiteStageRequest>,
+) -> Result<Json<ApiResponse<Site>>, StatusCode> {
+    let valid_stages = [
+        "imported", "assigned", "permit_process", "permit_ready",
+        "akses_process", "akses_ready", "implementasi",
+        "rfi_done", "rfs_done", "dokumen_done", "bast", "invoice", "completed",
+    ];
+    if !valid_stages.contains(&req.stage.as_str()) {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!("Stage '{}' tidak valid", req.stage)),
+        }));
+    }
+
+    let site_thing = parse_thing_id(&site_id)?;
+
+    // Ambil stage lama sebelum diupdate
+    let get_query = "SELECT stage FROM type::thing($site_id)";
+    let mut get_res = state
+        .db
+        .query(get_query)
+        .bind(("site_id", site_thing.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting current stage: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    #[derive(serde::Deserialize)]
+    struct StageOnly { stage: Option<String> }
+    let rows: Vec<StageOnly> = get_res.take(0).unwrap_or_default();
+    let from_stage = rows.into_iter().next()
+        .and_then(|r| r.stage)
+        .unwrap_or_else(|| "imported".to_string());
+
+    // Update stage di sites
+    let update_query = "UPDATE type::thing($site_id) SET \
+        stage = $stage, \
+        stage_updated_at = time::now(), \
+        stage_notes = $stage_notes, \
+        impl_cico_done = $impl_cico_done, \
+        impl_rfs_done = $impl_rfs_done, \
+        impl_dokumen_done = $impl_dokumen_done, \
+        ineom_registered = $ineom_registered, \
+        updated_at = time::now()";
+
+    let mut update_res = state
+        .db
+        .query(update_query)
+        .bind(("site_id", site_thing.clone()))
+        .bind(("stage", req.stage.clone()))
+        .bind(("stage_notes", req.notes.clone()))
+        .bind(("impl_cico_done", req.impl_cico_done.unwrap_or(false)))
+        .bind(("impl_rfs_done", req.impl_rfs_done.unwrap_or(false)))
+        .bind(("impl_dokumen_done", req.impl_dokumen_done.unwrap_or(false)))
+        .bind(("ineom_registered", req.ineom_registered.unwrap_or(false)))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error updating site stage: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let updated: Vec<Site> = update_res.take(0).map_err(|e| {
+        eprintln!("Parse error updating site stage: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let site = updated.into_iter().next().ok_or_else(|| {
+        eprintln!("Site not found after stage update");
+        StatusCode::NOT_FOUND
+    })?;
+
+    // Catat log perubahan stage
+    let log_query = "CREATE site_stage_log SET \
+        site_id = $site_id, \
+        from_stage = $from_stage, \
+        to_stage = $to_stage, \
+        notes = $notes, \
+        changed_by = $changed_by, \
+        evidence_urls = $evidence_urls, \
+        created_at = time::now()";
+
+    let _ = state
+        .db
+        .query(log_query)
+        .bind(("site_id", site_thing))
+        .bind(("from_stage", from_stage))
+        .bind(("to_stage", req.stage.clone()))
+        .bind(("notes", req.notes.clone()))
+        .bind(("changed_by", req.changed_by.clone().unwrap_or_else(|| "system".to_string())))
+        .bind(("evidence_urls", req.evidence_urls.clone().unwrap_or_default()))
+        .await
+        .map_err(|e| eprintln!("Warning: failed to create stage log: {}", e));
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(site),
+        message: Some(format!("Stage berhasil diupdate ke '{}'", req.stage)),
+    }))
+}
+
+/// GET /api/sites/:id/stage-logs
+/// Ambil riwayat perubahan stage untuk satu site
+pub async fn get_site_stage_logs(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<SiteStageLog>>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let query = "SELECT * FROM site_stage_log WHERE site_id = $site_id ORDER BY created_at DESC";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error fetching stage logs: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let logs: Vec<SiteStageLog> = response.take(0).map_err(|e| {
+        eprintln!("Parse error fetching stage logs: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(logs),
+        message: None,
+    }))
+}
+
+// ==================== SITE BOQ HANDLERS ====================
+
+/// GET /api/sites/:site_id/boq
+pub async fn list_site_boq(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<SiteBoq>>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM site_boq WHERE site_id = $site_id ORDER BY created_at ASC")
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error listing site boq: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SiteBoq> = response.take(0).map_err(|e| {
+        eprintln!("Parse error listing site boq: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(items),
+        message: None,
+    }))
+}
+
+/// POST /api/sites/:site_id/boq
+pub async fn create_site_boq(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    Json(req): Json<CreateSiteBoqRequest>,
+) -> Result<Json<ApiResponse<SiteBoq>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let query = "CREATE site_boq SET \
+        site_id = $site_id, \
+        item_code = $item_code, \
+        description = $description, \
+        quantity = $quantity, \
+        unit = $unit, \
+        type = $boq_type, \
+        source = $source, \
+        created_at = time::now(), \
+        updated_at = time::now()";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .bind(("item_code", req.item_code.clone()))
+        .bind(("description", req.description.clone()))
+        .bind(("quantity", req.quantity))
+        .bind(("unit", req.unit.clone()))
+        .bind(("boq_type", req.boq_type.clone().unwrap_or_else(|| "material".to_string())))
+        .bind(("source", req.source.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error creating site boq: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SiteBoq> = response.take(0).map_err(|e| {
+        eprintln!("Parse error creating site boq: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or_else(|| {
+        eprintln!("No site boq returned after creation");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: Some("BOQ item created successfully".to_string()),
+    }))
+}
+
+/// PUT /api/site-boq/:boq_id
+pub async fn update_site_boq(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(boq_id): axum::extract::Path<String>,
+    Json(req): Json<UpdateSiteBoqRequest>,
+) -> Result<Json<ApiResponse<SiteBoq>>, StatusCode> {
+    let boq_thing = parse_thing_id(&boq_id)?;
+
+    let mut update_parts = vec!["updated_at = time::now()".to_string()];
+    if req.item_code.is_some() { update_parts.push("item_code = $item_code".to_string()); }
+    if req.description.is_some() { update_parts.push("description = $description".to_string()); }
+    if req.quantity.is_some() { update_parts.push("quantity = $quantity".to_string()); }
+    if req.unit.is_some() { update_parts.push("unit = $unit".to_string()); }
+    if req.boq_type.is_some() { update_parts.push("type = $boq_type".to_string()); }
+    if req.source.is_some() { update_parts.push("source = $source".to_string()); }
+
+    let update_query = format!("UPDATE type::thing($boq_id) SET {}", update_parts.join(", "));
+    let mut qb = state.db.query(&update_query).bind(("boq_id", boq_thing));
+
+    if let Some(v) = req.item_code { qb = qb.bind(("item_code", v)); }
+    if let Some(v) = req.description { qb = qb.bind(("description", v)); }
+    if let Some(v) = req.quantity { qb = qb.bind(("quantity", v)); }
+    if let Some(v) = req.unit { qb = qb.bind(("unit", v)); }
+    if let Some(v) = req.boq_type { qb = qb.bind(("boq_type", v)); }
+    if let Some(v) = req.source { qb = qb.bind(("source", v)); }
+
+    let mut response = qb.await.map_err(|e| {
+        eprintln!("Database error updating site boq: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let items: Vec<SiteBoq> = response.take(0).map_err(|e| {
+        eprintln!("Parse error updating site boq: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: Some("BOQ item updated successfully".to_string()),
+    }))
+}
+
+/// DELETE /api/site-boq/:boq_id
+pub async fn delete_site_boq(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(boq_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let boq_thing = parse_thing_id(&boq_id)?;
+
+    state
+        .db
+        .query("DELETE type::thing($boq_id)")
+        .bind(("boq_id", boq_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error deleting site boq: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: None,
+        message: Some("BOQ item deleted successfully".to_string()),
+    }))
+}
+
+// ==================== SKP HANDLERS ====================
+
+/// GET /api/sites/:site_id/skp
+pub async fn list_skp_by_site(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<Skp>>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM skp WHERE site_id = $site_id ORDER BY created_at DESC")
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error listing skp: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<Skp> = response.take(0).map_err(|e| {
+        eprintln!("Parse error listing skp: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(items),
+        message: None,
+    }))
+}
+
+/// POST /api/sites/:site_id/skp
+pub async fn create_skp(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    Json(req): Json<CreateSkpRequest>,
+) -> Result<Json<ApiResponse<Skp>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let query = "CREATE skp SET \
+        site_id = $site_id, \
+        skp_number = $skp_number, \
+        tanggal = $tanggal, \
+        keterangan = $keterangan, \
+        status = 'Draft', \
+        uploaded_by = $uploaded_by, \
+        document_url = $document_url, \
+        created_at = time::now(), \
+        updated_at = time::now()";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .bind(("skp_number", req.skp_number.clone()))
+        .bind(("tanggal", req.tanggal.clone()))
+        .bind(("keterangan", req.keterangan.clone()))
+        .bind(("uploaded_by", req.uploaded_by.clone()))
+        .bind(("document_url", req.document_url.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error creating skp: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<Skp> = response.take(0).map_err(|e| {
+        eprintln!("Parse error creating skp: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or_else(|| {
+        eprintln!("No skp returned after creation");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: Some("SKP created successfully".to_string()),
+    }))
+}
+
+/// GET /api/skp/:skp_id
+pub async fn get_skp(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(skp_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Skp>>, StatusCode> {
+    let skp_thing = parse_thing_id(&skp_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM type::thing($skp_id)")
+        .bind(("skp_id", skp_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting skp: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<Skp> = response.take(0).map_err(|e| {
+        eprintln!("Parse error getting skp: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: None,
+    }))
+}
+
+/// PUT /api/skp/:skp_id
+pub async fn update_skp(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(skp_id): axum::extract::Path<String>,
+    Json(req): Json<UpdateSkpRequest>,
+) -> Result<Json<ApiResponse<Skp>>, StatusCode> {
+    let skp_thing = parse_thing_id(&skp_id)?;
+
+    let mut update_parts = vec!["updated_at = time::now()".to_string()];
+    if req.skp_number.is_some() { update_parts.push("skp_number = $skp_number".to_string()); }
+    if req.tanggal.is_some() { update_parts.push("tanggal = $tanggal".to_string()); }
+    if req.keterangan.is_some() { update_parts.push("keterangan = $keterangan".to_string()); }
+    if req.status.is_some() { update_parts.push("status = $status".to_string()); }
+    if req.document_url.is_some() { update_parts.push("document_url = $document_url".to_string()); }
+    if req.received_proof_url.is_some() { update_parts.push("received_proof_url = $received_proof_url".to_string()); }
+
+    let update_query = format!("UPDATE type::thing($skp_id) SET {}", update_parts.join(", "));
+    let mut qb = state.db.query(&update_query).bind(("skp_id", skp_thing));
+
+    if let Some(v) = req.skp_number { qb = qb.bind(("skp_number", v)); }
+    if let Some(v) = req.tanggal { qb = qb.bind(("tanggal", v)); }
+    if let Some(v) = req.keterangan { qb = qb.bind(("keterangan", v)); }
+    if let Some(v) = req.status { qb = qb.bind(("status", v)); }
+    if let Some(v) = req.document_url { qb = qb.bind(("document_url", v)); }
+    if let Some(v) = req.received_proof_url { qb = qb.bind(("received_proof_url", v)); }
+
+    let mut response = qb.await.map_err(|e| {
+        eprintln!("Database error updating skp: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let items: Vec<Skp> = response.take(0).map_err(|e| {
+        eprintln!("Parse error updating skp: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: Some("SKP updated successfully".to_string()),
+    }))
+}
+
+/// DELETE /api/skp/:skp_id
+pub async fn delete_skp(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(skp_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let skp_thing = parse_thing_id(&skp_id)?;
+
+    state
+        .db
+        .query("DELETE type::thing($skp_id)")
+        .bind(("skp_id", skp_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error deleting skp: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: None,
+        message: Some("SKP deleted successfully".to_string()),
+    }))
+}
+
+// ==================== SITE EVIDENCE HANDLERS ====================
+
+/// GET /api/sites/:site_id/evidence
+pub async fn list_site_evidence(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<SiteEvidence>>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM site_evidence WHERE site_id = $site_id ORDER BY uploaded_at DESC")
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error listing site evidence: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SiteEvidence> = response.take(0).map_err(|e| {
+        eprintln!("Parse error listing site evidence: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(items),
+        message: None,
+    }))
+}
+
+/// POST /api/sites/:site_id/evidence
+pub async fn create_site_evidence(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    Json(req): Json<CreateSiteEvidenceRequest>,
+) -> Result<Json<ApiResponse<SiteEvidence>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let query = "CREATE site_evidence SET \
+        site_id = $site_id, \
+        filename = $filename, \
+        original_name = $original_name, \
+        file_url = $file_url, \
+        mime_type = $mime_type, \
+        file_size = $file_size, \
+        progress_tag = $progress_tag, \
+        stage_context = $stage_context, \
+        uploaded_by = $uploaded_by, \
+        uploaded_at = time::now()";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .bind(("filename", req.filename.clone()))
+        .bind(("original_name", req.original_name.clone()))
+        .bind(("file_url", req.file_url.clone()))
+        .bind(("mime_type", req.mime_type.clone()))
+        .bind(("file_size", req.file_size))
+        .bind(("progress_tag", req.progress_tag.clone()))
+        .bind(("stage_context", req.stage_context.clone()))
+        .bind(("uploaded_by", req.uploaded_by.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error creating site evidence: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SiteEvidence> = response.take(0).map_err(|e| {
+        eprintln!("Parse error creating site evidence: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or_else(|| {
+        eprintln!("No site evidence returned after creation");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: Some("Evidence uploaded successfully".to_string()),
+    }))
+}
+
+/// DELETE /api/site-evidence/:evidence_id
+pub async fn delete_site_evidence(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(evidence_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let evidence_thing = parse_thing_id(&evidence_id)?;
+
+    state
+        .db
+        .query("DELETE type::thing($evidence_id)")
+        .bind(("evidence_id", evidence_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error deleting site evidence: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: None,
+        message: Some("Evidence deleted successfully".to_string()),
     }))
 }

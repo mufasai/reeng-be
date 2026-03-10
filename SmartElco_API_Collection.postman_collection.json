@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 6 MARET",
-    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 6 MARET 2026:\n- GET /sites/:id/team-structure \u2014 List Tim Struktur per site\n- POST /sites/:id/team-structure \u2014 Add member dari Data Master Team\n- DELETE /sites/:id/team-structure/:member_id \u2014 Remove member dari Tim Struktur\n- FIX: base_url diupdate ke port 3001\n- FIX: GET /teams sekarang tampilkan semua data master (hapus filter 1 hari)",
+    "name": "SmartElco API Collection - UPDATE 10 MARET v2.0",
+    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -596,6 +596,590 @@
                   ]
                 },
                 "description": "Update role atau vendor dari member yang sudah ada di Tim Struktur. Hanya field yang dikirim yang akan diupdate (partial update). Response include data master team (nik, nama, jabatan, dll).\n\nField yang bisa diupdate:\n- role (optional): e.g. \"leader\", \"member\", \"supervisor\"\n- vendor (optional): e.g. \"Vendor A\", \"Vendor B\""
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Site Stage - UPDATE 10 MARET",
+          "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.",
+          "item": [
+            {
+              "name": "Stage 01 - imported (Reset/Awal)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"imported\",\n  \"notes\": \"Data site baru diimport dari sistem\",\n  \"changed_by\": \"System Import\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Stage awal: site baru diimport, belum diproses."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = imported', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('imported'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 02 - assigned (Tim Ditugaskan)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"assigned\",\n  \"notes\": \"Tim lapangan sudah diassign ke site ini\",\n  \"changed_by\": \"Admin PM\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Tim sudah diassign, siap memulai proses perizinan."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = assigned', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('assigned'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 03 - permit_process (Proses Perizinan)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"permit_process\",\n  \"notes\": \"Dokumen perizinan sedang diproses ke warga/RT/RW\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Perizinan sedang berjalan (belum ada dokumen izin)."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_process', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_process'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 04 - permit_ready (Izin Siap)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"permit_ready\",\n  \"notes\": \"Surat izin sudah ditandatangani warga\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Izin sudah selesai, siap proses akses material."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_ready', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_ready'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 05 - akses_process (Proses Akses Material)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"akses_process\",\n  \"notes\": \"SKP sudah dibuat, menunggu material dikeluarkan gudang\",\n  \"changed_by\": \"Tim Gudang\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Proses pengambilan material/akses sedang berjalan."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = akses_process', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('akses_process'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 06 - akses_ready (Material Siap/Diterima)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"akses_ready\",\n  \"notes\": \"Material sudah diterima tim lapangan\",\n  \"changed_by\": \"Tim Lapangan\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Material sudah ada di lokasi, siap implementasi."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = akses_ready', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('akses_ready'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 07 - implementasi (Pekerjaan Berlangsung)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"implementasi\",\n  \"notes\": \"Pekerjaan lapangan dimulai\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_cico_done\": false,\n  \"impl_rfs_done\": false,\n  \"impl_dokumen_done\": false,\n  \"ineom_registered\": false\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Implementasi fisik pekerjaan dimulai. Field impl_cico_done, impl_rfs_done, impl_dokumen_done, ineom_registered diisi sesuai progress."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = implementasi', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('implementasi'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 08 - rfi_done (RFI Selesai)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"rfi_done\",\n  \"notes\": \"Request For Inspection sudah dilakukan, menunggu sign off\",\n  \"changed_by\": \"Tim Lapangan\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "RFI (Request For Inspection) sudah dilakukan."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = rfi_done', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('rfi_done'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 09 - rfs_done (RFS Selesai)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"rfs_done\",\n  \"notes\": \"Ready For Service sudah dikonfirmasi\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_rfs_done\": true\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "RFS (Ready For Service) sudah selesai, layanan siap diaktifkan."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = rfs_done', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('rfs_done'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 10 - dokumen_done (Dokumen Lengkap)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"dokumen_done\",\n  \"notes\": \"As-built drawing dan seluruh dokumen implementasi sudah dilengkapi\",\n  \"changed_by\": \"Tim Dokumen\",\n  \"impl_dokumen_done\": true\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Semua dokumen implementasi sudah lengkap."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = dokumen_done', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('dokumen_done'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 11 - bast (BAST Ditandatangani)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"bast\",\n  \"notes\": \"BAST sudah ditandatangani kedua pihak\",\n  \"changed_by\": \"Admin PM\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Berita Acara Serah Terima (BAST) sudah ditandatangani."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = bast', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('bast'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 12 - invoice (Invoice Diajukan)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"invoice\",\n  \"notes\": \"Invoice sudah diajukan ke finance client\",\n  \"changed_by\": \"Admin Finance\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Invoice sudah diajukan, menunggu pembayaran."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = invoice', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('invoice'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage 13 - completed (SELESAI ✓)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"completed\",\n  \"notes\": \"Pekerjaan selesai, pembayaran diterima\",\n  \"changed_by\": \"Admin Finance\",\n  \"ineom_registered\": true\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Stage akhir: seluruh pekerjaan dan administrasi selesai."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = completed', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('completed'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Stage INVALID - expect error",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stage\": \"invalid_stage_test\",\n  \"changed_by\": \"Tester\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "description": "Test validasi: stage tidak valid harus ditolak dengan success=false."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Invalid stage rejected', () => { const j = pm.response.json(); pm.expect(j.success).to.be.false; pm.expect(j.message).to.include('tidak valid'); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Get Stage Logs (Audit Trail)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage-logs",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "stage-logs"]
+                },
+                "description": "Ambil riwayat perubahan stage site. Terurut dari terbaru ke terlama. Setelah menjalankan 13 stage di atas, minimal akan ada 13 log entries."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Data is array with entries', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data).to.be.an('array'); pm.expect(j.data.length).to.be.greaterThan(0); });"], "type": "text/javascript" } }],
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Site BOQ - UPDATE 10 MARET",
+          "description": "Bill of Quantity: daftar material/jasa per site dari kontrak. Tab 'Material Item' di Detail Site.",
+          "item": [
+            {
+              "name": "List BOQ by Site",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/boq",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "boq"]
+                },
+                "description": "List semua BOQ item untuk satu site."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Create BOQ Item",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"item_code\": \"MAT-001\",\n  \"description\": \"Kabel Fiber Optik SM 12C\",\n  \"quantity\": 100.0,\n  \"unit\": \"meter\",\n  \"type\": \"material\",\n  \"source\": \"Warehouse Jakarta\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/boq",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "boq"]
+                },
+                "description": "Tambah item BOQ ke site."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('BOQ created', () => {",
+                      "  const j = pm.response.json();",
+                      "  pm.expect(j.success).to.be.true;",
+                      "  if (j.data && j.data.id) {",
+                      "    const idOnly = j.data.id.split(':')[1];",
+                      "    pm.environment.set('boq_id', j.data.id);",
+                      "    pm.environment.set('boq_id_only', idOnly);",
+                      "    console.log('BOQ ID saved: ' + j.data.id);",
+                      "  }",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Update BOQ Item",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Kabel Fiber Optik SM 24C\",\n  \"quantity\": 150.0\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/site-boq/{{boq_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["site-boq", "{{boq_id}}"]
+                },
+                "description": "Update item BOQ. Semua field optional (partial update)."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete BOQ Item",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/site-boq/{{boq_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["site-boq", "{{boq_id}}"]
+                },
+                "description": "Hapus item BOQ."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "SKP - UPDATE 10 MARET",
+          "description": "Surat Perintah Ambil Material. Status flow: Draft → Submitted → Received.",
+          "item": [
+            {
+              "name": "List SKP by Site",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/skp",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "skp"]
+                },
+                "description": "List semua SKP untuk satu site, terurut terbaru dulu."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Create SKP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"skp_number\": \"SKP/2026/001\",\n  \"tanggal\": \"2026-03-10\",\n  \"keterangan\": \"Pengambilan material batch 1\",\n  \"uploaded_by\": \"Budi Santoso\",\n  \"document_url\": null\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/skp",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "skp"]
+                },
+                "description": "Buat SKP baru. Status awal selalu 'Draft'. skp_number harus unik."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('SKP created', () => {",
+                      "  const j = pm.response.json();",
+                      "  pm.expect(j.success).to.be.true;",
+                      "  pm.expect(j.data.status).to.equal('Draft');",
+                      "  if (j.data && j.data.id) {",
+                      "    pm.environment.set('skp_id', j.data.id);",
+                      "    pm.environment.set('skp_id_only', j.data.id.split(':')[1]);",
+                      "    console.log('SKP ID saved: ' + j.data.id);",
+                      "  }",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Get SKP by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/skp/{{skp_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["skp", "{{skp_id}}"]
+                },
+                "description": "Ambil detail satu SKP berdasarkan ID."
+              },
+              "response": []
+            },
+            {
+              "name": "Update SKP - Submit",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Submitted\",\n  \"document_url\": \"https://storage.example.com/skp-001.pdf\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/skp/{{skp_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["skp", "{{skp_id}}"]
+                },
+                "description": "Update SKP ke status Submitted dengan URL dokumen SKP."
+              },
+              "response": []
+            },
+            {
+              "name": "Update SKP - Received",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Received\",\n  \"received_proof_url\": \"https://storage.example.com/bukti-terima-001.jpg\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/skp/{{skp_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["skp", "{{skp_id}}"]
+                },
+                "description": "Update SKP ke status Received dengan bukti penerimaan material."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete SKP",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/skp/{{skp_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["skp", "{{skp_id}}"]
+                },
+                "description": "Hapus SKP."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Site Evidence - UPDATE 10 MARET",
+          "description": "Foto lapangan yang diupload per tag progress. Digunakan untuk dokumentasi pekerjaan di lapangan.",
+          "item": [
+            {
+              "name": "List Evidence by Site",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/evidence",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "evidence"]
+                },
+                "description": "List semua foto lapangan untuk satu site."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Create Evidence",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"filename\": \"foto_implementasi_001.jpg\",\n  \"original_name\": \"IMG_20260310_070000.jpg\",\n  \"file_url\": \"https://storage.example.com/foto_implementasi_001.jpg\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size\": 1048576,\n  \"progress_tag\": \"implementasi\",\n  \"stage_context\": \"Pemasangan tiang ODC area Menteng\",\n  \"uploaded_by\": \"Budi Santoso\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/evidence",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "evidence"]
+                },
+                "description": "Upload metadata foto lapangan. File URL biasanya dari storage eksternal (S3, CDN, dll)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Evidence created', () => {",
+                      "  const j = pm.response.json();",
+                      "  pm.expect(j.success).to.be.true;",
+                      "  if (j.data && j.data.id) {",
+                      "    pm.environment.set('evidence_id', j.data.id);",
+                      "    console.log('Evidence ID saved: ' + j.data.id);",
+                      "  }",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Delete Evidence",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/site-evidence/{{evidence_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["site-evidence", "{{evidence_id}}"]
+                },
+                "description": "Hapus foto lapangan."
               },
               "response": []
             }
@@ -2077,6 +2661,31 @@
     {
       "key": "site_team_member_id",
       "value": "site_team_members:your_site_team_member_id_here",
+      "type": "string"
+    },
+    {
+      "key": "boq_id",
+      "value": "site_boq:your_boq_id_here",
+      "type": "string"
+    },
+    {
+      "key": "boq_id_only",
+      "value": "your_boq_id_here",
+      "type": "string"
+    },
+    {
+      "key": "skp_id",
+      "value": "skp:your_skp_id_here",
+      "type": "string"
+    },
+    {
+      "key": "skp_id_only",
+      "value": "your_skp_id_here",
+      "type": "string"
+    },
+    {
+      "key": "evidence_id",
+      "value": "site_evidence:your_evidence_id_here",
       "type": "string"
     }
   ]

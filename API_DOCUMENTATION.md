@@ -6,6 +6,29 @@
 
 ## 📋 Changelog
 
+### v2.0.0 (2026-03-10)
+**📍 Site Progress Tracking — Stage, BOQ, SKP & Evidence**
+- ✅ **NEW ENDPOINT:** `POST /sites/:id/stage` — Update stage/progress site + catat audit log otomatis
+  - 13 stage valid: `imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed`
+  - Menyimpan `from_stage`, `to_stage`, `changed_by`, `notes`, `evidence_urls` di `site_stage_log`
+  - Field tambahan: `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`
+- ✅ **NEW ENDPOINT:** `GET /sites/:id/stage-logs` — Riwayat perubahan stage (audit trail)
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/boq` — List Bill of Quantity material per site
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/boq` — Tambah item BOQ
+- ✅ **NEW ENDPOINT:** `PUT /site-boq/:boq_id` — Update item BOQ
+- ✅ **NEW ENDPOINT:** `DELETE /site-boq/:boq_id` — Hapus item BOQ
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/skp` — List SKP (Surat Perintah Ambil Material) per site
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/skp` — Buat SKP baru
+- ✅ **NEW ENDPOINT:** `GET /skp/:skp_id` — Detail satu SKP
+- ✅ **NEW ENDPOINT:** `PUT /skp/:skp_id` — Update SKP (termasuk status: Draft→Submitted→Received)
+- ✅ **NEW ENDPOINT:** `DELETE /skp/:skp_id` — Hapus SKP
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/evidence` — List foto lapangan per site
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/evidence` — Upload metadata foto lapangan
+- ✅ **NEW ENDPOINT:** `DELETE /site-evidence/:evidence_id` — Hapus foto lapangan
+- 🗄️ **NEW TABLES:** `site_stage_log`, `site_boq`, `skp`, `site_evidence` — semua terverifikasi di SurrealDB
+- 📚 **New Models:** `SiteBoq`, `Skp`, `SiteEvidence` + semua request/response struct
+- 🏗️ **Stage Fields on `sites` table:** `stage` (DEFAULT 'imported'), `stage_updated_at`, `stage_notes`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`
+
 ### v1.9.0 (2026-03-06)
 **👥 Tim Struktur - Site Team Structure Management**
 - ✅ **NEW ENDPOINT:** `GET /sites/:site_id/team-structure` — List Tim Struktur per site
@@ -2034,5 +2057,479 @@ team_peoples:
 
 ---
 
-**🚀 Server:** `http://localhost:3000`  
-**📅 Last Updated:** February 20, 2026
+---
+
+## 📍 Site Stage Management API
+
+> **Konsep:** Setiap site memiliki `stage` yang merepresentasikan progress pekerjaan.
+> Update stage akan otomatis mencatat audit log di tabel `site_stage_log`.
+
+### Update Site Stage
+**POST** `/sites/:id/stage`
+
+**Path Parameters:**
+- `id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Valid Stage Values (berurutan):**
+```
+imported → assigned → permit_process → permit_ready →
+akses_process → akses_ready → implementasi →
+rfi_done → rfs_done → dokumen_done → bast → invoice → completed
+```
+
+**Deskripsi Tiap Stage:**
+| # | Stage | Deskripsi |
+|---|---|---|
+| 01 | `imported` | Data site baru diimport, belum diproses |
+| 02 | `assigned` | Tim lapangan sudah ditugaskan ke site |
+| 03 | `permit_process` | Proses perizinan ke warga/RT/RW sedang berjalan |
+| 04 | `permit_ready` | Dokumen izin sudah selesai dan ditandatangani |
+| 05 | `akses_process` | SKP dibuat, menunggu material dikeluarkan gudang |
+| 06 | `akses_ready` | Material sudah diterima tim lapangan di lokasi |
+| 07 | `implementasi` | Pekerjaan fisik lapangan sedang berlangsung |
+| 08 | `rfi_done` | Request For Inspection sudah dilakukan |
+| 09 | `rfs_done` | Ready For Service dikonfirmasi, layanan siap aktif |
+| 10 | `dokumen_done` | As-built drawing & seluruh dokumen sudah lengkap |
+| 11 | `bast` | Berita Acara Serah Terima sudah ditandatangani |
+| 12 | `invoice` | Invoice sudah diajukan ke finance client |
+| 13 | `completed` | Seluruh pekerjaan dan administrasi selesai |
+
+**Request Body:**
+```json
+{
+  "stage": "implementasi",
+  "notes": "Implementasi dimulai hari ini",
+  "changed_by": "Budi Santoso",
+  "evidence_urls": ["https://storage.example.com/foto1.jpg"],
+  "impl_cico_done": false,
+  "impl_rfs_done": false,
+  "impl_dokumen_done": false,
+  "ineom_registered": false
+}
+```
+
+**Field Definitions:**
+- `stage` (string, required): Target stage baru (harus salah satu dari 13 stage valid)
+- `notes` (string, optional): Catatan perubahan stage
+- `changed_by` (string, optional): Nama/ID user yang mengubah (default: "system")
+- `evidence_urls` (array string, optional): URL foto/dokumen pendukung
+- `impl_cico_done` (boolean, optional): Cico sudah selesai (relevan saat stage implementasi)
+- `impl_rfs_done` (boolean, optional): RFS sudah selesai
+- `impl_dokumen_done` (boolean, optional): Dokumen implementasi sudah selesai
+- `ineom_registered` (boolean, optional): iNeOM sudah didaftarkan
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "sites:73tnamhln5s1oehr2om2",
+    "project_id": "projects:b7v5e43bvtpwyipxlemg",
+    "site_name": "Site Menteng",
+    "stage": "implementasi",
+    "stage_updated_at": "2026-03-10T07:00:00Z",
+    "stage_notes": "Implementasi dimulai hari ini",
+    "impl_cico_done": false,
+    "impl_rfs_done": false,
+    "impl_dokumen_done": false,
+    "ineom_registered": false
+  },
+  "message": "Stage berhasil diupdate ke 'implementasi'"
+}
+```
+
+**Response (Error - Invalid Stage):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Stage 'invalid_stage' tidak valid"
+}
+```
+
+---
+
+### Test Scenario — Full Stage Flow (13 Stages)
+
+Jalankan request berikut secara berurutan untuk menguji full lifecycle site dari awal hingga selesai:
+
+```bash
+BASE="http://localhost:3001/api"
+SITE_ID="sites:xxx"
+
+for STAGE in imported assigned permit_process permit_ready akses_process akses_ready implementasi rfi_done rfs_done dokumen_done bast invoice completed; do
+  curl -s -X POST "$BASE/sites/$SITE_ID/stage" \
+    -H "Content-Type: application/json" \
+    -d "{\"stage\":\"$STAGE\",\"notes\":\"Test stage $STAGE\",\"changed_by\":\"Tester\"}" \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  {d[\"data\"][\"stage\"]} → OK' if d.get('success') else f'  FAIL: {d.get(\"message\")}')"
+done
+```
+
+**Hasil yang diharapkan:** Semua 13 stage ter-update dengan `success: true`, masing-masing menghasilkan satu entry di `site_stage_log`.
+
+---
+
+### Get Site Stage Logs (Audit Trail)
+**GET** `/sites/:id/stage-logs`
+
+**Path Parameters:**
+- `id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_stage_log:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "from_stage": "assigned",
+      "to_stage": "implementasi",
+      "notes": "Implementasi dimulai hari ini",
+      "changed_by": "Budi Santoso",
+      "evidence_urls": ["https://storage.example.com/foto1.jpg"],
+      "created_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+## 📦 Site BOQ (Bill of Quantity) API
+
+> **Konsep:** Daftar material/jasa yang tercantum dalam kontrak untuk satu site.
+> Digunakan pada tab "Material Item" di halaman Detail Site.
+
+### List BOQ by Site
+**GET** `/sites/:site_id/boq`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_boq:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "item_code": "MAT-001",
+      "description": "Kabel Fiber Optik SM 12C",
+      "quantity": 100.0,
+      "unit": "meter",
+      "type": "material",
+      "source": "Warehouse Jakarta",
+      "created_at": "2026-03-10T07:00:00Z",
+      "updated_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create BOQ Item
+**POST** `/sites/:site_id/boq`
+
+**Request Body:**
+```json
+{
+  "item_code": "MAT-001",
+  "description": "Kabel Fiber Optik SM 12C",
+  "quantity": 100.0,
+  "unit": "meter",
+  "type": "material",
+  "source": "Warehouse Jakarta"
+}
+```
+
+**Field Definitions:**
+- `item_code` (string, required): Kode item
+- `description` (string, required): Deskripsi item
+- `quantity` (float, required): Jumlah
+- `unit` (string, required): Satuan (meter, unit, rol, dll)
+- `type` (string, optional): `"material"` atau `"jasa"` (default: `"material"`)
+- `source` (string, optional): Sumber/lokasi material
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* SiteBoq object */ },
+  "message": "BOQ item created successfully"
+}
+```
+
+---
+
+### Update BOQ Item
+**PUT** `/site-boq/:boq_id`
+
+**Request Body (semua field optional):**
+```json
+{
+  "description": "Kabel Fiber Optik SM 24C",
+  "quantity": 150.0
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* updated SiteBoq object */ },
+  "message": "BOQ item updated successfully"
+}
+```
+
+---
+
+### Delete BOQ Item
+**DELETE** `/site-boq/:boq_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "BOQ item deleted successfully"
+}
+```
+
+---
+
+## 📋 SKP (Surat Perintah Ambil Material) API
+
+> **Konsep:** SKP adalah dokumen resmi izin pengambilan material dari gudang.
+> Flow status: `Draft → Submitted → Received`
+
+### List SKP by Site
+**GET** `/sites/:site_id/skp`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "skp:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "skp_number": "SKP/2026/001",
+      "tanggal": "2026-03-10",
+      "keterangan": "Pengambilan material batch 1",
+      "status": "Draft",
+      "uploaded_by": "Budi Santoso",
+      "document_url": null,
+      "received_proof_url": null,
+      "created_at": "2026-03-10T07:00:00Z",
+      "updated_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create SKP
+**POST** `/sites/:site_id/skp`
+
+**Request Body:**
+```json
+{
+  "skp_number": "SKP/2026/001",
+  "tanggal": "2026-03-10",
+  "keterangan": "Pengambilan material batch 1",
+  "uploaded_by": "Budi Santoso",
+  "document_url": null
+}
+```
+
+**Field Definitions:**
+- `skp_number` (string, required): Nomor SKP (unik)
+- `tanggal` (string, required): Tanggal SKP (YYYY-MM-DD)
+- `keterangan` (string, optional): Keterangan/deskripsi
+- `uploaded_by` (string, required): Nama/ID yang mengupload
+- `document_url` (string, optional): URL dokumen SKP
+
+**Note:** Status awal selalu `"Draft"` secara otomatis.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* Skp object */ },
+  "message": "SKP created successfully"
+}
+```
+
+---
+
+### Get SKP by ID
+**GET** `/skp/:skp_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* Skp object */ },
+  "message": null
+}
+```
+
+---
+
+### Update SKP
+**PUT** `/skp/:skp_id`
+
+**Request Body (semua field optional):**
+```json
+{
+  "status": "Submitted",
+  "document_url": "https://storage.example.com/skp-001.pdf"
+}
+```
+
+**Valid status values:** `"Draft"`, `"Submitted"`, `"Received"`
+
+**Field untuk update received proof:**
+```json
+{
+  "status": "Received",
+  "received_proof_url": "https://storage.example.com/bukti-terima-001.jpg"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* updated Skp object */ },
+  "message": "SKP updated successfully"
+}
+```
+
+---
+
+### Delete SKP
+**DELETE** `/skp/:skp_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "SKP deleted successfully"
+}
+```
+
+---
+
+## 📸 Site Evidence (Foto Lapangan) API
+
+> **Konsep:** Foto-foto dokumentasi lapangan yang diupload per tag progress.
+> Tag digunakan untuk mengelompokkan foto berdasarkan tahap pekerjaan.
+
+### List Evidence by Site
+**GET** `/sites/:site_id/evidence`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_evidence:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "filename": "foto_implementasi_001.jpg",
+      "original_name": "IMG_20260310_070000.jpg",
+      "file_url": "https://storage.example.com/foto_implementasi_001.jpg",
+      "mime_type": "image/jpeg",
+      "file_size": 1048576,
+      "progress_tag": "implementasi",
+      "stage_context": "Pemasangan tiang ODC area Menteng",
+      "uploaded_by": "Budi Santoso",
+      "uploaded_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create Evidence (Upload Metadata)
+**POST** `/sites/:site_id/evidence`
+
+**Request Body:**
+```json
+{
+  "filename": "foto_implementasi_001.jpg",
+  "original_name": "IMG_20260310_070000.jpg",
+  "file_url": "https://storage.example.com/foto_implementasi_001.jpg",
+  "mime_type": "image/jpeg",
+  "file_size": 1048576,
+  "progress_tag": "implementasi",
+  "stage_context": "Pemasangan tiang ODC area Menteng",
+  "uploaded_by": "Budi Santoso"
+}
+```
+
+**Field Definitions:**
+- `filename` (string, required): Nama file tersimpan
+- `original_name` (string, optional): Nama file asli dari device
+- `file_url` (string, optional): URL file di storage
+- `mime_type` (string, optional): Tipe MIME (image/jpeg, image/png, dll)
+- `file_size` (integer, optional): Ukuran file dalam bytes
+- `progress_tag` (string, required): Tag progress (contoh: `"implementasi"`, `"permit_process"`)
+- `stage_context` (string, optional): Deskripsi konteks/keterangan foto
+- `uploaded_by` (string, required): Nama/ID yang mengupload
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* SiteEvidence object */ },
+  "message": "Evidence uploaded successfully"
+}
+```
+
+---
+
+### Delete Evidence
+**DELETE** `/site-evidence/:evidence_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Evidence deleted successfully"
+}
+```
+
+---
+
+## 📊 Site Stage Reference
+
+| Stage | UI Step | Deskripsi |
+|---|---|---|
+| `imported` | Step 1 | Site baru diimport/didaftarkan |
+| `assigned` | Step 1 | Tim sudah diassign ke site |
+| `permit_process` | Step 2 | Proses perizinan sedang berjalan |
+| `permit_ready` | Step 2 | Perizinan selesai |
+| `akses_process` | Step 3 | Proses akses lokasi |
+| `akses_ready` | Step 3 | Akses lokasi sudah siap |
+| `implementasi` | Step 4 | Pekerjaan implementasi berlangsung |
+| `rfi_done` | Step 4 | RFI (Request for Inspection) selesai |
+| `rfs_done` | Step 5 | RFS (Ready for Service) selesai |
+| `dokumen_done` | Step 5 | Dokumen selesai |
+| `bast` | Step 6 | BAST (Berita Acara Serah Terima) |
+| `invoice` | Step 7 | Invoice diterbitkan |
+| `completed` | Step 7 | Pekerjaan selesai |
+
+---
+
+**🚀 Server:** `http://localhost:3001`  
+**📅 Last Updated:** March 10, 2026
