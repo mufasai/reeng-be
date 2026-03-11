@@ -28,6 +28,8 @@ pub enum UserRole {
     Management,
     #[serde(rename = "team leader")]
     TeamLeader,
+    #[serde(rename = "head office")]
+    HeadOffice,
     Finance,
     Engineer,
     Admin,
@@ -78,6 +80,8 @@ pub enum ProjectType {
     Filter,
     #[serde(rename = "BEBAN OPERASIONAL")]
     BebanOperasional,
+    #[serde(rename = "OSP")]
+    Osp,
 }
 
 // ==================== PEOPLE MODELS ====================
@@ -226,6 +230,32 @@ pub struct Site {
     pub pemberi_tugas: String,
     pub penerima_tugas: String,
     pub site_document: Option<String>,
+    // Stage tracking
+    pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
+    pub stage_updated_at: Option<String>,
+    pub stage_notes: Option<String>,
+    pub permit_date: Option<String>,        // Tanggal buat permit (diisi saat masuk permit_process)
+    pub impl_cico_done: Option<bool>,
+    pub impl_rfs_done: Option<bool>,
+    pub impl_dokumen_done: Option<bool>,
+    pub ineom_registered: Option<bool>,
+    // Permit ready stage data (diisi saat transisi → permit_ready)
+    pub tpas_approved: Option<bool>,
+    pub tp_approved: Option<bool>,
+    pub caf_approved: Option<bool>,
+    pub tgl_berlaku_permit_tpas: Option<String>,
+    pub tgl_berakhir_permit_tpas: Option<String>,
+    // Akses process stage data (diisi saat transisi → akses_process)
+    pub tower_provider: Option<String>,     // MITRATEL | STP | PTI | DMT | Lainnya
+    pub jenis_kunci: Option<String>,        // PADLOCK | SMARTLOCK | QUADLOCK
+    pub pic_akses_nama: Option<String>,
+    pub pic_akses_telp: Option<String>,
+    // Implementasi stage data (diisi saat transisi → implementasi)
+    pub tgl_rencana_implementasi: Option<String>,
+    pub tgl_aktual_mulai: Option<String>,
+    pub jam_checkin: Option<String>,
+    // RFI done stage data (diisi saat transisi → rfi_done)
+    pub jam_checkout: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -250,6 +280,7 @@ pub struct CreateSiteRequest {
     pub penerima_tugas: String,
     pub site_document: Option<String>,
     pub team_members: Option<Vec<String>>,  // Array of people IDs for the team
+    pub stage: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -269,6 +300,59 @@ pub struct UpdateSiteRequest {
     pub pemberi_tugas: Option<String>,
     pub penerima_tugas: Option<String>,
     pub site_document: Option<String>,
+    pub stage: Option<String>,
+    pub stage_notes: Option<String>,
+    pub impl_cico_done: Option<bool>,
+    pub impl_rfs_done: Option<bool>,
+    pub impl_dokumen_done: Option<bool>,
+    pub ineom_registered: Option<bool>,
+}
+
+// ==================== STAGE LOG MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteStageLog {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    pub from_stage: String,
+    pub to_stage: String,
+    pub notes: Option<String>,
+    pub changed_by: String,          // user id or name
+    pub evidence_urls: Vec<String>,  // file URLs uploaded saat update stage
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSiteStageRequest {
+    pub stage: String,               // target stage baru
+    pub notes: Option<String>,
+    pub changed_by: Option<String>,  // user id atau nama yang mengubah
+    pub evidence_urls: Option<Vec<String>>,
+    pub permit_date: Option<String>, // Tanggal buat permit (wajib saat masuk permit_process)
+    pub impl_cico_done: Option<bool>,
+    pub impl_rfs_done: Option<bool>,
+    pub impl_dokumen_done: Option<bool>,
+    pub ineom_registered: Option<bool>,
+    // Permit ready stage fields (wajib saat transisi → permit_ready)
+    pub tpas_approved: Option<bool>,
+    pub tp_approved: Option<bool>,
+    pub caf_approved: Option<bool>,
+    pub tgl_berlaku_permit_tpas: Option<String>,
+    pub tgl_berakhir_permit_tpas: Option<String>,
+    // Akses process stage fields (wajib saat transisi → akses_process)
+    pub tower_provider: Option<String>,
+    pub jenis_kunci: Option<String>,
+    pub pic_akses_nama: Option<String>,
+    pub pic_akses_telp: Option<String>,
+    // Implementasi stage fields (wajib saat transisi → implementasi)
+    pub tgl_rencana_implementasi: Option<String>,
+    pub tgl_aktual_mulai: Option<String>,
+    pub jam_checkin: Option<String>,
+    // RFI done stage fields (wajib saat transisi → rfi_done)
+    pub jam_checkout: Option<String>,
 }
 
 // ==================== TEAM MODELS ====================
@@ -285,6 +369,18 @@ pub struct Team {
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
     pub leader_id: Option<Thing>,  // FK to people table
     pub active: bool,
+    // Employee detail fields (populated from Excel upload)
+    pub nik: Option<String>,
+    pub nama_karyawan: Option<String>,
+    pub tanggal_lahir: Option<String>,
+    pub tempat_lahir: Option<String>,
+    pub agama: Option<String>,
+    pub jenis_kelamin: Option<String>,
+    pub no_ktp: Option<String>,
+    pub no_hp: Option<String>,
+    pub alamat_email: Option<String>,
+    pub jabatan_kerja: Option<String>,
+    pub regional: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -320,10 +416,94 @@ pub struct CreateTeamRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTeamRequest {
+    pub nama: Option<String>,
+    pub project_id: Option<String>,
+    pub site_id: Option<String>,
+    pub leader_id: Option<String>,
+    pub active: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TeamMemberInput {
     pub people_id: String,
     pub role: Option<String>,
     pub vendor: Option<String>,
+}
+
+// ==================== SITE TEAM STRUCTURE MODELS ====================
+// Tim Struktur: links data master team members to a specific site
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteTeamMember {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub team_master_id: Option<Thing>,  // references teams (master data)
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// Enriched Tim Struktur entry with master team member details joined
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteTeamMemberDetail {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub team_master_id: Option<Thing>,
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+    // Populated from teams master record
+    pub nik: Option<String>,
+    pub nama: Option<String>,
+    pub no_hp: Option<String>,
+    pub jabatan: Option<String>,
+    pub regional: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddSiteTeamMemberRequest {
+    pub team_master_id: String,  // ID of master team record to add
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSiteTeamMemberRequest {
+    pub role: Option<String>,
+    pub vendor: Option<String>,
+}
+
+/// Partial view of master team record used for JOIN enrichment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamMasterInfo {
+    pub nik: Option<String>,
+    pub nama_karyawan: Option<String>,
+    pub no_hp: Option<String>,
+    pub jabatan_kerja: Option<String>,
+    pub regional: Option<String>,
+}
+
+// ==================== TEAM UPLOAD RESULT ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TeamUploadResult {
+    pub total_rows: usize,
+    pub success_count: usize,
+    pub failed_count: usize,
+    pub errors: Vec<String>,
 }
 
 // ==================== COST MODELS ====================
@@ -447,6 +627,8 @@ pub struct ProjectFile {
     pub title: String,
     pub filename: String,
     pub original_name: String,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
     pub bucket: Option<String>,
     pub key: String,
     pub mime_type: String,
@@ -484,6 +666,8 @@ pub struct SiteFile {
     pub title: String,
     pub filename: String,
     pub original_name: String,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
     pub bucket: Option<String>,
     pub key: String,
     pub mime_type: String,
@@ -559,6 +743,8 @@ pub struct Termin {
     pub bukti_pembayaran_filename: Option<String>,  // Original filename (e.g., "kwintansi pak adnan.pdf")
     pub bukti_pembayaran_mime_type: Option<String>,  // MIME type (e.g., "application/pdf")
     pub bukti_pembayaran_size: Option<i64>,  // File size in bytes
+    // Rekening tujuan pengajuan termin
+    pub nomor_rekening_tujuan: Option<String>,  // e.g., "BCA 1234567890 an. PT Mitra"
     
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -578,6 +764,7 @@ pub struct CreateTerminRequest {
     pub status: Option<String>,
     pub keterangan: Option<String>,
     pub submitted_by: Option<String>, // If provided, will submit directly for review
+    pub nomor_rekening_tujuan: Option<String>, // Nomor rekening tujuan pengajuan
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -621,6 +808,7 @@ pub struct PayTerminRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TerminSiteInfo {
     pub site_name: String,
+    pub project_name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -667,6 +855,7 @@ pub struct TerminWithSiteInfo {
     pub bukti_pembayaran_filename: Option<String>,
     pub bukti_pembayaran_mime_type: Option<String>,
     pub bukti_pembayaran_size: Option<i64>,
+    pub nomor_rekening_tujuan: Option<String>,
     
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -686,6 +875,8 @@ pub struct TerminFile {
     pub title: String,
     pub filename: String,
     pub original_name: String,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
     pub bucket: Option<String>,
     pub key: String,
     pub mime_type: String,
@@ -748,6 +939,194 @@ pub struct UpdateUserRequest {
     pub email: Option<String>,
     pub role: Option<String>,
     pub password: Option<String>,
+}
+
+// ==================== BULK IMPORT MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulkImportExcelResponse {
+    pub project: Project,
+    pub total_rows: usize,
+    pub sites_created: usize,
+    pub sites_failed: usize,
+    pub created_sites: Vec<Site>,
+    pub errors: Vec<ImportError>,
+    pub summary: ImportSummary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportError {
+    pub row_number: usize,
+    pub field: String,
+    pub message: String,
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportSummary {
+    pub project_id: String,
+    pub project_name: String,
+    pub total_budget: i64,
+    pub sites_count: usize,
+    pub message: String,
+}
+
+// ==================== SITE BOQ MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteBoq {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    pub item_code: String,
+    pub description: String,
+    pub quantity: f64,
+    pub unit: String,
+    #[serde(rename = "type")]
+    pub boq_type: Option<String>,   // 'material' | 'jasa'
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSiteBoqRequest {
+    pub item_code: String,
+    pub description: String,
+    pub quantity: f64,
+    pub unit: String,
+    #[serde(rename = "type")]
+    pub boq_type: Option<String>,
+    pub source: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSiteBoqRequest {
+    pub item_code: Option<String>,
+    pub description: Option<String>,
+    pub quantity: Option<f64>,
+    pub unit: Option<String>,
+    #[serde(rename = "type")]
+    pub boq_type: Option<String>,
+    pub source: Option<String>,
+}
+
+// ==================== SKP MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Skp {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    pub skp_number: String,
+    pub tanggal: String,
+    pub keterangan: Option<String>,
+    pub status: Option<String>,         // Draft | Submitted | Received
+    pub uploaded_by: String,
+    pub document_url: Option<String>,
+    pub received_proof_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSkpRequest {
+    pub skp_number: String,
+    pub tanggal: String,
+    pub keterangan: Option<String>,
+    pub uploaded_by: String,
+    pub document_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateSkpRequest {
+    pub skp_number: Option<String>,
+    pub tanggal: Option<String>,
+    pub keterangan: Option<String>,
+    pub status: Option<String>,         // Draft | Submitted | Received
+    pub document_url: Option<String>,
+    pub received_proof_url: Option<String>,
+}
+
+// ==================== SITE EVIDENCE MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteEvidence {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    pub filename: String,
+    pub original_name: Option<String>,
+    pub file_url: Option<String>,
+    pub mime_type: Option<String>,
+    pub file_size: Option<i64>,
+    pub progress_tag: String,
+    pub stage_context: Option<String>,
+    pub uploaded_by: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uploaded_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSiteEvidenceRequest {
+    pub filename: String,
+    pub original_name: Option<String>,
+    pub file_url: Option<String>,
+    pub mime_type: Option<String>,
+    pub file_size: Option<i64>,
+    pub progress_tag: String,
+    pub stage_context: Option<String>,
+    pub uploaded_by: String,
+}
+
+// ==================== SITE ISSUE MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteIssue {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    /// Stage saat issue dilaporkan
+    pub stage_at_report: String,
+    pub keterangan: String,
+    /// 'tahan' | 'eskalasi'
+    pub tindakan: String,
+    /// 'open' | 'resolved' | 'escalated'
+    pub status: Option<String>,
+    pub reported_by: Option<String>,
+    pub evidence_urls: Option<Vec<String>>,
+    pub resolved_by: Option<String>,
+    pub resolved_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSiteIssueRequest {
+    pub stage_at_report: String,
+    pub keterangan: String,
+    /// 'tahan' | 'eskalasi'
+    pub tindakan: String,
+    pub reported_by: Option<String>,
+    pub evidence_urls: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResolveSiteIssueRequest {
+    pub resolved_by: String,
+    pub resolved_notes: Option<String>,
 }
 
 // ==================== RESPONSE WRAPPER ====================

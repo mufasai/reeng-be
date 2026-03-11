@@ -1,10 +1,169 @@
 # 📚 Reengineering Tool Backend - API Documentation
 
-**Base URL:** `http://localhost:3000/api`
+**Base URL:** `http://localhost:3001/api`
 
 ---
 
 ## 📋 Changelog
+
+### v2.2.0 (2026-03-11)
+**🎯 Stage-Specific Fields & Termin Rekening Tujuan**
+
+**POST `/sites/:id/stage` — Stage-Specific Required Fields per Transisi:**
+
+| Stage Target | Field Baru | Keterangan |
+|---|---|---|
+| `permit_ready` | `tpas_approved` (bool, **wajib**) | TPAS harus sudah approve |
+| `permit_ready` | `tp_approved` (bool, **wajib**) | TP harus sudah approve |
+| `permit_ready` | `caf_approved` (bool, opsional) | CAF approval (jika TP sewa pihak lain) |
+| `permit_ready` | `tgl_berlaku_permit_tpas` (string, opsional) | Tanggal berlaku permit TPAS |
+| `permit_ready` | `tgl_berakhir_permit_tpas` (string, opsional) | Tanggal berakhir permit TPAS |
+| `akses_process` | `tower_provider` (string, **wajib**) | MITRATEL \| STP \| PTI \| DMT \| Lainnya |
+| `akses_process` | `jenis_kunci` (string, **wajib**) | PADLOCK \| SMARTLOCK \| QUADLOCK |
+| `akses_process` | `pic_akses_nama` (string, opsional) | Nama PIC akses |
+| `akses_process` | `pic_akses_telp` (string, opsional) | No. Telp PIC akses |
+| `implementasi` | `tgl_rencana_implementasi` (string, **wajib**) | Tanggal rencana implementasi |
+| `implementasi` | `tgl_aktual_mulai` (string, opsional) | Tanggal aktual mulai kerja |
+| `implementasi` | `jam_checkin` (string, opsional) | Datetime jam check-in (CI) |
+| `rfi_done` | `jam_checkout` (string, **wajib**) | Datetime jam check-out (CO) |
+
+- ✅ **VALIDATION:** Field wajib per stage divalidasi — request ditolak jika kosong
+- ✅ **STORAGE:** Data stage-specific disimpan di record `sites` (field baru pada tabel)
+- 🔧 **Updated Model:** `UpdateSiteStageRequest` + `Site` struct diperluas dengan semua field baru
+
+**POST `/termins` — Field Baru:**
+- ✅ `nomor_rekening_tujuan` (string, opsional) — Nomor rekening tujuan pengajuan (contoh: "BCA 1234567890 an. PT Mitra")
+- 🔧 **Updated Models:** `Termin`, `CreateTerminRequest`, `TerminWithSiteInfo`
+
+**🏗️ Stage Fields on `sites` table (lengkap setelah v2.2):**
+`stage`, `stage_updated_at`, `stage_notes`, `permit_date`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`, `tpas_approved`, `tp_approved`, `caf_approved`, `tgl_berlaku_permit_tpas`, `tgl_berakhir_permit_tpas`, `tower_provider`, `jenis_kunci`, `pic_akses_nama`, `pic_akses_telp`, `tgl_rencana_implementasi`, `tgl_aktual_mulai`, `jam_checkin`, `jam_checkout`
+
+---
+
+### v2.1.0 (2026-03-11)
+**🚨 Site Issue / Blocker Management**
+- ✅ **NEW ENDPOINT:** `POST /sites/:id/issues` — Laporkan issue/blocker di stage saat ini
+  - Tindakan `tahan`: hold di stage, status `open`
+  - Tindakan `eskalasi`: eskalasi ke management, status `escalated`
+- ✅ **NEW ENDPOINT:** `GET /sites/:id/issues` — List semua issue per site
+- ✅ **NEW ENDPOINT:** `GET /site-issues/:issue_id` — Detail satu issue
+- ✅ **NEW ENDPOINT:** `POST /site-issues/:issue_id/resolve` — Resolve/selesaikan issue (status → `resolved`)
+- ✅ **NEW ENDPOINT:** `DELETE /site-issues/:issue_id` — Hapus issue
+- ✅ **NEW ENDPOINT:** `GET /api/sites/:id` — Get detail site by ID
+- 🗄️ **NEW TABLE:** `site_issue` — menyimpan keterangan, tindakan, status, evidence, resolved info
+
+### v2.0.0 (2026-03-10)
+**📍 Site Progress Tracking — Stage, BOQ, SKP & Evidence**
+- ✅ **NEW ENDPOINT:** `POST /sites/:id/stage` — Update stage/progress site + catat audit log otomatis
+  - 13 stage valid: `imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed`
+  - Menyimpan `from_stage`, `to_stage`, `changed_by`, `notes`, `evidence_urls` di `site_stage_log`
+  - Field tambahan: `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`
+- ✅ **NEW ENDPOINT:** `GET /sites/:id/stage-logs` — Riwayat perubahan stage (audit trail)
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/boq` — List Bill of Quantity material per site
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/boq` — Tambah item BOQ
+- ✅ **NEW ENDPOINT:** `PUT /site-boq/:boq_id` — Update item BOQ
+- ✅ **NEW ENDPOINT:** `DELETE /site-boq/:boq_id` — Hapus item BOQ
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/skp` — List SKP (Surat Perintah Ambil Material) per site
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/skp` — Buat SKP baru
+- ✅ **NEW ENDPOINT:** `GET /skp/:skp_id` — Detail satu SKP
+- ✅ **NEW ENDPOINT:** `PUT /skp/:skp_id` — Update SKP (termasuk status: Draft→Submitted→Received)
+- ✅ **NEW ENDPOINT:** `DELETE /skp/:skp_id` — Hapus SKP
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/evidence` — List foto lapangan per site
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/evidence` — Upload metadata foto lapangan
+- ✅ **NEW ENDPOINT:** `DELETE /site-evidence/:evidence_id` — Hapus foto lapangan
+- 🗄️ **NEW TABLES:** `site_stage_log`, `site_boq`, `skp`, `site_evidence` — semua terverifikasi di SurrealDB
+- 📚 **New Models:** `SiteBoq`, `Skp`, `SiteEvidence` + semua request/response struct
+- 🏗️ **Stage Fields on `sites` table:** `stage` (DEFAULT 'imported'), `stage_updated_at`, `stage_notes`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered` *(diperluas di v2.2 — lihat changelog v2.2)*
+
+### v1.9.0 (2026-03-06)
+**👥 Tim Struktur - Site Team Structure Management**
+- ✅ **NEW ENDPOINT:** `GET /sites/:site_id/team-structure` — List Tim Struktur per site
+  - Response enriched dengan data master: `nik`, `nama`, `no_hp`, `jabatan`, `regional`
+- ✅ **NEW ENDPOINT:** `POST /sites/:site_id/team-structure` — Add member dari Data Master Team
+  - Pick member dari `GET /teams` (data master), klik → otomatis masuk Tim Struktur
+  - Duplicate prevention: member yang sama tidak bisa ditambah 2x ke site yang sama
+  - Body: `{ "team_master_id": "teams:xxx", "role": "member", "vendor": "Vendor A" }`
+- ✅ **NEW ENDPOINT:** `DELETE /sites/:site_id/team-structure/:member_id` — Remove member dari Tim Struktur (tidak menghapus data master)
+- ✅ **FIXED:** `GET /teams` sekarang menampilkan **semua** data master team (sebelumnya ada filter 1 hari yang salah)
+- ✅ **CASCADE DELETE:** Saat site dihapus, semua `site_team_members` ikut terhapus otomatis
+- 🏗️ **NEW TABLE:** `site_team_members` dengan field: `site_id`, `team_master_id`, `role`, `vendor`
+- 📚 **New Models:** `SiteTeamMember`, `SiteTeamMemberDetail`, `AddSiteTeamMemberRequest`, `TeamMasterInfo`
+- 🎯 **Tested Live:** Semua endpoint telah diuji dan verified di backend running
+
+### v1.8.0 (2026-03-05)
+**📊 Excel Bulk Import - Projects & Sites Creation**
+- ✅ **NEW ENDPOINT:** `POST /projects/import-excel` - Bulk import from Excel
+- ✅ **MULTIPART UPLOAD:** Accept .xlsx files via multipart/form-data
+- ✅ **SMART PARSING:** Auto-extract project info from filename and Row 2 totals
+- ✅ **SHEET 3 SUPPORT:** Parse "Active Project Details" sheet specifically
+- ✅ **COLUMN MAPPING:** 15+ Excel columns mapped to Site model fields
+- ✅ **ATOMIC CREATION:** Create 1 Project + 100+ Sites in single request
+- ✅ **ERROR HANDLING:** Continue-on-error with detailed per-row error reporting
+- ✅ **AUTO-GENERATE:** Missing nomor_kontrak auto-generated with timestamp
+- ✅ **DATE FLEXIBILITY:** Support Excel datetime, YYYY-MM-DD, DD/MM/YYYY formats
+- ✅ **RELATIONAL:** All sites automatically linked to created project
+- 🏷️ **TYPE AUTO-DETECT:** ⭐ NEW - Project type & name from Column B (TIPE PROJECT)
+  - Supported types: COMBAT, L2H, BLACK SITE, REFINEN, FILTER, BEBAN OPERASIONAL
+  - Project name format: `{TIPE} Project {LOKASI}` (e.g., "FILTER Project Jakarta")
+  - Column B Row 6 determines project type for all sites
+- 📦 **Dependencies:** Added `calamine = { version = "0.24", features = ["dates"] }` for Excel parsing
+- 📝 **Response:** Complete import summary with project, sites array, error list, statistics
+- 🎯 **Impact:** Drastically reduce data entry time - import 100+ sites in seconds vs hours of manual entry
+- 💡 **Use Case:** Bulk onboarding of OSP/Filter/Combat projects from Telkom Excel reports
+- 🔧 **New Handler:** `src/handlers/bulk_import.rs` (450+ lines with type detection)
+- 📚 **Models:** `BulkImportExcelResponse`, `ImportError`, `ImportSummary`
+
+### v1.7.1 (2026-03-04)
+**📌 Termin Response Enhancement - Project Name Display**
+- ✅ **ENHANCED RESPONSE:** Termin list endpoints sekarang include `project_name`
+  - Field `site_id` dalam response berisi object: `{ site_name: string, project_name: string }`
+  - Berlaku untuk: `GET /termins`, `GET /termins/project/:id`, `GET /termins/site/:id`
+- ✅ **BACKEND OPTIMIZATION:** Auto-fetch project name dari database (no frontend query needed)
+- ✅ **MODEL UPDATE:** `TerminSiteInfo` struct ditambahkan field `project_name`
+- ✅ **NEW ENDPOINT:** `GET /teams/leader/:leader_id` - Get team by leader ID
+  - Query team berdasarkan leader_id (person yang jadi leader)
+  - Useful untuk cek team mana yang dipimpin oleh seseorang
+- 🎯 **Impact:** Frontend bisa langsung tampilkan project name di menu termin (1-4) tanpa query tambahan
+- 📊 **Use Case:** User dapat melihat "Project → Site → Termin" hierarchy dengan jelas
+- 🔧 **Updated Handlers:** `list_termins`, `get_termins_by_project`, `get_termins_by_site`, `get_team_by_leader`
+
+### v1.7.0 (2026-03-03)
+**👥 Teams CRUD & 📁 Multipart File Uploads (Project, Site, Termin)**
+- ✅ **NEW MODULE:** Teams Management - Full CRUD operations
+  - `POST /teams` - Create team dengan members
+  - `GET /teams` - List all teams
+  - `GET /teams/:team_id` - Get team detail
+  - `PUT /teams/:team_id` - Update team info
+  - `DELETE /teams/:team_id` - Delete team (cascade delete members)
+  - `GET /teams/:team_id/members` - List team members
+- ✅ **NEW ROLE:** `head office` - Role untuk Head Office user
+- ✅ **MULTIPART FILE UPLOADS:** Project, Site, dan Termin sekarang support upload file real dengan base64 storage
+  - `POST /projects/:id/upload` - Upload file ke project (multipart)
+  - `POST /sites/:id/upload` - Upload file ke site (multipart)
+  - `POST /termins/:id/upload` - Upload file ke termin (multipart)
+- ✅ **DOWNLOAD ENDPOINTS:** Download file yang sudah diupload
+  - `GET /project-files/:file_id/download` - Download project file
+  - `GET /site-files/:file_id/download` - Download site file
+  - `GET /termin-files/:file_id/download` - Download termin file
+- ✅ **FILE STORAGE:** File disimpan sebagai base64 data URL di field `file_data` (hidden dari response)
+- ✅ **CLEAN MODELS:** Field `file_data` menggunakan `#[serde(skip_serializing)]` untuk response yang bersih
+- 🎯 **Impact:** Complete file management system untuk Project, Site, Termin dengan download support
+- 📦 **Storage:** Base64 storage di database, tidak perlu S3 atau disk storage
+- 👥 **Teams:** Manage tim dengan leader, members, vendor info, device tracking
+
+### v1.6.0 (2026-03-01)
+**📥 Unified Payment Endpoint & File Download**
+- ✅ **UNIFIED ENDPOINT:** `/termins/:id/pay` sekarang mendukung 2 content types:
+  - `application/json` - Pembayaran tanpa file
+  - `multipart/form-data` - Pembayaran dengan file upload
+- ✅ **AUTO-DETECT:** Backend otomatis detect Content-Type dan proses sesuai format
+- ✅ **FILE METADATA:** Menyimpan filename, mime_type, dan size terpisah
+- ✅ **CLEAN RESPONSE:** Field base64 di-hide dari JSON response (hanya metadata yang muncul)
+- ✅ **NEW ENDPOINT:** `GET /termins/:id/download-bukti-pembayaran` untuk download file
+- ✅ **DOWNLOAD SUPPORT:** File download dengan nama asli dan mime type correct
+- 🎯 **Impact:** Single endpoint untuk semua payment scenario, user tidak bingung
+- 📥 **Usage:** Di Postman gunakan "Send and Download" untuk test download endpoint
+- 🗄️ **Storage:** Base64 tetap tersimpan di database untuk download, tapi hidden dari response
 
 ### v1.5.0 (2026-02-28)
 **🔄 File Storage Optimization & Role Addition**
@@ -401,6 +560,175 @@
 }
 ```
 
+### Bulk Import from Excel
+**POST** `/projects/import-excel`
+
+**Content-Type:** `multipart/form-data`
+
+**Request (Multipart Form):**
+- **Field name:** `file`
+- **Type:** File upload
+- **Accepted formats:** `.xlsx` (Excel 2007+)
+- **Max size:** 10MB (recommended)
+
+**Excel File Structure Requirements:**
+
+1. **Sheet:** Must have sheet named **"Active Project Details"** (Sheet 3)
+
+2. **Filename Format (Flexible):**
+   - **EPROC Format:** `EPROC{DATE}_{Company}_{Type}_{Category}_{Batch}_{Location}.xlsx`
+     - Example: `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`
+     - Project name: `FILTER Project Jabo`
+   - **SST Format:** `EPROC{DATE}_SST_{Type}_{Category}_{Details}_{Location}.xlsx`
+     - Example: `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`
+     - Project name: `FILTER Project Jakarta`
+   - **OSP Format:** `OSP Project Report_Update-YYYYMMDD-LOCATION.xlsx`
+     - Example: `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`
+     - Project name: `{TIPE} Project PEKALONGAN` (TIPE from Column B)
+   - **Auto-extraction:**
+     - Location: Last part of filename (e.g., "Jabo", "Jakarta", "PEKALONGAN")
+     - Date: First 8-digit number in filename (YYYYMMDD format)
+
+3. **Excel Layout:**
+   - **Row 2:** Summary totals
+     - Column I (index 8): BOQ AKTUAL → Project `value`
+     - Column M (index 12): TOTAL NILAI PO → Project `cost`
+   - **Row 5 (index 4):** Column headers
+   - **Row 6 (index 5):** First data row - **Column B contains TIPE PROJECT**
+   - **Row 6+ (index 5+):** Site data rows (all sites will use same TIPE)
+
+4. **Column Mapping (0-indexed):**
+   - **Column B (1):** TIPE PROJECT → `project.tipe` & `project.name` ⭐ **NEW**
+     - Supported types: COMBAT, L2H, BLACK SITE, REFINEN, FILTER, BEBAN OPERASIONAL
+     - Project name format: `{TIPE} Project {LOKASI}`
+     - Example: "FILTER Project Jakarta", "COMBAT Project Surabaya"
+   - **Column L (11):** NAMA LOP [SITE] → `site_name` *(required)*
+   - **Column D (3):** WTIEL → `lokasi`
+   - **Column K (10):** NAMA PO → `pekerjaan`
+   - **Column J (9):** NOMOR PO → `nomor_kontrak`
+   - **Column G (6):** TANGGAL WO → `start` (date)
+   - **Column O (14):** TANGGAL → `end` (date, fallback to start)
+   - **Column M (12):** NILAI PO → `maximal_budget` (integer)
+   - **Column H (7):** BOQ KONTRAK → `cost_estimated` (integer)
+   - **Column B+N+P (1,13,15):** Combined → `site_info` (includes TIPE, STATUS, KETERANGAN)
+
+5. **Auto-generated Fields:**
+   - `pemberi_tugas`: "PT Telkom Indonesia"
+   - `penerima_tugas`: "Vendor/Pelaksana"
+   - `nomor_kontrak`: Auto-generated if empty (`PO-{row}-{timestamp}`)
+   - `latitude`, `longitude`: null (can be updated later)
+   - `site_document`: null
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "project": {
+      "id": "projects:cyhxgkwerejwfv3rb61a",
+      "name": "FILTER Project Jakarta",
+      "lokasi": "Jakarta",
+      "value": 257091760,
+      "cost": 87204220,
+      "keterangan": "Progress Projek FILTER - Import from Excel: EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx",
+      "tipe": "FILTER",
+      "tgi_start": "2026-02-06",
+      "tgi_end": null,
+      "status": "active",
+      "created_at": "2026-03-05T02:11:42.123456Z",
+      "updated_at": "2026-03-05T02:11:42.123456Z"
+    },
+    "total_rows": 36,
+    "sites_created": 36,
+    "sites_failed": 0,
+    "created_sites": [
+      {
+        "id": "sites:smks0uk6zupih39jzsf2",
+        "project_id": "projects:cyhxgkwerejwfv3rb61a",
+        "site_name": "PT3-24-BLU-FY-JAWA TENGAH_5330_add",
+        "site_info": "PT3_PT4_SMG | Status: 8. REKONSILIASI MATERIAL | done BACT, ogp pelurusan matrial",
+        "pekerjaan": "OSP FO LOKASI BLU-FY-JawaTengah_5330_add WITEL PEKALONGAN",
+        "lokasi": "PEKALONGAN",
+        "latitude": null,
+        "longitude": null,
+        "nomor_kontrak": "4200032602",
+        "start": "2024-10-18",
+        "end": "2026-03-05",
+        "maximal_budget": 0,
+        "cost_estimated": 8020646,
+        "pemberi_tugas": "PT Telkom Indonesia",
+        "penerima_tugas": "Vendor/Pelaksana",
+        "site_document": null,
+        "created_at": "2026-03-05T02:11:42.913959Z",
+        "updated_at": "2026-03-05T02:11:42.913960Z"
+      }
+      // ... 35 more sites
+    ],
+    "errors": [],
+    "summary": {
+      "project_id": "projects:cyhxgkwerejwfv3rb61a",
+      "project_name": "OSP Project PEKALONGAN",
+      "total_budget": 257091760,
+      "sites_count": 36,
+      "message": "Import completed: 36 sites created, 0 failed out of 36 rows"
+    }
+  },
+  "message": null
+}
+```
+
+**Error Response Fields:**
+```json
+{
+  "success": true,
+  "data": {
+    "errors": [
+      {
+        "row_number": 15,
+        "field": "site_name",
+        "message": "Site name (Column L) is required but empty",
+        "data": null
+      },
+      {
+        "row_number": 22,
+        "field": "database",
+        "message": "Failed to create site: database error",
+        "data": {
+          "site_name": "Test Site"
+        }
+      }
+    ]
+  }
+}
+```
+
+**Error Scenarios:**
+- **400 Bad Request:** No file uploaded, or invalid filename
+- **500 Internal Server Error:** Excel parsing failed, database error, or invalid sheet structure
+
+**Notes:**
+- ✅ **Atomic:** Creates 1 Project + N Sites in single operation
+- ✅ **Resilient:** Continues processing even if some rows fail
+- ✅ **Informative:** Returns detailed error per row
+- ✅ **Flexible:** Skips empty rows automatically
+- ✅ **Relational:** All sites linked to created project via `project_id`
+- ⚠️ **Date Parsing:** Supports Excel datetime, "YYYY-MM-DD", "DD/MM/YYYY" formats
+- 💡 **Tip:** Use Postman's file upload feature to test with actual Excel file
+
+**cURL Example:**
+```bash
+curl -X POST http://localhost:3000/api/projects/import-excel \
+  -F 'file=@/path/to/OSP Project Report_Update-20260215-PEKALONGAN.xlsx'
+```
+
+**Postman Setup:**
+1. Create new POST request
+2. URL: `{{base_url}}/projects/import-excel`
+3. Body → `form-data`
+4. Add key `file` with type `File`
+5. Select your Excel file
+6. Send request
+
 ---
 
 ## 🏗️ Sites API
@@ -509,6 +837,58 @@
 }
 ```
 
+### Get Site by ID
+**GET** `/sites/:id`
+
+**Path Parameters:**
+- `id`: ID site (format: `sites:xxx` — dengan prefix tabel)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "sites:73tnamhln5s1oehr2om2",
+    "project_id": "projects:b7v5e43bvtpwyipxlemg",
+    "site_name": "Site Menteng",
+    "site_info": "Area Menteng...",
+    "pekerjaan": "Instalasi Fiber to Home",
+    "lokasi": "Menteng, Jakarta Pusat",
+    "latitude": "-6.197500",
+    "longitude": "106.832000",
+    "nomor_kontrak": "KTR/2026/001",
+    "start": "2026-03-15",
+    "end": "2026-07-15",
+    "maximal_budget": 500000000,
+    "cost_estimated": 450000000,
+    "pemberi_tugas": "PT Telkom Indonesia",
+    "penerima_tugas": "PT SmartElco Solutions",
+    "stage": "implementasi",
+    "stage_updated_at": "2026-03-10T07:00:00Z",
+    "stage_notes": "Pekerjaan dimulai",
+    "impl_cico_done": false,
+    "impl_rfs_done": false,
+    "impl_dokumen_done": false,
+    "ineom_registered": false,
+    "site_document": null,
+    "created_at": "2026-02-20T09:39:14Z",
+    "updated_at": "2026-03-10T07:00:00Z"
+  },
+  "message": null
+}
+```
+
+**Response (Site Tidak Ditemukan):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Site tidak ditemukan"
+}
+```
+
+---
+
 ### Get Sites by Project
 **GET** `/sites/project/:project_id`
 
@@ -533,7 +913,148 @@
 
 ---
 
-## 👥 People API
+## � Tim Struktur (Site Team Structure) API
+
+> **Konsep:** Data Master Team (`/api/teams`) berisi daftar karyawan/member yang telah diupload via Excel.
+> Tim Struktur adalah relasi antara Data Master Team ↔ Site tertentu.
+> Frontend: tampilkan list `/api/teams`, user klik member → POST ke `/api/sites/:id/team-structure`.
+
+### Get Tim Struktur (List Members)
+**GET** `/sites/:site_id/team-structure`
+
+**Path Parameters:**
+- `site_id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_team_members:lgfltwpe8zkktymmh843",
+      "site_id": "sites:zz5gdau1wutgrgpc8we0",
+      "team_master_id": "teams:p84takz9nl6ihpwm05a2",
+      "role": "leader",
+      "vendor": "Vendor A",
+      "nik": "14175063",
+      "nama": "RIVO HIDAYAT",
+      "no_hp": "081284238948",
+      "jabatan": "HEAD COORDINATOR",
+      "regional": "JAKARTA",
+      "created_at": "2026-03-06T07:36:03.277490049Z",
+      "updated_at": "2026-03-06T07:36:03.277491049Z"
+    },
+    {
+      "id": "site_team_members:2zqjo7mgymyhfv8jprrm",
+      "site_id": "sites:zz5gdau1wutgrgpc8we0",
+      "team_master_id": "teams:ill8s861h9w9dl5fbc8n",
+      "role": "member",
+      "vendor": "Vendor D",
+      "nik": "14175062",
+      "nama": "YUDIE RAHMAN",
+      "no_hp": "081299934817",
+      "jabatan": "PROJECT MANAGER",
+      "regional": "JAKARTA",
+      "created_at": "2026-03-06T07:36:18.677497826Z",
+      "updated_at": "2026-03-06T07:36:18.677499826Z"
+    }
+  ],
+  "message": null
+}
+```
+
+**Field Response (dari Data Master Team):**
+| Field | Sumber | Keterangan |
+|---|---|---|
+| `id` | `site_team_members` | ID relasi |
+| `site_id` | `site_team_members` | ID site |
+| `team_master_id` | `site_team_members` | ID record di Data Master Team |
+| `role` | `site_team_members` | Role di tim ini (e.g. "leader", "member") |
+| `vendor` | `site_team_members` | Nama vendor |
+| `nik` | `teams` (master) | NIK karyawan |
+| `nama` | `teams` (master) | Nama karyawan |
+| `no_hp` | `teams` (master) | Nomor HP |
+| `jabatan` | `teams` (master) | Jabatan kerja |
+| `regional` | `teams` (master) | Regional |
+
+---
+
+### Add Member ke Tim Struktur
+**POST** `/sites/:site_id/team-structure`
+
+> **Flow:** Ambil list dari `GET /api/teams`, user pilih member, kirim `team_master_id` ke endpoint ini.
+
+**Path Parameters:**
+- `site_id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Request Body:**
+```json
+{
+  "team_master_id": "teams:p84takz9nl6ihpwm05a2",
+  "role": "leader",
+  "vendor": "Vendor A"
+}
+```
+
+**Field Request:**
+- `team_master_id` (string, required): ID dari Data Master Team (`GET /api/teams` → ambil field `id`)
+- `role` (string, optional): Role dalam Tim Struktur. Contoh: `"leader"`, `"member"`, `"supervisor"`
+- `vendor` (string, optional): Nama vendor
+
+**Response sukses (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "site_team_members:lgfltwpe8zkktymmh843",
+    "site_id": "sites:zz5gdau1wutgrgpc8we0",
+    "team_master_id": "teams:p84takz9nl6ihpwm05a2",
+    "role": "leader",
+    "vendor": "Vendor A",
+    "nik": "14175063",
+    "nama": "RIVO HIDAYAT",
+    "no_hp": "081284238948",
+    "jabatan": "HEAD COORDINATOR",
+    "regional": "JAKARTA",
+    "created_at": "2026-03-06T07:36:03.277490049Z",
+    "updated_at": "2026-03-06T07:36:03.277491049Z"
+  },
+  "message": "Team member added to site structure successfully"
+}
+```
+
+**Response duplikat (200 OK, success=false):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Member already added to this site's team structure"
+}
+```
+
+---
+
+### Remove Member dari Tim Struktur
+**DELETE** `/sites/:site_id/team-structure/:member_id`
+
+> Menghapus relasi member dari Tim Struktur site. **Tidak** menghapus record dari Data Master Team.
+
+**Path Parameters:**
+- `site_id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+- `member_id`: ID record Tim Struktur (field `id` dari response list, format: `site_team_members:xxx`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Team member removed from site structure"
+}
+```
+
+---
+
+## �👥 People API
 
 ### Create Person
 **POST** `/people`
@@ -900,6 +1421,7 @@
   "termin_ke": 1,
   "percentage": 25,
   "keterangan": "Pengajuan termin ke-1",
+  "nomor_rekening_tujuan": "BCA 1234567890 an. PT Mitra",
   "submitted_by": "Budi Santoso"
 }
 ```
@@ -914,6 +1436,7 @@
 - `percentage` (integer, **REQUIRED**): Persentase dari maximal_budget - **WAJIB sesuai pola: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%**
 - `status` (string, optional): Status termin (default: "draft")
 - `keterangan` (string, optional): Keterangan tambahan
+- `nomor_rekening_tujuan` (string, optional): Nomor rekening tujuan pengajuan, contoh: "BCA 1234567890 an. PT Mitra"
 - `submitted_by` (string, optional): Nama pengaju. Jika diisi, termin langsung berstatus "pending_review"
 
 **🔒 VALIDASI KETAT (Business Rules):**
@@ -1103,15 +1626,43 @@
 
 **Response:** Array of termins, sorted by `created_at DESC`
 
+**✅ v1.7.1 Enhancement:** Response includes enriched `site_id` field with both `site_name` and `project_name`
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "termins:xxx",
+      "project_id": "projects:yyy",
+      "site_id": {
+        "site_name": "Site Jakarta Selatan",
+        "project_name": "Network Expansion Jakarta"
+      },
+      "termin_ke": 1,
+      "percentage": 30,
+      "status": "draft",
+      "jumlah": 15000000,
+      ...
+    }
+  ]
+}
+```
+
 ### Get Termins by Project
 **GET** `/termins/project/:project_id`
 
 **Response:** Array of termins for specific project
 
+**✅ v1.7.1 Enhancement:** Response includes enriched `site_id` field with both `site_name` and `project_name`
+
 ### Get Termins by Site
 **GET** `/termins/site/:site_id`
 
 **Response:** Array of termins for specific site
+
+**✅ v1.7.1 Enhancement:** Response includes enriched `site_id` field with both `site_name` and `project_name`
 
 ### Update Termin (Draft Only)
 **PUT** `/termins/:termin_id`
@@ -1606,5 +2157,660 @@ team_peoples:
 
 ---
 
-**🚀 Server:** `http://localhost:3000`  
-**📅 Last Updated:** February 20, 2026
+---
+
+## 📍 Site Stage Management API
+
+> **Konsep:** Setiap site memiliki `stage` yang merepresentasikan progress pekerjaan.
+> Update stage akan otomatis mencatat audit log di tabel `site_stage_log`.
+
+### Update Site Stage
+**POST** `/sites/:id/stage`
+
+**Path Parameters:**
+- `id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Valid Stage Values (berurutan):**
+```
+imported → assigned → permit_process → permit_ready →
+akses_process → akses_ready → implementasi →
+rfi_done → rfs_done → dokumen_done → bast → invoice → completed
+```
+
+**Deskripsi Tiap Stage:**
+| # | Stage | Deskripsi |
+|---|---|---|
+| 01 | `imported` | Data site baru diimport, belum diproses |
+| 02 | `assigned` | Tim lapangan sudah ditugaskan ke site |
+| 03 | `permit_process` | Proses perizinan ke warga/RT/RW sedang berjalan — **WAJIB: `permit_date`** |
+| 04 | `permit_ready` | Dokumen izin sudah selesai — **WAJIB: `tpas_approved=true`, `tp_approved=true`** |
+| 05 | `akses_process` | Akses tower sedang diproses — **WAJIB: `tower_provider`, `jenis_kunci`** |
+| 06 | `akses_ready` | Akses tower sudah siap eksekusi |
+| 07 | `implementasi` | Pekerjaan fisik lapangan dimulai — **WAJIB: `tgl_rencana_implementasi`** |
+| 08 | `rfi_done` | Radio Frequency Inspection selesai — **WAJIB: `jam_checkout`** |
+| 09 | `rfs_done` | Ready For Service dikonfirmasi, layanan siap aktif |
+| 10 | `dokumen_done` | As-built drawing & seluruh dokumen sudah diserahkan |
+| 11 | `bast` | Berita Acara Serah Terima sudah ditandatangani |
+| 12 | `invoice` | Invoice sudah diajukan ke finance client |
+| 13 | `completed` | Seluruh pekerjaan dan administrasi selesai |
+
+**Request Body (lengkap dengan semua field):**
+```json
+{
+  "stage": "permit_ready",
+  "notes": "Semua approval selesai",
+  "changed_by": "Tim Perizinan",
+  "evidence_urls": ["https://storage.example.com/dokumen-tpas.pdf"],
+
+  "permit_date": "2026-03-11",
+
+  "tpas_approved": true,
+  "tp_approved": true,
+  "caf_approved": false,
+  "tgl_berlaku_permit_tpas": "2026-03-11",
+  "tgl_berakhir_permit_tpas": "2027-03-11",
+
+  "tower_provider": "STP",
+  "jenis_kunci": "SMARTLOCK",
+  "pic_akses_nama": "John Doe",
+  "pic_akses_telp": "081234567890",
+
+  "tgl_rencana_implementasi": "2026-03-12",
+  "tgl_aktual_mulai": "2026-03-11",
+  "jam_checkin": "2026-03-11T08:00:00",
+
+  "jam_checkout": "2026-03-11T17:00:00",
+
+  "impl_cico_done": false,
+  "impl_rfs_done": false,
+  "impl_dokumen_done": false,
+  "ineom_registered": false
+}
+```
+
+**Field Definitions:**
+- `stage` (string, **required**): Target stage baru (harus salah satu dari 13 stage valid)
+- `notes` (string, optional): Catatan perubahan stage
+- `changed_by` (string, optional): Nama/ID user yang mengubah (default: "system")
+- `evidence_urls` (array string, optional): URL foto/dokumen pendukung yang diupload
+- `permit_date` (string, **required** saat stage=`permit_process`): Tanggal buat permit (YYYY-MM-DD)
+- `tpas_approved` (boolean, **required** saat stage=`permit_ready`): TPAS sudah approve
+- `tp_approved` (boolean, **required** saat stage=`permit_ready`): TP sudah approve
+- `caf_approved` (boolean, optional): CAF approved (jika TP sewa pihak lain)
+- `tgl_berlaku_permit_tpas` (string, optional): Tanggal berlaku permit TPAS (YYYY-MM-DD)
+- `tgl_berakhir_permit_tpas` (string, optional): Tanggal berakhir permit TPAS (YYYY-MM-DD)
+- `tower_provider` (string, **required** saat stage=`akses_process`): Provider tower — `MITRATEL` \| `STP` \| `PTI` \| `DMT` \| `Lainnya`
+- `jenis_kunci` (string, **required** saat stage=`akses_process`): Jenis kunci — `PADLOCK` \| `SMARTLOCK` \| `QUADLOCK`
+- `pic_akses_nama` (string, optional): Nama PIC akses tower
+- `pic_akses_telp` (string, optional): Nomor telepon PIC akses
+- `tgl_rencana_implementasi` (string, **required** saat stage=`implementasi`): Tanggal rencana implementasi (YYYY-MM-DD)
+- `tgl_aktual_mulai` (string, optional): Tanggal aktual mulai kerja (YYYY-MM-DD)
+- `jam_checkin` (string, optional): Datetime jam check-in/CI (format: `YYYY-MM-DDTHH:MM:SS`)
+- `jam_checkout` (string, **required** saat stage=`rfi_done`): Datetime jam check-out/CO (format: `YYYY-MM-DDTHH:MM:SS`)
+- `impl_cico_done` (boolean, optional): CI/CO sudah selesai
+- `impl_rfs_done` (boolean, optional): RFS sudah selesai
+- `impl_dokumen_done` (boolean, optional): Dokumen implementasi sudah selesai
+- `ineom_registered` (boolean, optional): iNeOM sudah didaftarkan
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "sites:73tnamhln5s1oehr2om2",
+    "project_id": "projects:b7v5e43bvtpwyipxlemg",
+    "site_name": "Site Menteng",
+    "stage": "implementasi",
+    "stage_updated_at": "2026-03-10T07:00:00Z",
+    "stage_notes": "Implementasi dimulai hari ini",
+    "impl_cico_done": false,
+    "impl_rfs_done": false,
+    "impl_dokumen_done": false,
+    "ineom_registered": false
+  },
+  "message": "Stage berhasil diupdate ke 'implementasi'"
+}
+```
+
+**Response (Error - Invalid Stage):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Stage 'invalid_stage' tidak valid"
+}
+```
+
+---
+
+### Test Scenario — Full Stage Flow (13 Stages)
+
+Jalankan request berikut secara berurutan untuk menguji full lifecycle site dari awal hingga selesai:
+
+```bash
+BASE="http://localhost:3001/api"
+SITE_ID="sites:xxx"
+
+for STAGE in imported assigned permit_process permit_ready akses_process akses_ready implementasi rfi_done rfs_done dokumen_done bast invoice completed; do
+  curl -s -X POST "$BASE/sites/$SITE_ID/stage" \
+    -H "Content-Type: application/json" \
+    -d "{\"stage\":\"$STAGE\",\"notes\":\"Test stage $STAGE\",\"changed_by\":\"Tester\"}" \
+    | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'  {d[\"data\"][\"stage\"]} → OK' if d.get('success') else f'  FAIL: {d.get(\"message\")}')"
+done
+```
+
+**Hasil yang diharapkan:** Semua 13 stage ter-update dengan `success: true`, masing-masing menghasilkan satu entry di `site_stage_log`.
+
+---
+
+### Get Site Stage Logs (Audit Trail)
+**GET** `/sites/:id/stage-logs`
+
+**Path Parameters:**
+- `id`: ID site (format: `sites:xxx` atau hanya `xxx`)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_stage_log:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "from_stage": "assigned",
+      "to_stage": "implementasi",
+      "notes": "Implementasi dimulai hari ini",
+      "changed_by": "Budi Santoso",
+      "evidence_urls": ["https://storage.example.com/foto1.jpg"],
+      "created_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+## 📦 Site BOQ (Bill of Quantity) API
+
+> **Konsep:** Daftar material/jasa yang tercantum dalam kontrak untuk satu site.
+> Digunakan pada tab "Material Item" di halaman Detail Site.
+
+### List BOQ by Site
+**GET** `/sites/:site_id/boq`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_boq:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "item_code": "MAT-001",
+      "description": "Kabel Fiber Optik SM 12C",
+      "quantity": 100.0,
+      "unit": "meter",
+      "type": "material",
+      "source": "Warehouse Jakarta",
+      "created_at": "2026-03-10T07:00:00Z",
+      "updated_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create BOQ Item
+**POST** `/sites/:site_id/boq`
+
+**Request Body:**
+```json
+{
+  "item_code": "MAT-001",
+  "description": "Kabel Fiber Optik SM 12C",
+  "quantity": 100.0,
+  "unit": "meter",
+  "type": "material",
+  "source": "Warehouse Jakarta"
+}
+```
+
+**Field Definitions:**
+- `item_code` (string, required): Kode item
+- `description` (string, required): Deskripsi item
+- `quantity` (float, required): Jumlah
+- `unit` (string, required): Satuan (meter, unit, rol, dll)
+- `type` (string, optional): `"material"` atau `"jasa"` (default: `"material"`)
+- `source` (string, optional): Sumber/lokasi material
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* SiteBoq object */ },
+  "message": "BOQ item created successfully"
+}
+```
+
+---
+
+### Update BOQ Item
+**PUT** `/site-boq/:boq_id`
+
+**Request Body (semua field optional):**
+```json
+{
+  "description": "Kabel Fiber Optik SM 24C",
+  "quantity": 150.0
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* updated SiteBoq object */ },
+  "message": "BOQ item updated successfully"
+}
+```
+
+---
+
+### Delete BOQ Item
+**DELETE** `/site-boq/:boq_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "BOQ item deleted successfully"
+}
+```
+
+---
+
+## 📋 SKP (Surat Perintah Ambil Material) API
+
+> **Konsep:** SKP adalah dokumen resmi izin pengambilan material dari gudang.
+> Flow status: `Draft → Submitted → Received`
+
+### List SKP by Site
+**GET** `/sites/:site_id/skp`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "skp:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "skp_number": "SKP/2026/001",
+      "tanggal": "2026-03-10",
+      "keterangan": "Pengambilan material batch 1",
+      "status": "Draft",
+      "uploaded_by": "Budi Santoso",
+      "document_url": null,
+      "received_proof_url": null,
+      "created_at": "2026-03-10T07:00:00Z",
+      "updated_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create SKP
+**POST** `/sites/:site_id/skp`
+
+**Request Body:**
+```json
+{
+  "skp_number": "SKP/2026/001",
+  "tanggal": "2026-03-10",
+  "keterangan": "Pengambilan material batch 1",
+  "uploaded_by": "Budi Santoso",
+  "document_url": null
+}
+```
+
+**Field Definitions:**
+- `skp_number` (string, required): Nomor SKP (unik)
+- `tanggal` (string, required): Tanggal SKP (YYYY-MM-DD)
+- `keterangan` (string, optional): Keterangan/deskripsi
+- `uploaded_by` (string, required): Nama/ID yang mengupload
+- `document_url` (string, optional): URL dokumen SKP
+
+**Note:** Status awal selalu `"Draft"` secara otomatis.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* Skp object */ },
+  "message": "SKP created successfully"
+}
+```
+
+---
+
+### Get SKP by ID
+**GET** `/skp/:skp_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* Skp object */ },
+  "message": null
+}
+```
+
+---
+
+### Update SKP
+**PUT** `/skp/:skp_id`
+
+**Request Body (semua field optional):**
+```json
+{
+  "status": "Submitted",
+  "document_url": "https://storage.example.com/skp-001.pdf"
+}
+```
+
+**Valid status values:** `"Draft"`, `"Submitted"`, `"Received"`
+
+**Field untuk update received proof:**
+```json
+{
+  "status": "Received",
+  "received_proof_url": "https://storage.example.com/bukti-terima-001.jpg"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* updated Skp object */ },
+  "message": "SKP updated successfully"
+}
+```
+
+---
+
+### Delete SKP
+**DELETE** `/skp/:skp_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "SKP deleted successfully"
+}
+```
+
+---
+
+## 📸 Site Evidence (Foto Lapangan) API
+
+> **Konsep:** Foto-foto dokumentasi lapangan yang diupload per tag progress.
+> Tag digunakan untuk mengelompokkan foto berdasarkan tahap pekerjaan.
+
+### List Evidence by Site
+**GET** `/sites/:site_id/evidence`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_evidence:abc123",
+      "site_id": "sites:73tnamhln5s1oehr2om2",
+      "filename": "foto_implementasi_001.jpg",
+      "original_name": "IMG_20260310_070000.jpg",
+      "file_url": "https://storage.example.com/foto_implementasi_001.jpg",
+      "mime_type": "image/jpeg",
+      "file_size": 1048576,
+      "progress_tag": "implementasi",
+      "stage_context": "Pemasangan tiang ODC area Menteng",
+      "uploaded_by": "Budi Santoso",
+      "uploaded_at": "2026-03-10T07:00:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create Evidence (Upload Metadata)
+**POST** `/sites/:site_id/evidence`
+
+**Request Body:**
+```json
+{
+  "filename": "foto_implementasi_001.jpg",
+  "original_name": "IMG_20260310_070000.jpg",
+  "file_url": "https://storage.example.com/foto_implementasi_001.jpg",
+  "mime_type": "image/jpeg",
+  "file_size": 1048576,
+  "progress_tag": "implementasi",
+  "stage_context": "Pemasangan tiang ODC area Menteng",
+  "uploaded_by": "Budi Santoso"
+}
+```
+
+**Field Definitions:**
+- `filename` (string, required): Nama file tersimpan
+- `original_name` (string, optional): Nama file asli dari device
+- `file_url` (string, optional): URL file di storage
+- `mime_type` (string, optional): Tipe MIME (image/jpeg, image/png, dll)
+- `file_size` (integer, optional): Ukuran file dalam bytes
+- `progress_tag` (string, required): Tag progress (contoh: `"implementasi"`, `"permit_process"`)
+- `stage_context` (string, optional): Deskripsi konteks/keterangan foto
+- `uploaded_by` (string, required): Nama/ID yang mengupload
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": { /* SiteEvidence object */ },
+  "message": "Evidence uploaded successfully"
+}
+```
+
+---
+
+### Delete Evidence
+**DELETE** `/site-evidence/:evidence_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Evidence deleted successfully"
+}
+```
+
+---
+
+## � Site Issue / Blocker API
+
+> **Konsep:** Ketika ada masalah/blocker yang menghambat progress site, tim dapat melaporkannya.
+> Ada dua jenis tindakan:
+> - **Tahan di stage ini** (`tahan`): issue dicatat, site tetap di stage saat ini, status `open`.
+> - **Eskalasi ke management** (`eskalasi`): issue dieskalasi, status langsung `escalated`.
+> Issue dapat di-resolve setelah masalah diselesaikan.
+
+### List Issues by Site
+**GET** `/sites/:site_id/issues`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_issue:abc123",
+      "site_id": "sites:73tnam...",
+      "stage_at_report": "implementasi",
+      "keterangan": "Material tidak sesuai spesifikasi kontrak",
+      "tindakan": "tahan",
+      "status": "open",
+      "reported_by": "Budi Santoso",
+      "evidence_urls": ["https://cdn.example.com/bukti.jpg"],
+      "resolved_by": null,
+      "resolved_notes": null,
+      "resolved_at": null,
+      "created_at": "2026-03-11T05:31:00Z",
+      "updated_at": "2026-03-11T05:31:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create / Laporkan Issue
+**POST** `/sites/:site_id/issues`
+
+**Request Body:**
+```json
+{
+  "stage_at_report": "implementasi",
+  "keterangan": "Material tidak sesuai spesifikasi kontrak",
+  "tindakan": "tahan",
+  "reported_by": "Budi Santoso",
+  "evidence_urls": ["https://cdn.example.com/bukti.jpg"]
+}
+```
+
+**Field Definitions:**
+- `stage_at_report` (string, required): Stage saat issue dilaporkan
+- `keterangan` (string, required): Deskripsi masalah secara detail
+- `tindakan` (string, required): `"tahan"` atau `"eskalasi"`
+- `reported_by` (string, optional): Nama pelapor
+- `evidence_urls` (array string, optional): URL foto/dokumen bukti issue
+
+**Response (200 OK) — tindakan: tahan:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "site_issue:abc123",
+    "stage_at_report": "implementasi",
+    "tindakan": "tahan",
+    "status": "open",
+    ...
+  },
+  "message": "Issue dilaporkan. Tindakan: tahan"
+}
+```
+
+**Response (200 OK) — tindakan: eskalasi:**
+```json
+{
+  "success": true,
+  "data": {
+    "tindakan": "eskalasi",
+    "status": "escalated",
+    ...
+  },
+  "message": "Issue dilaporkan. Tindakan: eskalasi"
+}
+```
+
+**Response (Error — tindakan tidak valid):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Tindakan harus 'tahan' atau 'eskalasi'"
+}
+```
+
+---
+
+### Get Issue by ID
+**GET** `/site-issues/:issue_id`
+
+**Response:** SiteIssue object lengkap (sama seperti item dalam list).
+
+---
+
+### Resolve Issue
+**POST** `/site-issues/:issue_id/resolve`
+
+**Request Body:**
+```json
+{
+  "resolved_by": "Supervisor Tim",
+  "resolved_notes": "Material sudah diganti sesuai spesifikasi"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "resolved",
+    "resolved_by": "Supervisor Tim",
+    "resolved_notes": "Material sudah diganti sesuai spesifikasi",
+    "resolved_at": "2026-03-11T07:00:00Z",
+    ...
+  },
+  "message": "Issue berhasil di-resolve"
+}
+```
+
+---
+
+### Delete Issue
+**DELETE** `/site-issues/:issue_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Issue berhasil dihapus"
+}
+```
+
+---
+
+## �📊 Site Stage Reference
+
+| Stage | UI Step | Deskripsi |
+|---|---|---|
+| `imported` | Step 1 | Site baru diimport/didaftarkan |
+| `assigned` | Step 1 | Tim sudah diassign ke site |
+| `permit_process` | Step 2 | Proses perizinan sedang berjalan |
+| `permit_ready` | Step 2 | Perizinan selesai |
+| `akses_process` | Step 3 | Proses akses lokasi |
+| `akses_ready` | Step 3 | Akses lokasi sudah siap |
+| `implementasi` | Step 4 | Pekerjaan implementasi berlangsung |
+| `rfi_done` | Step 4 | RFI (Request for Inspection) selesai |
+| `rfs_done` | Step 5 | RFS (Ready for Service) selesai |
+| `dokumen_done` | Step 5 | Dokumen selesai |
+| `bast` | Step 6 | BAST (Berita Acara Serah Terima) |
+| `invoice` | Step 7 | Invoice diterbitkan |
+| `completed` | Step 7 | Pekerjaan selesai |
+
+---
+
+**🚀 Server:** `http://localhost:3001`  
+**📅 Last Updated:** March 11, 2026

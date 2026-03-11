@@ -48,6 +48,7 @@ pub async fn register(
         crate::models::UserRole::BackofficeAdmin => "backoffice admin",
         crate::models::UserRole::Management => "management",
         crate::models::UserRole::TeamLeader => "team leader",
+        crate::models::UserRole::HeadOffice => "head office",
         crate::models::UserRole::Finance => "finance",
         crate::models::UserRole::Engineer => "engineer",
         crate::models::UserRole::Admin => "admin",

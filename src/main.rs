@@ -11,7 +11,7 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, people, costs, materials, regions, files, termins};
+use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams, bulk_import};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -57,18 +57,60 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/projects/:id", get(project::get_project))
         .route("/api/projects/:id", put(project::update_project))
         .route("/api/projects/:id", delete(project::delete_project))
+        // Bulk Import route
+        .route("/api/projects/import-excel", post(bulk_import::bulk_import_from_excel))
         // Site routes
         .route("/api/sites", post(site::create_site))
         .route("/api/sites", get(site::list_sites))
         .route("/api/sites/project/:project_id", get(site::get_sites_by_project))
+        .route("/api/sites/:id", get(site::get_site_by_id))
         .route("/api/sites/:id", put(site::update_site))
         .route("/api/sites/:id", delete(site::delete_site))
+        // Site Tim Struktur routes
+        .route("/api/sites/:site_id/team-structure", get(site::get_site_team_structure))
+        .route("/api/sites/:site_id/team-structure", post(site::add_site_team_member))
+        .route("/api/sites/:site_id/team-structure/:member_id", put(site::update_site_team_member))
+        .route("/api/sites/:site_id/team-structure/:member_id", delete(site::remove_site_team_member))
+        // Site Stage routes
+        .route("/api/sites/:id/stage", post(site::update_site_stage))
+        .route("/api/sites/:id/stage-logs", get(site::get_site_stage_logs))
+        // Site BOQ routes
+        .route("/api/sites/:site_id/boq", get(site::list_site_boq))
+        .route("/api/sites/:site_id/boq", post(site::create_site_boq))
+        .route("/api/site-boq/:boq_id", put(site::update_site_boq))
+        .route("/api/site-boq/:boq_id", delete(site::delete_site_boq))
+        // SKP routes
+        .route("/api/sites/:site_id/skp", get(site::list_skp_by_site))
+        .route("/api/sites/:site_id/skp", post(site::create_skp))
+        .route("/api/skp/:skp_id", get(site::get_skp))
+        .route("/api/skp/:skp_id", put(site::update_skp))
+        .route("/api/skp/:skp_id", delete(site::delete_skp))
+        // Site Evidence routes
+        .route("/api/sites/:site_id/evidence", get(site::list_site_evidence))
+        .route("/api/sites/:site_id/evidence", post(site::create_site_evidence))
+        .route("/api/site-evidence/:evidence_id", get(site::get_site_evidence_by_id).delete(site::delete_site_evidence))
+        .route("/api/site-evidence/:evidence_id/preview", get(site::get_site_evidence_preview))
+        // Site Issue routes
+        .route("/api/sites/:site_id/issues", get(site::list_site_issues))
+        .route("/api/sites/:site_id/issues", post(site::create_site_issue))
+        .route("/api/site-issues/:issue_id", get(site::get_site_issue))
+        .route("/api/site-issues/:issue_id/resolve", post(site::resolve_site_issue))
+        .route("/api/site-issues/:issue_id", delete(site::delete_site_issue))
         // People routes
         .route("/api/people", post(people::create_people))
         .route("/api/people", get(people::list_people))
         .route("/api/people/:id", get(people::get_people))
         .route("/api/people/:id", put(people::update_people))
         .route("/api/people/:id", delete(people::delete_people))
+        // Team routes
+        .route("/api/teams", post(teams::create_team))
+        .route("/api/teams", get(teams::list_teams))
+        .route("/api/teams/leader/:leader_id", get(teams::get_team_by_leader))
+        .route("/api/teams/:team_id", get(teams::get_team))
+        .route("/api/teams/:team_id", put(teams::update_team))
+        .route("/api/teams/:team_id", delete(teams::delete_team))
+        .route("/api/teams/:team_id/members", get(teams::list_team_members))
+        .route("/api/teams/upload", post(teams::upload_teams_excel))
         // Cost routes
         .route("/api/costs", post(costs::create_cost))
         .route("/api/costs", get(costs::list_costs))
@@ -93,6 +135,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/site-files", post(files::create_site_file))
         .route("/api/sites/:site_id/files", get(files::list_site_files))
         .route("/api/site-files/:file_id/delete", axum::routing::delete(files::delete_site_file))
+        // Multipart file upload routes
+        .route("/api/projects/:project_id/upload", post(files::upload_project_file_multipart))
+        .route("/api/sites/:site_id/upload", post(files::upload_site_file_multipart))
+        .route("/api/project-files/:file_id/download", get(files::download_project_file))
+        .route("/api/site-files/:file_id/download", get(files::download_site_file))
         // Termin routes
         .route("/api/termins", post(termins::create_termin))
         .route("/api/termins", get(termins::list_termins))
@@ -105,14 +152,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/termins/:termin_id/review", post(termins::review_termin))
         .route("/api/termins/:termin_id/approve", post(termins::approve_termin))
         .route("/api/termins/:termin_id/pay", post(termins::pay_termin))
+        .route("/api/termins/:termin_id/download-bukti-pembayaran", get(termins::download_bukti_pembayaran))
         .route("/api/termin-files", post(termins::create_termin_file))
         .route("/api/termins/:termin_id/files", get(termins::list_termin_files))
         .route("/api/termin-files/:file_id/delete", axum::routing::delete(termins::delete_termin_file))
+        // Multipart termin file upload
+        .route("/api/termins/:termin_id/upload", post(termins::upload_termin_file_multipart))
+        .route("/api/termin-files/:file_id/download", get(termins::download_termin_file))
         .with_state(state)
         .layer(cors);
 
     // Start server
-    let addr = "0.0.0.0:3000";
+    let addr = "0.0.0.0:3001";
     println!("🚀 Server starting on http://{}", addr);
     println!("📝 Available endpoints:");
     println!("  GET    /api/health");
@@ -139,6 +190,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  GET    /api/people/:id");
     println!("  PUT    /api/people/:id");
     println!("  DELETE /api/people/:id");
+    println!("\n👥 Teams:");
+    println!("  POST   /api/teams/upload  (Excel upload)");
     println!("\n💰 Costs:");
     println!("  POST   /api/costs");
     println!("  GET    /api/costs");
