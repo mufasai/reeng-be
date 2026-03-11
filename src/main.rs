@@ -88,7 +88,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Site Evidence routes
         .route("/api/sites/:site_id/evidence", get(site::list_site_evidence))
         .route("/api/sites/:site_id/evidence", post(site::create_site_evidence))
-        .route("/api/site-evidence/:evidence_id", delete(site::delete_site_evidence))
+        .route("/api/site-evidence/:evidence_id", get(site::get_site_evidence_by_id).delete(site::delete_site_evidence))
+        .route("/api/site-evidence/:evidence_id/preview", get(site::get_site_evidence_preview))
         // Site Issue routes
         .route("/api/sites/:site_id/issues", get(site::list_site_issues))
         .route("/api/sites/:site_id/issues", post(site::create_site_issue))

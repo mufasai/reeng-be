@@ -234,10 +234,28 @@ pub struct Site {
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
     pub stage_notes: Option<String>,
+    pub permit_date: Option<String>,        // Tanggal buat permit (diisi saat masuk permit_process)
     pub impl_cico_done: Option<bool>,
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
+    // Permit ready stage data (diisi saat transisi → permit_ready)
+    pub tpas_approved: Option<bool>,
+    pub tp_approved: Option<bool>,
+    pub caf_approved: Option<bool>,
+    pub tgl_berlaku_permit_tpas: Option<String>,
+    pub tgl_berakhir_permit_tpas: Option<String>,
+    // Akses process stage data (diisi saat transisi → akses_process)
+    pub tower_provider: Option<String>,     // MITRATEL | STP | PTI | DMT | Lainnya
+    pub jenis_kunci: Option<String>,        // PADLOCK | SMARTLOCK | QUADLOCK
+    pub pic_akses_nama: Option<String>,
+    pub pic_akses_telp: Option<String>,
+    // Implementasi stage data (diisi saat transisi → implementasi)
+    pub tgl_rencana_implementasi: Option<String>,
+    pub tgl_aktual_mulai: Option<String>,
+    pub jam_checkin: Option<String>,
+    // RFI done stage data (diisi saat transisi → rfi_done)
+    pub jam_checkout: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -313,10 +331,28 @@ pub struct UpdateSiteStageRequest {
     pub notes: Option<String>,
     pub changed_by: Option<String>,  // user id atau nama yang mengubah
     pub evidence_urls: Option<Vec<String>>,
+    pub permit_date: Option<String>, // Tanggal buat permit (wajib saat masuk permit_process)
     pub impl_cico_done: Option<bool>,
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
+    // Permit ready stage fields (wajib saat transisi → permit_ready)
+    pub tpas_approved: Option<bool>,
+    pub tp_approved: Option<bool>,
+    pub caf_approved: Option<bool>,
+    pub tgl_berlaku_permit_tpas: Option<String>,
+    pub tgl_berakhir_permit_tpas: Option<String>,
+    // Akses process stage fields (wajib saat transisi → akses_process)
+    pub tower_provider: Option<String>,
+    pub jenis_kunci: Option<String>,
+    pub pic_akses_nama: Option<String>,
+    pub pic_akses_telp: Option<String>,
+    // Implementasi stage fields (wajib saat transisi → implementasi)
+    pub tgl_rencana_implementasi: Option<String>,
+    pub tgl_aktual_mulai: Option<String>,
+    pub jam_checkin: Option<String>,
+    // RFI done stage fields (wajib saat transisi → rfi_done)
+    pub jam_checkout: Option<String>,
 }
 
 // ==================== TEAM MODELS ====================
@@ -707,6 +743,8 @@ pub struct Termin {
     pub bukti_pembayaran_filename: Option<String>,  // Original filename (e.g., "kwintansi pak adnan.pdf")
     pub bukti_pembayaran_mime_type: Option<String>,  // MIME type (e.g., "application/pdf")
     pub bukti_pembayaran_size: Option<i64>,  // File size in bytes
+    // Rekening tujuan pengajuan termin
+    pub nomor_rekening_tujuan: Option<String>,  // e.g., "BCA 1234567890 an. PT Mitra"
     
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -726,6 +764,7 @@ pub struct CreateTerminRequest {
     pub status: Option<String>,
     pub keterangan: Option<String>,
     pub submitted_by: Option<String>, // If provided, will submit directly for review
+    pub nomor_rekening_tujuan: Option<String>, // Nomor rekening tujuan pengajuan
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -816,6 +855,7 @@ pub struct TerminWithSiteInfo {
     pub bukti_pembayaran_filename: Option<String>,
     pub bukti_pembayaran_mime_type: Option<String>,
     pub bukti_pembayaran_size: Option<i64>,
+    pub nomor_rekening_tujuan: Option<String>,
     
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,

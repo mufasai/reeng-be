@@ -171,6 +171,7 @@ pub async fn create_termin(
             percentage = $percentage,
             status = $status,
             keterangan = $keterangan,
+            nomor_rekening_tujuan = $nomor_rekening_tujuan,
             submitted_by = $submitted_by,
             submitted_at = time::now(),
             reviewed_by = NONE,
@@ -200,6 +201,7 @@ pub async fn create_termin(
             percentage = $percentage,
             status = $status,
             keterangan = $keterangan,
+            nomor_rekening_tujuan = $nomor_rekening_tujuan,
             submitted_by = NONE,
             submitted_at = NONE,
             reviewed_by = NONE,
@@ -228,7 +230,8 @@ pub async fn create_termin(
         .bind(("termin_ke", req.termin_ke))
         .bind(("percentage", req.percentage))
         .bind(("status", status))
-        .bind(("keterangan", req.keterangan.clone()));
+        .bind(("keterangan", req.keterangan.clone()))
+        .bind(("nomor_rekening_tujuan", req.nomor_rekening_tujuan.clone()));
     
     if let Some(submitter) = submitted_by {
         query_builder = query_builder.bind(("submitted_by", submitter));
@@ -328,6 +331,7 @@ pub async fn list_termins(
             bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
             bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
             bukti_pembayaran_size: termin.bukti_pembayaran_size,
+            nomor_rekening_tujuan: termin.nomor_rekening_tujuan,
             created_at: termin.created_at,
             updated_at: termin.updated_at,
         };
@@ -422,6 +426,7 @@ pub async fn get_termins_by_project(
             bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
             bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
             bukti_pembayaran_size: termin.bukti_pembayaran_size,
+            nomor_rekening_tujuan: termin.nomor_rekening_tujuan,
             created_at: termin.created_at,
             updated_at: termin.updated_at,
         };
@@ -516,6 +521,7 @@ pub async fn get_termins_by_site(
             bukti_pembayaran_filename: termin.bukti_pembayaran_filename,
             bukti_pembayaran_mime_type: termin.bukti_pembayaran_mime_type,
             bukti_pembayaran_size: termin.bukti_pembayaran_size,
+            nomor_rekening_tujuan: termin.nomor_rekening_tujuan,
             created_at: termin.created_at,
             updated_at: termin.updated_at,
         };

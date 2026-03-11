@@ -882,15 +882,96 @@ pub async fn update_site_stage(
         .and_then(|r| r.stage)
         .unwrap_or_else(|| "imported".to_string());
 
+    // Validasi permit_date wajib saat masuk permit_process
+    if req.stage == "permit_process" && req.permit_date.is_none() {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("permit_date (Tanggal Buat Permit) wajib diisi saat masuk stage permit_process".to_string()),
+        }));
+    }
+
+    // Validasi field wajib saat transisi ke permit_ready
+    if req.stage == "permit_ready" {
+        if !req.tpas_approved.unwrap_or(false) {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("TPAS Approved wajib dicentang untuk masuk stage permit_ready".to_string()),
+            }));
+        }
+        if !req.tp_approved.unwrap_or(false) {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("TP Approved wajib dicentang untuk masuk stage permit_ready".to_string()),
+            }));
+        }
+    }
+
+    // Validasi field wajib saat transisi ke akses_process
+    if req.stage == "akses_process" {
+        if req.tower_provider.is_none() || req.tower_provider.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("tower_provider (Tower Provider) wajib diisi saat masuk stage akses_process".to_string()),
+            }));
+        }
+        if req.jenis_kunci.is_none() || req.jenis_kunci.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("jenis_kunci (Jenis Kunci) wajib diisi saat masuk stage akses_process".to_string()),
+            }));
+        }
+    }
+
+    // Validasi field wajib saat transisi ke implementasi
+    if req.stage == "implementasi" {
+        if req.tgl_rencana_implementasi.is_none() || req.tgl_rencana_implementasi.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("tgl_rencana_implementasi (Tanggal Rencana Implementasi) wajib diisi saat masuk stage implementasi".to_string()),
+            }));
+        }
+    }
+
+    // Validasi field wajib saat transisi ke rfi_done
+    if req.stage == "rfi_done" {
+        if req.jam_checkout.is_none() || req.jam_checkout.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("jam_checkout (Jam Check-Out) wajib diisi saat masuk stage rfi_done".to_string()),
+            }));
+        }
+    }
+
     // Update stage di sites
     let update_query = "UPDATE type::thing($site_id) SET \
         stage = $stage, \
         stage_updated_at = time::now(), \
         stage_notes = $stage_notes, \
+        permit_date = IF $stage = 'permit_process' THEN $permit_date ELSE permit_date END, \
         impl_cico_done = $impl_cico_done, \
         impl_rfs_done = $impl_rfs_done, \
         impl_dokumen_done = $impl_dokumen_done, \
         ineom_registered = $ineom_registered, \
+        tpas_approved = IF $stage = 'permit_ready' THEN $tpas_approved ELSE tpas_approved END, \
+        tp_approved = IF $stage = 'permit_ready' THEN $tp_approved ELSE tp_approved END, \
+        caf_approved = IF $stage = 'permit_ready' THEN $caf_approved ELSE caf_approved END, \
+        tgl_berlaku_permit_tpas = IF $stage = 'permit_ready' THEN $tgl_berlaku_permit_tpas ELSE tgl_berlaku_permit_tpas END, \
+        tgl_berakhir_permit_tpas = IF $stage = 'permit_ready' THEN $tgl_berakhir_permit_tpas ELSE tgl_berakhir_permit_tpas END, \
+        tower_provider = IF $stage = 'akses_process' THEN $tower_provider ELSE tower_provider END, \
+        jenis_kunci = IF $stage = 'akses_process' THEN $jenis_kunci ELSE jenis_kunci END, \
+        pic_akses_nama = IF $stage = 'akses_process' THEN $pic_akses_nama ELSE pic_akses_nama END, \
+        pic_akses_telp = IF $stage = 'akses_process' THEN $pic_akses_telp ELSE pic_akses_telp END, \
+        tgl_rencana_implementasi = IF $stage = 'implementasi' THEN $tgl_rencana_implementasi ELSE tgl_rencana_implementasi END, \
+        tgl_aktual_mulai = IF $stage = 'implementasi' THEN $tgl_aktual_mulai ELSE tgl_aktual_mulai END, \
+        jam_checkin = IF $stage = 'implementasi' THEN $jam_checkin ELSE jam_checkin END, \
+        jam_checkout = IF $stage = 'rfi_done' THEN $jam_checkout ELSE jam_checkout END, \
         updated_at = time::now()";
 
     let mut update_res = state
@@ -899,10 +980,24 @@ pub async fn update_site_stage(
         .bind(("site_id", site_thing.clone()))
         .bind(("stage", req.stage.clone()))
         .bind(("stage_notes", req.notes.clone()))
+        .bind(("permit_date", req.permit_date.clone()))
         .bind(("impl_cico_done", req.impl_cico_done.unwrap_or(false)))
         .bind(("impl_rfs_done", req.impl_rfs_done.unwrap_or(false)))
         .bind(("impl_dokumen_done", req.impl_dokumen_done.unwrap_or(false)))
         .bind(("ineom_registered", req.ineom_registered.unwrap_or(false)))
+        .bind(("tpas_approved", req.tpas_approved.unwrap_or(false)))
+        .bind(("tp_approved", req.tp_approved.unwrap_or(false)))
+        .bind(("caf_approved", req.caf_approved.unwrap_or(false)))
+        .bind(("tgl_berlaku_permit_tpas", req.tgl_berlaku_permit_tpas.clone()))
+        .bind(("tgl_berakhir_permit_tpas", req.tgl_berakhir_permit_tpas.clone()))
+        .bind(("tower_provider", req.tower_provider.clone()))
+        .bind(("jenis_kunci", req.jenis_kunci.clone()))
+        .bind(("pic_akses_nama", req.pic_akses_nama.clone()))
+        .bind(("pic_akses_telp", req.pic_akses_telp.clone()))
+        .bind(("tgl_rencana_implementasi", req.tgl_rencana_implementasi.clone()))
+        .bind(("tgl_aktual_mulai", req.tgl_aktual_mulai.clone()))
+        .bind(("jam_checkin", req.jam_checkin.clone()))
+        .bind(("jam_checkout", req.jam_checkout.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error updating site stage: {}", e);
@@ -1481,6 +1576,103 @@ pub async fn delete_site_evidence(
         data: None,
         message: Some("Evidence deleted successfully".to_string()),
     }))
+}
+
+/// GET /api/site-evidence/:evidence_id
+/// Returns JSON metadata for a single evidence record.
+pub async fn get_site_evidence_by_id(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(evidence_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<SiteEvidence>>, StatusCode> {
+    let evidence_thing = parse_thing_id(&evidence_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM type::thing($evidence_id)")
+        .bind(("evidence_id", evidence_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site evidence by id: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SiteEvidence> = response.take(0).map_err(|e| {
+        eprintln!("Parse error getting site evidence by id: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let evidence = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(evidence),
+        message: None,
+    }))
+}
+
+/// GET /api/site-evidence/:evidence_id/preview
+/// Decodes the stored base64 data URL and returns raw binary bytes so the
+/// browser can render a preview (image inline, PDF inline, etc.).
+pub async fn get_site_evidence_preview(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(evidence_id): axum::extract::Path<String>,
+) -> Result<axum::response::Response, StatusCode> {
+    let evidence_thing = parse_thing_id(&evidence_id)?;
+
+    let mut db_resp = state
+        .db
+        .query("SELECT * FROM type::thing($evidence_id)")
+        .bind(("evidence_id", evidence_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site evidence preview: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SiteEvidence> = db_resp.take(0).map_err(|e| {
+        eprintln!("Parse error getting site evidence preview: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let evidence = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    let data_url = evidence.file_url.ok_or_else(|| {
+        eprintln!("Evidence has no file_url");
+        StatusCode::NOT_FOUND
+    })?;
+
+    // Parse "data:{mime_type};base64,{encoded_data}"
+    let after_data = data_url.strip_prefix("data:").ok_or_else(|| {
+        eprintln!("Evidence file_url is not a valid data URL");
+        StatusCode::UNPROCESSABLE_ENTITY
+    })?;
+    let semi_pos = after_data.find(';').ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
+    let mime_type = after_data[..semi_pos].to_string();
+    let b64_part = &after_data[semi_pos + 1..];
+    let b64_data = b64_part.strip_prefix("base64,").ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
+
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(b64_data)
+        .map_err(|e| {
+            eprintln!("Base64 decode error for evidence preview: {}", e);
+            StatusCode::UNPROCESSABLE_ENTITY
+        })?;
+
+    let filename = evidence.original_name.unwrap_or(evidence.filename);
+
+    let response = axum::response::Response::builder()
+        .header(axum::http::header::CONTENT_TYPE, &mime_type)
+        .header(
+            axum::http::header::CONTENT_DISPOSITION,
+            format!("inline; filename=\"{}\"", filename),
+        )
+        .body(axum::body::Body::from(bytes))
+        .map_err(|e| {
+            eprintln!("Failed to build preview response: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(response)
 }
 
 // ==================== SITE ISSUE HANDLERS ====================

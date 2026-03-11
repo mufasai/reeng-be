@@ -676,11 +676,11 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"permit_process\",\n  \"notes\": \"Dokumen perizinan sedang diproses ke warga/RT/RW\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
+                  "raw": "{\n  \"stage\": \"permit_process\",\n  \"permit_date\": \"2026-03-11\",\n  \"notes\": \"Dokumen perizinan sedang diproses ke warga/RT/RW\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Perizinan sedang berjalan (belum ada dokumen izin)."
+                "description": "Perizinan sedang berjalan. WAJIB: permit_date (Tanggal Buat Permit, format YYYY-MM-DD)."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_process', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_process'); });"], "type": "text/javascript" } }],
               "response": []
@@ -692,27 +692,27 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"permit_ready\",\n  \"notes\": \"Surat izin sudah ditandatangani warga\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
+                  "raw": "{\n  \"stage\": \"permit_ready\",\n  \"tpas_approved\": true,\n  \"tp_approved\": true,\n  \"caf_approved\": false,\n  \"tgl_berlaku_permit_tpas\": \"2026-03-11\",\n  \"tgl_berakhir_permit_tpas\": \"2027-03-11\",\n  \"notes\": \"Semua approval selesai, izin TPAS sudah ditandatangani\",\n  \"changed_by\": \"Tim Perizinan\",\n  \"evidence_urls\": []\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Izin sudah selesai, siap proses akses material."
+                "description": "Izin siap. WAJIB: tpas_approved=true, tp_approved=true. Optional: caf_approved (jika TP sewa pihak lain), tgl_berlaku_permit_tpas, tgl_berakhir_permit_tpas."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_ready', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_ready'); });"], "type": "text/javascript" } }],
               "response": []
             },
             {
-              "name": "Stage 05 - akses_process (Proses Akses Material)",
+              "name": "Stage 05 - akses_process (Proses Akses Tower)",
               "request": {
                 "method": "POST",
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"akses_process\",\n  \"notes\": \"SKP sudah dibuat, menunggu material dikeluarkan gudang\",\n  \"changed_by\": \"Tim Gudang\"\n}",
+                  "raw": "{\n  \"stage\": \"akses_process\",\n  \"tower_provider\": \"STP\",\n  \"jenis_kunci\": \"SMARTLOCK\",\n  \"pic_akses_nama\": \"John Doe\",\n  \"pic_akses_telp\": \"081234567890\",\n  \"notes\": \"Informasi akses tower diisi untuk tim lapangan\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Proses pengambilan material/akses sedang berjalan."
+                "description": "Proses akses tower. WAJIB: tower_provider (MITRATEL|STP|PTI|DMT|Lainnya), jenis_kunci (PADLOCK|SMARTLOCK|QUADLOCK). Optional: pic_akses_nama, pic_akses_telp."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = akses_process', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('akses_process'); });"], "type": "text/javascript" } }],
               "response": []
@@ -740,11 +740,11 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"implementasi\",\n  \"notes\": \"Pekerjaan lapangan dimulai\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_cico_done\": false,\n  \"impl_rfs_done\": false,\n  \"impl_dokumen_done\": false,\n  \"ineom_registered\": false\n}",
+                  "raw": "{\n  \"stage\": \"implementasi\",\n  \"tgl_rencana_implementasi\": \"2026-03-12\",\n  \"tgl_aktual_mulai\": \"2026-03-11\",\n  \"jam_checkin\": \"2026-03-11T08:00:00\",\n  \"notes\": \"Pekerjaan lapangan dimulai\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_cico_done\": false,\n  \"impl_rfs_done\": false,\n  \"impl_dokumen_done\": false,\n  \"ineom_registered\": false\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Implementasi fisik pekerjaan dimulai. Field impl_cico_done, impl_rfs_done, impl_dokumen_done, ineom_registered diisi sesuai progress."
+                "description": "Implementasi fisik dimulai. WAJIB: tgl_rencana_implementasi. Optional: tgl_aktual_mulai, jam_checkin (datetime CI). Field progress: impl_cico_done, impl_rfs_done, impl_dokumen_done, ineom_registered."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = implementasi', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('implementasi'); });"], "type": "text/javascript" } }],
               "response": []
@@ -756,11 +756,11 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"rfi_done\",\n  \"notes\": \"Request For Inspection sudah dilakukan, menunggu sign off\",\n  \"changed_by\": \"Tim Lapangan\"\n}",
+                  "raw": "{\n  \"stage\": \"rfi_done\",\n  \"jam_checkout\": \"2026-03-11T17:00:00\",\n  \"notes\": \"Radio Frequency Inspection selesai, CI/CO sudah lengkap\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_cico_done\": true\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "RFI (Request For Inspection) sudah dilakukan."
+                "description": "RFI (Radio Frequency Inspection) selesai. WAJIB: jam_checkout (datetime CO). Set impl_cico_done=true setelah CI/CO complete."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = rfi_done', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('rfi_done'); });"], "type": "text/javascript" } }],
               "response": []
@@ -1237,6 +1237,65 @@
               },
               "response": []
             },
+            {
+              "name": "Get Evidence by ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/site-evidence/{{evidence_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["site-evidence", "{{evidence_id}}"]
+                },
+                "description": "Ambil metadata satu record evidence berdasarkan ID. Response berisi JSON dengan field: id, site_id, filename, original_name, file_url (data URL base64), mime_type, file_size, progress_tag, stage_context, uploaded_by, uploaded_at."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Evidence data returned', () => {",
+                      "  const j = pm.response.json();",
+                      "  pm.expect(j.success).to.be.true;",
+                      "  pm.expect(j.data).to.be.an('object');",
+                      "  pm.expect(j.data.id).to.exist;",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            },
+            {
+              "name": "Preview Evidence (Binary)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/site-evidence/{{evidence_id}}/preview",
+                  "host": ["{{base_url}}"],
+                  "path": ["site-evidence", "{{evidence_id}}", "preview"]
+                },
+                "description": "Ambil konten biner evidence untuk ditampilkan di browser. Server mendecode base64 data URL yang tersimpan di DB dan mengembalikan bytes mentah dengan header Content-Type yang sesuai (misal: image/jpeg, application/pdf). Gunakan URL ini sebagai src pada tag <img> atau <iframe> untuk preview langsung di frontend."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Content-Type header present', () => {",
+                      "  pm.expect(pm.response.headers.get('Content-Type')).to.exist;",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "response": []
+            }
             {
               "name": "Site Issue - UPDATE 11 MARET",
               "description": "Issue/Blocker management per site. Tindakan: 'tahan' (hold, status=open) atau 'eskalasi' (status=escalated). Setelah masalah selesai, gunakan endpoint Resolve.",
@@ -2249,7 +2308,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"nomor_rekening_tujuan\": \"BCA 1234567890 an. PT Mitra\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -2275,7 +2334,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"nomor_rekening_tujuan\": \"BCA 1234567890 an. PT Mitra\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/termins",

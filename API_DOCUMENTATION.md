@@ -6,6 +6,40 @@
 
 ## 📋 Changelog
 
+### v2.2.0 (2026-03-11)
+**🎯 Stage-Specific Fields & Termin Rekening Tujuan**
+
+**POST `/sites/:id/stage` — Stage-Specific Required Fields per Transisi:**
+
+| Stage Target | Field Baru | Keterangan |
+|---|---|---|
+| `permit_ready` | `tpas_approved` (bool, **wajib**) | TPAS harus sudah approve |
+| `permit_ready` | `tp_approved` (bool, **wajib**) | TP harus sudah approve |
+| `permit_ready` | `caf_approved` (bool, opsional) | CAF approval (jika TP sewa pihak lain) |
+| `permit_ready` | `tgl_berlaku_permit_tpas` (string, opsional) | Tanggal berlaku permit TPAS |
+| `permit_ready` | `tgl_berakhir_permit_tpas` (string, opsional) | Tanggal berakhir permit TPAS |
+| `akses_process` | `tower_provider` (string, **wajib**) | MITRATEL \| STP \| PTI \| DMT \| Lainnya |
+| `akses_process` | `jenis_kunci` (string, **wajib**) | PADLOCK \| SMARTLOCK \| QUADLOCK |
+| `akses_process` | `pic_akses_nama` (string, opsional) | Nama PIC akses |
+| `akses_process` | `pic_akses_telp` (string, opsional) | No. Telp PIC akses |
+| `implementasi` | `tgl_rencana_implementasi` (string, **wajib**) | Tanggal rencana implementasi |
+| `implementasi` | `tgl_aktual_mulai` (string, opsional) | Tanggal aktual mulai kerja |
+| `implementasi` | `jam_checkin` (string, opsional) | Datetime jam check-in (CI) |
+| `rfi_done` | `jam_checkout` (string, **wajib**) | Datetime jam check-out (CO) |
+
+- ✅ **VALIDATION:** Field wajib per stage divalidasi — request ditolak jika kosong
+- ✅ **STORAGE:** Data stage-specific disimpan di record `sites` (field baru pada tabel)
+- 🔧 **Updated Model:** `UpdateSiteStageRequest` + `Site` struct diperluas dengan semua field baru
+
+**POST `/termins` — Field Baru:**
+- ✅ `nomor_rekening_tujuan` (string, opsional) — Nomor rekening tujuan pengajuan (contoh: "BCA 1234567890 an. PT Mitra")
+- 🔧 **Updated Models:** `Termin`, `CreateTerminRequest`, `TerminWithSiteInfo`
+
+**🏗️ Stage Fields on `sites` table (lengkap setelah v2.2):**
+`stage`, `stage_updated_at`, `stage_notes`, `permit_date`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`, `tpas_approved`, `tp_approved`, `caf_approved`, `tgl_berlaku_permit_tpas`, `tgl_berakhir_permit_tpas`, `tower_provider`, `jenis_kunci`, `pic_akses_nama`, `pic_akses_telp`, `tgl_rencana_implementasi`, `tgl_aktual_mulai`, `jam_checkin`, `jam_checkout`
+
+---
+
 ### v2.1.0 (2026-03-11)
 **🚨 Site Issue / Blocker Management**
 - ✅ **NEW ENDPOINT:** `POST /sites/:id/issues` — Laporkan issue/blocker di stage saat ini
@@ -39,7 +73,7 @@
 - ✅ **NEW ENDPOINT:** `DELETE /site-evidence/:evidence_id` — Hapus foto lapangan
 - 🗄️ **NEW TABLES:** `site_stage_log`, `site_boq`, `skp`, `site_evidence` — semua terverifikasi di SurrealDB
 - 📚 **New Models:** `SiteBoq`, `Skp`, `SiteEvidence` + semua request/response struct
-- 🏗️ **Stage Fields on `sites` table:** `stage` (DEFAULT 'imported'), `stage_updated_at`, `stage_notes`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`
+- 🏗️ **Stage Fields on `sites` table:** `stage` (DEFAULT 'imported'), `stage_updated_at`, `stage_notes`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered` *(diperluas di v2.2 — lihat changelog v2.2)*
 
 ### v1.9.0 (2026-03-06)
 **👥 Tim Struktur - Site Team Structure Management**
@@ -1387,6 +1421,7 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
   "termin_ke": 1,
   "percentage": 25,
   "keterangan": "Pengajuan termin ke-1",
+  "nomor_rekening_tujuan": "BCA 1234567890 an. PT Mitra",
   "submitted_by": "Budi Santoso"
 }
 ```
@@ -1401,6 +1436,7 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 - `percentage` (integer, **REQUIRED**): Persentase dari maximal_budget - **WAJIB sesuai pola: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%**
 - `status` (string, optional): Status termin (default: "draft")
 - `keterangan` (string, optional): Keterangan tambahan
+- `nomor_rekening_tujuan` (string, optional): Nomor rekening tujuan pengajuan, contoh: "BCA 1234567890 an. PT Mitra"
 - `submitted_by` (string, optional): Nama pengaju. Jika diisi, termin langsung berstatus "pending_review"
 
 **🔒 VALIDASI KETAT (Business Rules):**
@@ -2146,25 +2182,45 @@ rfi_done → rfs_done → dokumen_done → bast → invoice → completed
 |---|---|---|
 | 01 | `imported` | Data site baru diimport, belum diproses |
 | 02 | `assigned` | Tim lapangan sudah ditugaskan ke site |
-| 03 | `permit_process` | Proses perizinan ke warga/RT/RW sedang berjalan |
-| 04 | `permit_ready` | Dokumen izin sudah selesai dan ditandatangani |
-| 05 | `akses_process` | SKP dibuat, menunggu material dikeluarkan gudang |
-| 06 | `akses_ready` | Material sudah diterima tim lapangan di lokasi |
-| 07 | `implementasi` | Pekerjaan fisik lapangan sedang berlangsung |
-| 08 | `rfi_done` | Request For Inspection sudah dilakukan |
+| 03 | `permit_process` | Proses perizinan ke warga/RT/RW sedang berjalan — **WAJIB: `permit_date`** |
+| 04 | `permit_ready` | Dokumen izin sudah selesai — **WAJIB: `tpas_approved=true`, `tp_approved=true`** |
+| 05 | `akses_process` | Akses tower sedang diproses — **WAJIB: `tower_provider`, `jenis_kunci`** |
+| 06 | `akses_ready` | Akses tower sudah siap eksekusi |
+| 07 | `implementasi` | Pekerjaan fisik lapangan dimulai — **WAJIB: `tgl_rencana_implementasi`** |
+| 08 | `rfi_done` | Radio Frequency Inspection selesai — **WAJIB: `jam_checkout`** |
 | 09 | `rfs_done` | Ready For Service dikonfirmasi, layanan siap aktif |
-| 10 | `dokumen_done` | As-built drawing & seluruh dokumen sudah lengkap |
+| 10 | `dokumen_done` | As-built drawing & seluruh dokumen sudah diserahkan |
 | 11 | `bast` | Berita Acara Serah Terima sudah ditandatangani |
 | 12 | `invoice` | Invoice sudah diajukan ke finance client |
 | 13 | `completed` | Seluruh pekerjaan dan administrasi selesai |
 
-**Request Body:**
+**Request Body (lengkap dengan semua field):**
 ```json
 {
-  "stage": "implementasi",
-  "notes": "Implementasi dimulai hari ini",
-  "changed_by": "Budi Santoso",
-  "evidence_urls": ["https://storage.example.com/foto1.jpg"],
+  "stage": "permit_ready",
+  "notes": "Semua approval selesai",
+  "changed_by": "Tim Perizinan",
+  "evidence_urls": ["https://storage.example.com/dokumen-tpas.pdf"],
+
+  "permit_date": "2026-03-11",
+
+  "tpas_approved": true,
+  "tp_approved": true,
+  "caf_approved": false,
+  "tgl_berlaku_permit_tpas": "2026-03-11",
+  "tgl_berakhir_permit_tpas": "2027-03-11",
+
+  "tower_provider": "STP",
+  "jenis_kunci": "SMARTLOCK",
+  "pic_akses_nama": "John Doe",
+  "pic_akses_telp": "081234567890",
+
+  "tgl_rencana_implementasi": "2026-03-12",
+  "tgl_aktual_mulai": "2026-03-11",
+  "jam_checkin": "2026-03-11T08:00:00",
+
+  "jam_checkout": "2026-03-11T17:00:00",
+
   "impl_cico_done": false,
   "impl_rfs_done": false,
   "impl_dokumen_done": false,
@@ -2173,11 +2229,25 @@ rfi_done → rfs_done → dokumen_done → bast → invoice → completed
 ```
 
 **Field Definitions:**
-- `stage` (string, required): Target stage baru (harus salah satu dari 13 stage valid)
+- `stage` (string, **required**): Target stage baru (harus salah satu dari 13 stage valid)
 - `notes` (string, optional): Catatan perubahan stage
 - `changed_by` (string, optional): Nama/ID user yang mengubah (default: "system")
-- `evidence_urls` (array string, optional): URL foto/dokumen pendukung
-- `impl_cico_done` (boolean, optional): Cico sudah selesai (relevan saat stage implementasi)
+- `evidence_urls` (array string, optional): URL foto/dokumen pendukung yang diupload
+- `permit_date` (string, **required** saat stage=`permit_process`): Tanggal buat permit (YYYY-MM-DD)
+- `tpas_approved` (boolean, **required** saat stage=`permit_ready`): TPAS sudah approve
+- `tp_approved` (boolean, **required** saat stage=`permit_ready`): TP sudah approve
+- `caf_approved` (boolean, optional): CAF approved (jika TP sewa pihak lain)
+- `tgl_berlaku_permit_tpas` (string, optional): Tanggal berlaku permit TPAS (YYYY-MM-DD)
+- `tgl_berakhir_permit_tpas` (string, optional): Tanggal berakhir permit TPAS (YYYY-MM-DD)
+- `tower_provider` (string, **required** saat stage=`akses_process`): Provider tower — `MITRATEL` \| `STP` \| `PTI` \| `DMT` \| `Lainnya`
+- `jenis_kunci` (string, **required** saat stage=`akses_process`): Jenis kunci — `PADLOCK` \| `SMARTLOCK` \| `QUADLOCK`
+- `pic_akses_nama` (string, optional): Nama PIC akses tower
+- `pic_akses_telp` (string, optional): Nomor telepon PIC akses
+- `tgl_rencana_implementasi` (string, **required** saat stage=`implementasi`): Tanggal rencana implementasi (YYYY-MM-DD)
+- `tgl_aktual_mulai` (string, optional): Tanggal aktual mulai kerja (YYYY-MM-DD)
+- `jam_checkin` (string, optional): Datetime jam check-in/CI (format: `YYYY-MM-DDTHH:MM:SS`)
+- `jam_checkout` (string, **required** saat stage=`rfi_done`): Datetime jam check-out/CO (format: `YYYY-MM-DDTHH:MM:SS`)
+- `impl_cico_done` (boolean, optional): CI/CO sudah selesai
 - `impl_rfs_done` (boolean, optional): RFS sudah selesai
 - `impl_dokumen_done` (boolean, optional): Dokumen implementasi sudah selesai
 - `ineom_registered` (boolean, optional): iNeOM sudah didaftarkan
