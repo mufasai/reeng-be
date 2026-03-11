@@ -19,11 +19,9 @@ Backend API untuk Reengineering Tracking Tool dengan sistem manajemen Project, S
 
 ```
 reengineering-tool-be/
-├── Cargo.toml                          # Rust dependencies (+calamine for Excel)
-├── .env                                # Environment variables (SurrealDB config)
-├── README.md                           # This file
-├── API_DOCUMENTATION.md                # Complete API documentation
-├── SmartElco_API_Collection.postman_collection.json  # Postman collection
+├── Cargo.toml                 # Rust dependencies
+├── .env                       # Environment variables
+├── README.md                  # This file
 └── src/
     ├── main.rs                         # Main application & router setup
     ├── models.rs                       # Data models & structs (15+ models)
