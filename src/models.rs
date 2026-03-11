@@ -1046,6 +1046,49 @@ pub struct CreateSiteEvidenceRequest {
     pub uploaded_by: String,
 }
 
+// ==================== SITE ISSUE MODELS ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SiteIssue {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    /// Stage saat issue dilaporkan
+    pub stage_at_report: String,
+    pub keterangan: String,
+    /// 'tahan' | 'eskalasi'
+    pub tindakan: String,
+    /// 'open' | 'resolved' | 'escalated'
+    pub status: Option<String>,
+    pub reported_by: Option<String>,
+    pub evidence_urls: Option<Vec<String>>,
+    pub resolved_by: Option<String>,
+    pub resolved_notes: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSiteIssueRequest {
+    pub stage_at_report: String,
+    pub keterangan: String,
+    /// 'tahan' | 'eskalasi'
+    pub tindakan: String,
+    pub reported_by: Option<String>,
+    pub evidence_urls: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResolveSiteIssueRequest {
+    pub resolved_by: String,
+    pub resolved_notes: Option<String>,
+}
+
 // ==================== RESPONSE WRAPPER ====================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

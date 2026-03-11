@@ -6,6 +6,18 @@
 
 ## 📋 Changelog
 
+### v2.1.0 (2026-03-11)
+**🚨 Site Issue / Blocker Management**
+- ✅ **NEW ENDPOINT:** `POST /sites/:id/issues` — Laporkan issue/blocker di stage saat ini
+  - Tindakan `tahan`: hold di stage, status `open`
+  - Tindakan `eskalasi`: eskalasi ke management, status `escalated`
+- ✅ **NEW ENDPOINT:** `GET /sites/:id/issues` — List semua issue per site
+- ✅ **NEW ENDPOINT:** `GET /site-issues/:issue_id` — Detail satu issue
+- ✅ **NEW ENDPOINT:** `POST /site-issues/:issue_id/resolve` — Resolve/selesaikan issue (status → `resolved`)
+- ✅ **NEW ENDPOINT:** `DELETE /site-issues/:issue_id` — Hapus issue
+- ✅ **NEW ENDPOINT:** `GET /api/sites/:id` — Get detail site by ID
+- 🗄️ **NEW TABLE:** `site_issue` — menyimpan keterangan, tindakan, status, evidence, resolved info
+
 ### v2.0.0 (2026-03-10)
 **📍 Site Progress Tracking — Stage, BOQ, SKP & Evidence**
 - ✅ **NEW ENDPOINT:** `POST /sites/:id/stage` — Update stage/progress site + catat audit log otomatis
@@ -2563,7 +2575,154 @@ done
 
 ---
 
-## 📊 Site Stage Reference
+## � Site Issue / Blocker API
+
+> **Konsep:** Ketika ada masalah/blocker yang menghambat progress site, tim dapat melaporkannya.
+> Ada dua jenis tindakan:
+> - **Tahan di stage ini** (`tahan`): issue dicatat, site tetap di stage saat ini, status `open`.
+> - **Eskalasi ke management** (`eskalasi`): issue dieskalasi, status langsung `escalated`.
+> Issue dapat di-resolve setelah masalah diselesaikan.
+
+### List Issues by Site
+**GET** `/sites/:site_id/issues`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "site_issue:abc123",
+      "site_id": "sites:73tnam...",
+      "stage_at_report": "implementasi",
+      "keterangan": "Material tidak sesuai spesifikasi kontrak",
+      "tindakan": "tahan",
+      "status": "open",
+      "reported_by": "Budi Santoso",
+      "evidence_urls": ["https://cdn.example.com/bukti.jpg"],
+      "resolved_by": null,
+      "resolved_notes": null,
+      "resolved_at": null,
+      "created_at": "2026-03-11T05:31:00Z",
+      "updated_at": "2026-03-11T05:31:00Z"
+    }
+  ],
+  "message": null
+}
+```
+
+---
+
+### Create / Laporkan Issue
+**POST** `/sites/:site_id/issues`
+
+**Request Body:**
+```json
+{
+  "stage_at_report": "implementasi",
+  "keterangan": "Material tidak sesuai spesifikasi kontrak",
+  "tindakan": "tahan",
+  "reported_by": "Budi Santoso",
+  "evidence_urls": ["https://cdn.example.com/bukti.jpg"]
+}
+```
+
+**Field Definitions:**
+- `stage_at_report` (string, required): Stage saat issue dilaporkan
+- `keterangan` (string, required): Deskripsi masalah secara detail
+- `tindakan` (string, required): `"tahan"` atau `"eskalasi"`
+- `reported_by` (string, optional): Nama pelapor
+- `evidence_urls` (array string, optional): URL foto/dokumen bukti issue
+
+**Response (200 OK) — tindakan: tahan:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "site_issue:abc123",
+    "stage_at_report": "implementasi",
+    "tindakan": "tahan",
+    "status": "open",
+    ...
+  },
+  "message": "Issue dilaporkan. Tindakan: tahan"
+}
+```
+
+**Response (200 OK) — tindakan: eskalasi:**
+```json
+{
+  "success": true,
+  "data": {
+    "tindakan": "eskalasi",
+    "status": "escalated",
+    ...
+  },
+  "message": "Issue dilaporkan. Tindakan: eskalasi"
+}
+```
+
+**Response (Error — tindakan tidak valid):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Tindakan harus 'tahan' atau 'eskalasi'"
+}
+```
+
+---
+
+### Get Issue by ID
+**GET** `/site-issues/:issue_id`
+
+**Response:** SiteIssue object lengkap (sama seperti item dalam list).
+
+---
+
+### Resolve Issue
+**POST** `/site-issues/:issue_id/resolve`
+
+**Request Body:**
+```json
+{
+  "resolved_by": "Supervisor Tim",
+  "resolved_notes": "Material sudah diganti sesuai spesifikasi"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "resolved",
+    "resolved_by": "Supervisor Tim",
+    "resolved_notes": "Material sudah diganti sesuai spesifikasi",
+    "resolved_at": "2026-03-11T07:00:00Z",
+    ...
+  },
+  "message": "Issue berhasil di-resolve"
+}
+```
+
+---
+
+### Delete Issue
+**DELETE** `/site-issues/:issue_id`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": null,
+  "message": "Issue berhasil dihapus"
+}
+```
+
+---
+
+## �📊 Site Stage Reference
 
 | Stage | UI Step | Deskripsi |
 |---|---|---|
@@ -2584,4 +2743,4 @@ done
 ---
 
 **🚀 Server:** `http://localhost:3001`  
-**📅 Last Updated:** March 10, 2026
+**📅 Last Updated:** March 11, 2026

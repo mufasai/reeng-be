@@ -9,6 +9,7 @@ use crate::models::{
     SiteBoq, CreateSiteBoqRequest, UpdateSiteBoqRequest,
     Skp, CreateSkpRequest, UpdateSkpRequest,
     SiteEvidence, CreateSiteEvidenceRequest,
+    SiteIssue, CreateSiteIssueRequest, ResolveSiteIssueRequest,
 };
 use crate::state::AppState;
 
@@ -1419,5 +1420,203 @@ pub async fn delete_site_evidence(
         success: true,
         data: None,
         message: Some("Evidence deleted successfully".to_string()),
+    }))
+}
+
+// ==================== SITE ISSUE HANDLERS ====================
+
+/// GET /api/sites/:site_id/issues
+pub async fn list_site_issues(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<SiteIssue>>>, StatusCode> {
+    let site_thing = Thing::try_from(site_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM site_issue WHERE site_id = $site_id ORDER BY created_at DESC")
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error listing site issues: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let issues: Vec<SiteIssue> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(issues),
+        message: None,
+    }))
+}
+
+/// POST /api/sites/:site_id/issues
+pub async fn create_site_issue(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    Json(req): Json<CreateSiteIssueRequest>,
+) -> Result<Json<ApiResponse<SiteIssue>>, StatusCode> {
+    let site_thing = Thing::try_from(site_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Validate tindakan value
+    if req.tindakan != "tahan" && req.tindakan != "eskalasi" {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Tindakan harus 'tahan' atau 'eskalasi'".to_string()),
+        }));
+    }
+
+    let initial_status = if req.tindakan == "eskalasi" { "escalated" } else { "open" };
+
+    let query = "CREATE site_issue SET \
+        site_id = $site_id, \
+        stage_at_report = $stage_at_report, \
+        keterangan = $keterangan, \
+        tindakan = $tindakan, \
+        status = $status, \
+        reported_by = $reported_by, \
+        evidence_urls = $evidence_urls, \
+        created_at = time::now(), \
+        updated_at = time::now()";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .bind(("stage_at_report", req.stage_at_report.clone()))
+        .bind(("keterangan", req.keterangan.clone()))
+        .bind(("tindakan", req.tindakan.clone()))
+        .bind(("status", initial_status.to_string()))
+        .bind(("reported_by", req.reported_by.clone()))
+        .bind(("evidence_urls", req.evidence_urls.clone().unwrap_or_default()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error creating site issue: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut issues: Vec<SiteIssue> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    match issues.pop() {
+        Some(issue) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(issue),
+            message: Some(format!("Issue dilaporkan. Tindakan: {}", req.tindakan)),
+        })),
+        None => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+/// GET /api/site-issues/:issue_id
+pub async fn get_site_issue(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(issue_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<SiteIssue>>, StatusCode> {
+    let issue_thing = Thing::try_from(issue_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM type::thing($issue_id)")
+        .bind(("issue_id", issue_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site issue: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut issues: Vec<SiteIssue> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    match issues.pop() {
+        Some(issue) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(issue),
+            message: None,
+        })),
+        None => Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Issue tidak ditemukan".to_string()),
+        })),
+    }
+}
+
+/// POST /api/site-issues/:issue_id/resolve
+pub async fn resolve_site_issue(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(issue_id): axum::extract::Path<String>,
+    Json(req): Json<ResolveSiteIssueRequest>,
+) -> Result<Json<ApiResponse<SiteIssue>>, StatusCode> {
+    let issue_thing = Thing::try_from(issue_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let query = "UPDATE type::thing($issue_id) SET \
+        status = 'resolved', \
+        resolved_by = $resolved_by, \
+        resolved_notes = $resolved_notes, \
+        resolved_at = time::now(), \
+        updated_at = time::now()";
+
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("issue_id", issue_thing))
+        .bind(("resolved_by", req.resolved_by.clone()))
+        .bind(("resolved_notes", req.resolved_notes.clone()))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error resolving site issue: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut issues: Vec<SiteIssue> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    match issues.pop() {
+        Some(issue) => Ok(Json(ApiResponse {
+            success: true,
+            data: Some(issue),
+            message: Some("Issue berhasil di-resolve".to_string()),
+        })),
+        None => Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Issue tidak ditemukan".to_string()),
+        })),
+    }
+}
+
+/// DELETE /api/site-issues/:issue_id
+pub async fn delete_site_issue(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(issue_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let issue_thing = Thing::try_from(issue_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    state
+        .db
+        .query("DELETE type::thing($issue_id)")
+        .bind(("issue_id", issue_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error deleting site issue: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: None,
+        message: Some("Issue berhasil dihapus".to_string()),
     }))
 }
