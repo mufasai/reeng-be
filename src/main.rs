@@ -63,6 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites", post(site::create_site))
         .route("/api/sites", get(site::list_sites))
         .route("/api/sites/project/:project_id", get(site::get_sites_by_project))
+        .route("/api/sites/:id", get(site::get_site_by_id))
         .route("/api/sites/:id", put(site::update_site))
         .route("/api/sites/:id", delete(site::delete_site))
         // Site Tim Struktur routes

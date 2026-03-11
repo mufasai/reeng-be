@@ -791,6 +791,58 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 }
 ```
 
+### Get Site by ID
+**GET** `/sites/:id`
+
+**Path Parameters:**
+- `id`: ID site (format: `sites:xxx` — dengan prefix tabel)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "sites:73tnamhln5s1oehr2om2",
+    "project_id": "projects:b7v5e43bvtpwyipxlemg",
+    "site_name": "Site Menteng",
+    "site_info": "Area Menteng...",
+    "pekerjaan": "Instalasi Fiber to Home",
+    "lokasi": "Menteng, Jakarta Pusat",
+    "latitude": "-6.197500",
+    "longitude": "106.832000",
+    "nomor_kontrak": "KTR/2026/001",
+    "start": "2026-03-15",
+    "end": "2026-07-15",
+    "maximal_budget": 500000000,
+    "cost_estimated": 450000000,
+    "pemberi_tugas": "PT Telkom Indonesia",
+    "penerima_tugas": "PT SmartElco Solutions",
+    "stage": "implementasi",
+    "stage_updated_at": "2026-03-10T07:00:00Z",
+    "stage_notes": "Pekerjaan dimulai",
+    "impl_cico_done": false,
+    "impl_rfs_done": false,
+    "impl_dokumen_done": false,
+    "ineom_registered": false,
+    "site_document": null,
+    "created_at": "2026-02-20T09:39:14Z",
+    "updated_at": "2026-03-10T07:00:00Z"
+  },
+  "message": null
+}
+```
+
+**Response (Site Tidak Ditemukan):**
+```json
+{
+  "success": false,
+  "data": null,
+  "message": "Site tidak ditemukan"
+}
+```
+
+---
+
 ### Get Sites by Project
 **GET** `/sites/project/:project_id`
 

@@ -190,6 +190,46 @@ pub async fn get_sites_by_project(
     }))
 }
 
+/// GET /api/sites/:id
+pub async fn get_site_by_id(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Site>>, StatusCode> {
+    let site_thing = Thing::try_from(site_id.as_str()).map_err(|_| {
+        // coba prefix bila tidak ada kolon
+        StatusCode::BAD_REQUEST
+    })?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM type::thing($site_id)")
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site by id: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut sites: Vec<Site> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    if sites.is_empty() {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Site tidak ditemukan".to_string()),
+        }));
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(sites.remove(0)),
+        message: None,
+    }))
+}
+
 // Helper function to parse "table:id" string into Thing
 fn parse_thing_id(id_str: &str) -> Result<Thing, StatusCode> {
     // Use from_string to parse Thing from "table:id" format
