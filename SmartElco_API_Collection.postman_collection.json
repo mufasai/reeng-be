@@ -1165,20 +1165,42 @@
               "name": "Create Evidence",
               "request": {
                 "method": "POST",
-                "header": [
-                  { "key": "Content-Type", "value": "application/json" }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"filename\": \"foto_implementasi_001.jpg\",\n  \"original_name\": \"IMG_20260310_070000.jpg\",\n  \"file_url\": \"https://storage.example.com/foto_implementasi_001.jpg\",\n  \"mime_type\": \"image/jpeg\",\n  \"file_size\": 1048576,\n  \"progress_tag\": \"implementasi\",\n  \"stage_context\": \"Pemasangan tiang ODC area Menteng\",\n  \"uploaded_by\": \"Budi Santoso\"\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "File gambar/dokumen lapangan (jpg, png, pdf, dll)"
+                    },
+                    {
+                      "key": "progress_tag",
+                      "value": "implementasi",
+                      "type": "text",
+                      "description": "Tag progress: survei | implementasi | commissioning | serah_terima"
+                    },
+                    {
+                      "key": "stage_context",
+                      "value": "Pemasangan tiang ODC area Menteng",
+                      "type": "text",
+                      "description": "Keterangan konteks stage (opsional)"
+                    },
+                    {
+                      "key": "uploaded_by",
+                      "value": "Budi Santoso",
+                      "type": "text",
+                      "description": "Nama atau ID uploader (wajib)"
+                    }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/evidence",
                   "host": ["{{base_url}}"],
                   "path": ["sites", "{{site_id}}", "evidence"]
                 },
-                "description": "Upload metadata foto lapangan. File URL biasanya dari storage eksternal (S3, CDN, dll)."
+                "description": "Upload foto/dokumen lapangan sebagai multipart/form-data. File disimpan sebagai base64 data URL di database. Field wajib: file, progress_tag, uploaded_by. Field opsional: stage_context."
               },
               "event": [
                 {

@@ -1,4 +1,5 @@
-use axum::{extract::Json, http::StatusCode};
+use axum::{extract::{Json, Multipart}, http::StatusCode};
+use base64::Engine;
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 
@@ -8,7 +9,7 @@ use crate::models::{
     AddSiteTeamMemberRequest, UpdateSiteTeamMemberRequest, TeamMasterInfo,
     SiteBoq, CreateSiteBoqRequest, UpdateSiteBoqRequest,
     Skp, CreateSkpRequest, UpdateSkpRequest,
-    SiteEvidence, CreateSiteEvidenceRequest,
+    SiteEvidence,
     SiteIssue, CreateSiteIssueRequest, ResolveSiteIssueRequest,
 };
 use crate::state::AppState;
@@ -1344,18 +1345,78 @@ pub async fn list_site_evidence(
     }))
 }
 
-/// POST /api/sites/:site_id/evidence
+/// POST /api/sites/:site_id/evidence  (multipart/form-data)
+/// Form fields:
+///   - file         : binary (required) — gambar / dokumen
+///   - progress_tag : text   (required) — e.g. "implementasi"
+///   - stage_context: text   (optional) — keterangan tahap
+///   - uploaded_by  : text   (required) — nama / ID uploader
 pub async fn create_site_evidence(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<CreateSiteEvidenceRequest>,
+    mut multipart: Multipart,
 ) -> Result<Json<ApiResponse<SiteEvidence>>, StatusCode> {
     let site_thing = parse_thing_id(&site_id)?;
+
+    let mut file_data: Option<Vec<u8>> = None;
+    let mut file_name: Option<String> = None;
+    let mut file_content_type: Option<String> = None;
+    let mut progress_tag: Option<String> = None;
+    let mut stage_context: Option<String> = None;
+    let mut uploaded_by: Option<String> = None;
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        eprintln!("Multipart field error: {}", e);
+        StatusCode::BAD_REQUEST
+    })? {
+        match field.name().unwrap_or("") {
+            "file" => {
+                file_name = field.file_name().map(|s| s.to_string());
+                file_content_type = field.content_type().map(|s| s.to_string());
+                let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                file_data = Some(bytes.to_vec());
+            }
+            "progress_tag" => {
+                progress_tag = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
+            }
+            "stage_context" => {
+                stage_context = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
+            }
+            "uploaded_by" => {
+                uploaded_by = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
+            }
+            _ => {}
+        }
+    }
+
+    // Validate required fields
+    let file_bytes = file_data.ok_or_else(|| {
+        eprintln!("Missing required field: file");
+        StatusCode::BAD_REQUEST
+    })?;
+    let filename = file_name.ok_or_else(|| {
+        eprintln!("Missing file name from multipart");
+        StatusCode::BAD_REQUEST
+    })?;
+    let progress_tag_str = progress_tag.ok_or_else(|| {
+        eprintln!("Missing required field: progress_tag");
+        StatusCode::BAD_REQUEST
+    })?;
+    let uploaded_by_str = uploaded_by.ok_or_else(|| {
+        eprintln!("Missing required field: uploaded_by");
+        StatusCode::BAD_REQUEST
+    })?;
+    let mime_type = file_content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    let file_size = file_bytes.len() as i64;
+
+    // Encode file as base64 data URL for storage
+    let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+    let data_url = format!("data:{};base64,{}", mime_type, base64_data);
 
     let query = "CREATE site_evidence SET \
         site_id = $site_id, \
         filename = $filename, \
-        original_name = $original_name, \
+        original_name = $filename, \
         file_url = $file_url, \
         mime_type = $mime_type, \
         file_size = $file_size, \
@@ -1368,14 +1429,13 @@ pub async fn create_site_evidence(
         .db
         .query(query)
         .bind(("site_id", site_thing))
-        .bind(("filename", req.filename.clone()))
-        .bind(("original_name", req.original_name.clone()))
-        .bind(("file_url", req.file_url.clone()))
-        .bind(("mime_type", req.mime_type.clone()))
-        .bind(("file_size", req.file_size))
-        .bind(("progress_tag", req.progress_tag.clone()))
-        .bind(("stage_context", req.stage_context.clone()))
-        .bind(("uploaded_by", req.uploaded_by.clone()))
+        .bind(("filename", filename))
+        .bind(("file_url", data_url))
+        .bind(("mime_type", mime_type))
+        .bind(("file_size", file_size))
+        .bind(("progress_tag", progress_tag_str))
+        .bind(("stage_context", stage_context))
+        .bind(("uploaded_by", uploaded_by_str))
         .await
         .map_err(|e| {
             eprintln!("Database error creating site evidence: {}", e);
