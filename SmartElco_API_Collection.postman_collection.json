@@ -1278,7 +1278,7 @@
                   "host": ["{{base_url}}"],
                   "path": ["site-evidence", "{{evidence_id}}", "preview"]
                 },
-                "description": "Ambil konten biner evidence untuk ditampilkan di browser. Server mendecode base64 data URL yang tersimpan di DB dan mengembalikan bytes mentah dengan header Content-Type yang sesuai (misal: image/jpeg, application/pdf). Gunakan URL ini sebagai src pada tag <img> atau <iframe> untuk preview langsung di frontend."
+                "description": "Ambil konten biner evidence untuk ditampilkan di browser. Server mendecode base64 data URL dan mengembalikan bytes mentah dengan Content-Type yang tepat (image/jpeg, application/pdf, dsb) + Content-Disposition: inline.\n\n**PDF:** gunakan sebagai src di <iframe> atau <embed>\n**Gambar:** gunakan sebagai src di <img>\n\nMIME type otomatis terdeteksi dari ekstensi file saat upload jika browser tidak mengirim Content-Type yang benar."
               },
               "event": [
                 {
@@ -1287,7 +1287,13 @@
                     "exec": [
                       "pm.test('Status 200', () => pm.response.to.have.status(200));",
                       "pm.test('Content-Type header present', () => {",
-                      "  pm.expect(pm.response.headers.get('Content-Type')).to.exist;",
+                      "  const ct = pm.response.headers.get('Content-Type');",
+                      "  pm.expect(ct).to.exist;",
+                      "  console.log('Content-Type:', ct);",
+                      "});",
+                      "pm.test('Content-Disposition is inline', () => {",
+                      "  const cd = pm.response.headers.get('Content-Disposition');",
+                      "  pm.expect(cd).to.include('inline');",
                       "});"
                     ],
                     "type": "text/javascript"

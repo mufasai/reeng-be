@@ -1502,7 +1502,25 @@ pub async fn create_site_evidence(
         eprintln!("Missing required field: uploaded_by");
         StatusCode::BAD_REQUEST
     })?;
-    let mime_type = file_content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    // Detect MIME type from file extension if browser did not send Content-Type
+    let mime_type = file_content_type
+        .filter(|ct| ct != "application/octet-stream" && !ct.is_empty())
+        .unwrap_or_else(|| {
+            let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+            match ext.as_str() {
+                "pdf"  => "application/pdf",
+                "jpg" | "jpeg" => "image/jpeg",
+                "png"  => "image/png",
+                "gif"  => "image/gif",
+                "webp" => "image/webp",
+                "mp4"  => "video/mp4",
+                "mov"  => "video/quicktime",
+                "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "zip"  => "application/zip",
+                _      => "application/octet-stream",
+            }.to_string()
+        });
     let file_size = file_bytes.len() as i64;
 
     // Encode file as base64 data URL for storage
@@ -1767,7 +1785,23 @@ pub async fn create_site_permit_doc(
         return Err(StatusCode::UNPROCESSABLE_ENTITY);
     }
 
-    let mime_type = file_content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    // Detect MIME type from file extension if browser did not send Content-Type
+    let mime_type = file_content_type
+        .filter(|ct| ct != "application/octet-stream" && !ct.is_empty())
+        .unwrap_or_else(|| {
+            let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+            match ext.as_str() {
+                "pdf"  => "application/pdf",
+                "jpg" | "jpeg" => "image/jpeg",
+                "png"  => "image/png",
+                "gif"  => "image/gif",
+                "webp" => "image/webp",
+                "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "zip"  => "application/zip",
+                _      => "application/octet-stream",
+            }.to_string()
+        });
     let file_size = file_bytes.len() as i64;
     let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
     let data_url = format!("data:{};base64,{}", mime_type, base64_data);
