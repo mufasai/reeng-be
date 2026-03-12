@@ -9,6 +9,7 @@ use crate::models::{
     AddSiteTeamMemberRequest, UpdateSiteTeamMemberRequest, TeamMasterInfo,
     SiteBoq, CreateSiteBoqRequest, UpdateSiteBoqRequest,
     Skp, CreateSkpRequest, UpdateSkpRequest,
+    SitePermitDoc,
     SiteEvidence,
     SiteIssue, CreateSiteIssueRequest, ResolveSiteIssueRequest,
 };
@@ -1673,6 +1674,258 @@ pub async fn get_site_evidence_preview(
         })?;
 
     Ok(response)
+}
+
+// ==================== SITE PERMIT DOCUMENT HANDLERS ====================
+
+/// GET /api/sites/:site_id/permit-docs
+/// List semua dokumen izin yang sudah diupload untuk satu site.
+pub async fn list_site_permit_docs(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<SitePermitDoc>>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM site_permit_doc WHERE site_id = $site_id ORDER BY uploaded_at DESC")
+        .bind(("site_id", site_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error listing site permit docs: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SitePermitDoc> = response.take(0).map_err(|e| {
+        eprintln!("Parse error listing site permit docs: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse { success: true, data: Some(items), message: None }))
+}
+
+/// POST /api/sites/:site_id/permit-docs  (multipart/form-data)
+/// Form fields:
+///   - file        : binary (required)
+///   - doc_type    : text   (required) — "tpas" | "tp" | "caf" | "lainnya"
+///   - uploaded_by : text   (required)
+pub async fn create_site_permit_doc(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(site_id): axum::extract::Path<String>,
+    mut multipart: Multipart,
+) -> Result<Json<ApiResponse<SitePermitDoc>>, StatusCode> {
+    let site_thing = parse_thing_id(&site_id)?;
+
+    let mut file_data: Option<Vec<u8>> = None;
+    let mut file_name: Option<String> = None;
+    let mut file_content_type: Option<String> = None;
+    let mut doc_type: Option<String> = None;
+    let mut uploaded_by: Option<String> = None;
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        eprintln!("Multipart field error: {}", e);
+        StatusCode::BAD_REQUEST
+    })? {
+        match field.name().unwrap_or("") {
+            "file" => {
+                file_name = field.file_name().map(|s| s.to_string());
+                file_content_type = field.content_type().map(|s| s.to_string());
+                let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                file_data = Some(bytes.to_vec());
+            }
+            "doc_type" => {
+                doc_type = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
+            }
+            "uploaded_by" => {
+                uploaded_by = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
+            }
+            _ => {}
+        }
+    }
+
+    let file_bytes = file_data.ok_or_else(|| {
+        eprintln!("Missing required field: file");
+        StatusCode::BAD_REQUEST
+    })?;
+    let filename = file_name.ok_or_else(|| {
+        eprintln!("Missing file name from multipart");
+        StatusCode::BAD_REQUEST
+    })?;
+    let doc_type_str = doc_type.ok_or_else(|| {
+        eprintln!("Missing required field: doc_type");
+        StatusCode::BAD_REQUEST
+    })?;
+    let uploaded_by_str = uploaded_by.ok_or_else(|| {
+        eprintln!("Missing required field: uploaded_by");
+        StatusCode::BAD_REQUEST
+    })?;
+
+    // Validate doc_type value
+    let valid_doc_types = ["tpas", "tp", "caf", "lainnya"];
+    if !valid_doc_types.contains(&doc_type_str.as_str()) {
+        eprintln!("Invalid doc_type: {}", doc_type_str);
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    let mime_type = file_content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    let file_size = file_bytes.len() as i64;
+    let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+    let data_url = format!("data:{};base64,{}", mime_type, base64_data);
+
+    let query = "CREATE site_permit_doc SET \
+        site_id = $site_id, \
+        filename = $filename, \
+        original_name = $filename, \
+        file_url = $file_url, \
+        mime_type = $mime_type, \
+        file_size = $file_size, \
+        doc_type = $doc_type, \
+        uploaded_by = $uploaded_by, \
+        uploaded_at = time::now()";
+
+    let mut db_resp = state
+        .db
+        .query(query)
+        .bind(("site_id", site_thing))
+        .bind(("filename", filename))
+        .bind(("file_url", data_url))
+        .bind(("mime_type", mime_type))
+        .bind(("file_size", file_size))
+        .bind(("doc_type", doc_type_str))
+        .bind(("uploaded_by", uploaded_by_str))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error creating site permit doc: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SitePermitDoc> = db_resp.take(0).map_err(|e| {
+        eprintln!("Parse error creating site permit doc: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let item = items.into_iter().next().ok_or_else(|| {
+        eprintln!("No site permit doc returned after creation");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(item),
+        message: Some("Dokumen permit berhasil diupload".to_string()),
+    }))
+}
+
+/// GET /api/permit-docs/:doc_id
+/// Ambil metadata satu dokumen permit berdasarkan ID.
+pub async fn get_site_permit_doc_by_id(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(doc_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<SitePermitDoc>>, StatusCode> {
+    let doc_thing = parse_thing_id(&doc_id)?;
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM type::thing($doc_id)")
+        .bind(("doc_id", doc_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site permit doc by id: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SitePermitDoc> = response.take(0).map_err(|e| {
+        eprintln!("Parse error getting site permit doc by id: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let doc = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(ApiResponse { success: true, data: Some(doc), message: None }))
+}
+
+/// GET /api/permit-docs/:doc_id/preview
+/// Serve raw binary agar bisa dipreview langsung di browser.
+pub async fn get_site_permit_doc_preview(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(doc_id): axum::extract::Path<String>,
+) -> Result<axum::response::Response, StatusCode> {
+    let doc_thing = parse_thing_id(&doc_id)?;
+
+    let mut db_resp = state
+        .db
+        .query("SELECT * FROM type::thing($doc_id)")
+        .bind(("doc_id", doc_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error getting site permit doc preview: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let items: Vec<SitePermitDoc> = db_resp.take(0).map_err(|e| {
+        eprintln!("Parse error getting site permit doc preview: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    let doc = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
+
+    let data_url = doc.file_url.ok_or_else(|| {
+        eprintln!("Permit doc has no file_url");
+        StatusCode::NOT_FOUND
+    })?;
+
+    let after_data = data_url.strip_prefix("data:").ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
+    let semi_pos = after_data.find(';').ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
+    let mime_type = after_data[..semi_pos].to_string();
+    let b64_part = &after_data[semi_pos + 1..];
+    let b64_data = b64_part.strip_prefix("base64,").ok_or(StatusCode::UNPROCESSABLE_ENTITY)?;
+
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(b64_data)
+        .map_err(|e| {
+            eprintln!("Base64 decode error for permit doc preview: {}", e);
+            StatusCode::UNPROCESSABLE_ENTITY
+        })?;
+
+    let filename = doc.original_name.unwrap_or(doc.filename);
+
+    let response = axum::response::Response::builder()
+        .header(axum::http::header::CONTENT_TYPE, &mime_type)
+        .header(
+            axum::http::header::CONTENT_DISPOSITION,
+            format!("inline; filename=\"{}\"", filename),
+        )
+        .body(axum::body::Body::from(bytes))
+        .map_err(|e| {
+            eprintln!("Failed to build permit doc preview response: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(response)
+}
+
+/// DELETE /api/permit-docs/:doc_id
+pub async fn delete_site_permit_doc(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(doc_id): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<()>>, StatusCode> {
+    let doc_thing = parse_thing_id(&doc_id)?;
+
+    state
+        .db
+        .query("DELETE type::thing($doc_id)")
+        .bind(("doc_id", doc_thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error deleting site permit doc: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: None,
+        message: Some("Dokumen permit berhasil dihapus".to_string()),
+    }))
 }
 
 // ==================== SITE ISSUE HANDLERS ====================
