@@ -2603,7 +2603,6 @@ done
       "site_id": "sites:73tnamhln5s1oehr2om2",
       "filename": "foto_implementasi_001.jpg",
       "original_name": "IMG_20260310_070000.jpg",
-      "file_url": "https://storage.example.com/foto_implementasi_001.jpg",
       "mime_type": "image/jpeg",
       "file_size": 1048576,
       "progress_tag": "implementasi",
@@ -2615,44 +2614,67 @@ done
   "message": null
 }
 ```
+> ⚠️ **`file_url` tidak dikembalikan** di response list/get-by-id (base64 terlalu besar). Gunakan endpoint `/preview` untuk mendapatkan konten file.
 
 ---
 
-### Create Evidence (Upload Metadata)
+### Create Evidence (Upload File — Multipart)
 **POST** `/sites/:site_id/evidence`
 
-**Request Body:**
-```json
-{
-  "filename": "foto_implementasi_001.jpg",
-  "original_name": "IMG_20260310_070000.jpg",
-  "file_url": "https://storage.example.com/foto_implementasi_001.jpg",
-  "mime_type": "image/jpeg",
-  "file_size": 1048576,
-  "progress_tag": "implementasi",
-  "stage_context": "Pemasangan tiang ODC area Menteng",
-  "uploaded_by": "Budi Santoso"
-}
-```
+Gunakan `multipart/form-data` (bukan JSON). Server secara otomatis mendeteksi MIME type dari ekstensi file jika browser tidak mengirimkan `Content-Type` yang benar.
 
-**Field Definitions:**
-- `filename` (string, required): Nama file tersimpan
-- `original_name` (string, optional): Nama file asli dari device
-- `file_url` (string, optional): URL file di storage
-- `mime_type` (string, optional): Tipe MIME (image/jpeg, image/png, dll)
-- `file_size` (integer, optional): Ukuran file dalam bytes
-- `progress_tag` (string, required): Tag progress (contoh: `"implementasi"`, `"permit_process"`)
-- `stage_context` (string, optional): Deskripsi konteks/keterangan foto
-- `uploaded_by` (string, required): Nama/ID yang mengupload
+| Key | Type | Keterangan |
+|-----|------|------------|
+| `file` | **file** | File gambar/dokumen lapangan (JPG, PNG, PDF, dll) — **wajib** |
+| `progress_tag` | text | Tag progress: `survei` \| `implementasi` \| `commissioning` \| `serah_terima` — **wajib** |
+| `uploaded_by` | text | Nama/ID yang mengupload — **wajib** |
+| `stage_context` | text | Keterangan konteks foto (opsional) |
+
+**MIME type otomatis terdeteksi dari ekstensi:**
+- `.pdf` → `application/pdf`
+- `.jpg/.jpeg` → `image/jpeg`
+- `.png` → `image/png`
+- `.gif` → `image/gif`
+- `.webp` → `image/webp`
+- `.mp4` → `video/mp4`
+- `.docx/.xlsx/.zip` → sesuai standar
 
 **Response (200 OK):**
 ```json
 {
   "success": true,
-  "data": { /* SiteEvidence object */ },
+  "data": { /* SiteEvidence object (tanpa file_url) */ },
   "message": "Evidence uploaded successfully"
 }
 ```
+
+---
+
+### Preview Evidence (Binary)
+**GET** `/site-evidence/:evidence_id/preview`
+
+Mendecode base64 data URL yang tersimpan di DB dan mengembalikan bytes mentah dengan header yang tepat.
+
+**Response Headers:**
+- `Content-Type: image/jpeg` (atau `application/pdf`, dsb — sesuai file yang diupload)
+- `Content-Disposition: inline; filename="nama_file.jpg"`
+
+**Penggunaan di Frontend:**
+```html
+<!-- Gambar -->
+<img src="http://localhost:3000/api/site-evidence/abc123/preview" />
+
+<!-- PDF -->
+<iframe src="http://localhost:3000/api/site-evidence/abc123/preview" />
+<embed src="http://localhost:3000/api/site-evidence/abc123/preview" type="application/pdf" />
+```
+
+---
+
+### Get Evidence by ID
+**GET** `/site-evidence/:evidence_id`
+
+Mengembalikan metadata evidence (tanpa `file_url`). Gunakan `/preview` untuk file.
 
 ---
 
