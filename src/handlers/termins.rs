@@ -25,8 +25,83 @@ fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
 
 pub async fn create_termin(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateTerminRequest>,
+    request: Request,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
+    // Detect Content-Type: support both JSON and multipart/form-data
+    let content_type = request
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    let req: CreateTerminRequest;
+    let mut dok_file_bytes: Option<Vec<u8>> = None;
+    let mut dok_file_name: Option<String> = None;
+    let mut dok_mime_type_raw: Option<String> = None;
+
+    if content_type.starts_with("multipart/form-data") {
+        let mut multipart = Multipart::from_request(request, &state)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        let mut project_id_opt: Option<String> = None;
+        let mut site_id_opt: Option<String> = None;
+        let mut type_termin_opt: Option<String> = None;
+        let mut tgl_terima_opt: Option<String> = None;
+        let mut jumlah_opt: Option<i64> = None;
+        let mut termin_ke_opt: Option<i32> = None;
+        let mut percentage_opt: Option<i32> = None;
+        let mut status_opt: Option<String> = None;
+        let mut keterangan_opt: Option<String> = None;
+        let mut submitted_by_opt: Option<String> = None;
+        let mut nomor_rekening_opt: Option<String> = None;
+
+        while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+            let name = field.name().unwrap_or("").to_string();
+            match name.as_str() {
+                "dokumen_pengajuan" => {
+                    dok_file_name = field.file_name().map(|s| s.to_string());
+                    dok_mime_type_raw = field.content_type().map(|s| s.to_string());
+                    let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !bytes.is_empty() { dok_file_bytes = Some(bytes.to_vec()); }
+                }
+                "project_id" => { project_id_opt = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?); }
+                "site_id" => { site_id_opt = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?); }
+                "type_termin" => { type_termin_opt = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?); }
+                "tgl_terima" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; if !t.is_empty() { tgl_terima_opt = Some(t); } }
+                "jumlah" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; jumlah_opt = t.parse().ok(); }
+                "termin_ke" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; termin_ke_opt = t.parse().ok(); }
+                "percentage" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; percentage_opt = t.parse().ok(); }
+                "status" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; if !t.is_empty() { status_opt = Some(t); } }
+                "keterangan" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; if !t.is_empty() { keterangan_opt = Some(t); } }
+                "submitted_by" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; if !t.is_empty() { submitted_by_opt = Some(t); } }
+                "nomor_rekening_tujuan" => { let t = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?; if !t.is_empty() { nomor_rekening_opt = Some(t); } }
+                _ => {}
+            }
+        }
+
+        req = CreateTerminRequest {
+            project_id: project_id_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            site_id: site_id_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            type_termin: type_termin_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            tgl_terima: tgl_terima_opt,
+            jumlah: jumlah_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            termin_ke: termin_ke_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            percentage: percentage_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            status: status_opt,
+            keterangan: keterangan_opt,
+            submitted_by: submitted_by_opt,
+            nomor_rekening_tujuan: nomor_rekening_opt,
+        };
+    } else {
+        // JSON fallback
+        let Json(json_req) = Json::<CreateTerminRequest>::from_request(request, &state)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        req = json_req;
+    }
+
     // Parse and clean IDs
     let project_id_clean = strip_table_prefix(&req.project_id, "projects");
     let project_thing = Thing::try_from(("projects", project_id_clean))
@@ -46,31 +121,25 @@ pub async fn create_termin(
     let site: Option<Site> = site_result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let site = site.ok_or(StatusCode::NOT_FOUND)?;
     
-    // Step 2: Validate percentage pattern (30%-50%-10%-10%) for termin_ke 1-4
-    let expected_percentage = match req.termin_ke {
-        1 => 30,
-        2 => 50,
-        3 => 10,
-        4 => 10,
-        _ => {
-            return Ok(Json(ApiResponse {
-                success: false,
-                data: None,
-                message: Some(format!(
-                    "Validation failed: termin_ke must be between 1-4. Got: {}",
-                    req.termin_ke
-                )),
-            }));
-        }
-    };
-    
-    if req.percentage != expected_percentage {
+    // Step 2: Validate termin_ke range (1–6 to support T1, T2a, T2b, T2c, T3, T4 split model)
+    // T1=1(30%), T2a=2(15%), T2b=3(25%), T2c=4(10%), T3=5(10%), T4=6(10%)
+    if req.termin_ke < 1 || req.termin_ke > 6 {
         return Ok(Json(ApiResponse {
             success: false,
             data: None,
             message: Some(format!(
-                "Validation failed: Termin {} harus memiliki percentage {}%, bukan {}%. Pola yang benar: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%",
-                req.termin_ke, expected_percentage, req.percentage
+                "Validation failed: termin_ke must be between 1-6. Got: {}",
+                req.termin_ke
+            )),
+        }));
+    }
+    if req.percentage < 1 || req.percentage > 100 {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!(
+                "Validation failed: percentage harus antara 1-100. Got: {}",
+                req.percentage
             )),
         }));
     }
@@ -157,8 +226,20 @@ pub async fn create_termin(
     } else {
         (req.status.clone().unwrap_or_else(|| "draft".to_string()), None, None)
     };
-    
-    // Step 6: Create the termin
+
+    // Step 6: Process uploaded document (from multipart, if any)
+    let (dok_data_url, dok_filename, dok_mime, dok_size): (Option<String>, Option<String>, Option<String>, Option<i64>) =
+        if let Some(bytes) = dok_file_bytes {
+            let mime = dok_mime_type_raw.unwrap_or_else(|| "application/octet-stream".to_string());
+            let size = bytes.len() as i64;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+            let data_url = format!("data:{};base64,{}", mime, b64);
+            (Some(data_url), dok_file_name, Some(mime), Some(size))
+        } else {
+            (None, None, None, None)
+        };
+
+    // Step 7: Create the termin
     let query = if submitted_by.is_some() {
         r#"
         CREATE termins SET 
@@ -186,6 +267,10 @@ pub async fn create_termin(
             referensi_pembayaran = NONE,
             catatan_pembayaran = NONE,
             bukti_pembayaran = NONE,
+            dokumen_pengajuan = $dokumen_pengajuan,
+            dokumen_pengajuan_filename = $dokumen_pengajuan_filename,
+            dokumen_pengajuan_mime_type = $dokumen_pengajuan_mime_type,
+            dokumen_pengajuan_size = $dokumen_pengajuan_size,
             created_at = time::now(),
             updated_at = time::now()
         "#
@@ -216,7 +301,11 @@ pub async fn create_termin(
             referensi_pembayaran = NONE,
             catatan_pembayaran = NONE,
             bukti_pembayaran = NONE,
-            created_at = time::now(),
+            dokumen_pengajuan = $dokumen_pengajuan,
+            dokumen_pengajuan_filename = $dokumen_pengajuan_filename,
+            dokumen_pengajuan_mime_type = $dokumen_pengajuan_mime_type,
+            dokumen_pengajuan_size = $dokumen_pengajuan_size,
+            created_at = time::now(), 
             updated_at = time::now()
         "#
     };
@@ -231,7 +320,11 @@ pub async fn create_termin(
         .bind(("percentage", req.percentage))
         .bind(("status", status))
         .bind(("keterangan", req.keterangan.clone()))
-        .bind(("nomor_rekening_tujuan", req.nomor_rekening_tujuan.clone()));
+        .bind(("nomor_rekening_tujuan", req.nomor_rekening_tujuan.clone()))
+        .bind(("dokumen_pengajuan", dok_data_url))
+        .bind(("dokumen_pengajuan_filename", dok_filename))
+        .bind(("dokumen_pengajuan_mime_type", dok_mime))
+        .bind(("dokumen_pengajuan_size", dok_size));
     
     if let Some(submitter) = submitted_by {
         query_builder = query_builder.bind(("submitted_by", submitter));

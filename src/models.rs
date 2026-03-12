@@ -743,6 +743,12 @@ pub struct Termin {
     pub bukti_pembayaran_filename: Option<String>,  // Original filename (e.g., "kwintansi pak adnan.pdf")
     pub bukti_pembayaran_mime_type: Option<String>,  // MIME type (e.g., "application/pdf")
     pub bukti_pembayaran_size: Option<i64>,  // File size in bytes
+    // Dokumen pengajuan termin (permit docs, inv proforma, dsb - diupload saat ajukan T)
+    #[serde(skip_serializing)]  // Hide base64 string from response (too long)
+    pub dokumen_pengajuan: Option<String>,  // Base64 data URL
+    pub dokumen_pengajuan_filename: Option<String>,  // Original filename
+    pub dokumen_pengajuan_mime_type: Option<String>,  // MIME type
+    pub dokumen_pengajuan_size: Option<i64>,  // File size in bytes
     // Rekening tujuan pengajuan termin
     pub nomor_rekening_tujuan: Option<String>,  // e.g., "BCA 1234567890 an. PT Mitra"
     
@@ -1052,6 +1058,28 @@ pub struct UpdateSkpRequest {
     pub status: Option<String>,         // Draft | Submitted | Received
     pub document_url: Option<String>,
     pub received_proof_url: Option<String>,
+}
+
+// ==================== SITE PERMIT DOCUMENT MODELS ====================
+
+/// Dokumen perizinan yang diupload saat transisi ke permit_ready.
+/// Disimpan terpisah dari site_evidence agar mudah diakses per site/stage.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SitePermitDoc {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub site_id: Option<Thing>,
+    pub filename: String,
+    pub original_name: Option<String>,
+    pub file_url: Option<String>,
+    pub mime_type: Option<String>,
+    pub file_size: Option<i64>,
+    /// Jenis dokumen: "tpas" | "tp" | "caf" | "lainnya"
+    pub doc_type: String,
+    pub uploaded_by: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uploaded_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 // ==================== SITE EVIDENCE MODELS ====================

@@ -1395,7 +1395,13 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 ### Create Termin
 **POST** `/termins`
 
-**Request Body (Save as Draft):**
+> ⚡ **Endpoint ini mendukung DUA format request:**
+> 1. `application/json` — tanpa file (untuk draft/testing)
+> 2. `multipart/form-data` — dengan file dokumen pengajuan (untuk "Ajukan T" dari frontend dengan lampiran permit doc, inv proforma, dsb)
+
+---
+
+**Request Body (JSON - Save as Draft):**
 ```json
 {
   "project_id": "projects:b7v5e43bvtpwyipxlemg",
@@ -1410,7 +1416,7 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 }
 ```
 
-**Request Body (Direct Submit for Review):**
+**Request Body (JSON - Direct Submit for Review):**
 ```json
 {
   "project_id": "projects:b7v5e43bvtpwyipxlemg",
@@ -1419,25 +1425,44 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
   "tgl_terima": "2026-02-15",
   "jumlah": 25000000,
   "termin_ke": 1,
-  "percentage": 25,
+  "percentage": 30,
   "keterangan": "Pengajuan termin ke-1",
   "nomor_rekening_tujuan": "BCA 1234567890 an. PT Mitra",
   "submitted_by": "Budi Santoso"
 }
 ```
 
+**Request Body (multipart/form-data - Ajukan T dengan Dokumen):**
+
+Gunakan form-data di Postman (tidak perlu set Content-Type header, otomatis di-set oleh Postman):
+
+| Key | Type | Keterangan |
+|-----|------|------------|
+| `project_id` | text | ID project (wajib) |
+| `site_id` | text | ID site (wajib) |
+| `type_termin` | text | e.g., `TERMIN_1` (wajib) |
+| `jumlah` | text | Jumlah dalam Rupiah (wajib) |
+| `termin_ke` | text | Urutan termin 1–6 (wajib) |
+| `percentage` | text | Persentase 1–100 (wajib) |
+| `submitted_by` | text | Nama pengaju (opsional, jika diisi → `pending_review`) |
+| `nomor_rekening_tujuan` | text | Nomor rekening tujuan (opsional) |
+| `keterangan` | text | Catatan tambahan (opsional) |
+| `tgl_terima` | text | Tanggal terima YYYY-MM-DD (opsional) |
+| `dokumen_pengajuan` | **file** | Dokumen pengajuan: permit doc, inv proforma, dsb (PDF/JPG/PNG, **opsional**) |
+
 **Field Definitions:**
-- `project_id` (string, required): ID project (format: "projects:xxx")
-- `site_id` (string, required): ID site (format: "sites:xxx")
+- `project_id` (string, required): ID project (format: "projects:xxx" atau hanya "xxx")
+- `site_id` (string, required): ID site (format: "sites:xxx" atau hanya "xxx")
 - `type_termin` (string, required): Tipe termin (e.g., "TERMIN_1", "TERMIN_2")
 - `tgl_terima` (string, optional): Tanggal terima (format: YYYY-MM-DD)
 - `jumlah` (integer, required): Jumlah pembayaran termin dalam Rupiah - **FLEXIBLE, tidak harus match dengan percentage**
-- `termin_ke` (integer, **REQUIRED**): Urutan termin (1, 2, 3, atau 4) - **WAJIB diisi**
-- `percentage` (integer, **REQUIRED**): Persentase dari maximal_budget - **WAJIB sesuai pola: Termin 1=30%, Termin 2=50%, Termin 3=10%, Termin 4=10%**
+- `termin_ke` (integer, **REQUIRED**): Urutan termin (1–6) - **WAJIB diisi**
+- `percentage` (integer, **REQUIRED**): Persentase dari maximal_budget (1–100)
 - `status` (string, optional): Status termin (default: "draft")
 - `keterangan` (string, optional): Keterangan tambahan
 - `nomor_rekening_tujuan` (string, optional): Nomor rekening tujuan pengajuan, contoh: "BCA 1234567890 an. PT Mitra"
 - `submitted_by` (string, optional): Nama pengaju. Jika diisi, termin langsung berstatus "pending_review"
+- `dokumen_pengajuan` (file, optional, **multipart only**): File dokumen pengajuan (permit TPAS, inv proforma, dsb). Disimpan sebagai base64 data URL. Tidak dikembalikan di response body (terlalu besar), akses via endpoint download terpisah jika diperlukan
 
 **🔒 VALIDASI KETAT (Business Rules):**
 

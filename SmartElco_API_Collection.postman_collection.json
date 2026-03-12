@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 10 MARET v2.0",
-    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
+    "name": "SmartElco API Collection - UPDATE 12 MARET v2.2",
+    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -634,7 +634,7 @@
           ]
         },
         {
-          "name": "Site Stage - UPDATE 10 MARET",
+          "name": "Site Stage - UPDATE 12 MARET",
           "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.",
           "item": [
             {
@@ -680,9 +680,9 @@
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Perizinan sedang berjalan. WAJIB: permit_date (Tanggal Buat Permit, format YYYY-MM-DD)."
+                "description": "Perizinan sedang berjalan. WAJIB: permit_date (Tanggal Buat Permit, format YYYY-MM-DD). Validasi: permit_date wajib diisi, jika tidak ada maka success=false."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_process', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_process'); });"], "type": "text/javascript" } }],
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_process + permit_date tersimpan', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_process'); pm.expect(j.data.permit_date).to.eql('2026-03-11'); });"], "type": "text/javascript" } }],
               "response": []
             },
             {
@@ -692,13 +692,13 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"permit_ready\",\n  \"tpas_approved\": true,\n  \"tp_approved\": true,\n  \"caf_approved\": false,\n  \"tgl_berlaku_permit_tpas\": \"2026-03-11\",\n  \"tgl_berakhir_permit_tpas\": \"2027-03-11\",\n  \"notes\": \"Semua approval selesai, izin TPAS sudah ditandatangani\",\n  \"changed_by\": \"Tim Perizinan\",\n  \"evidence_urls\": []\n}",
+                  "raw": "{\n  \"stage\": \"permit_ready\",\n  \"tpas_approved\": true,\n  \"tp_approved\": true,\n  \"caf_approved\": true,\n  \"tgl_berlaku_permit_tpas\": \"2026-03-11\",\n  \"tgl_berakhir_permit_tpas\": \"2027-03-11\",\n  \"notes\": \"Semua approval selesai, izin TPAS sudah ditandatangani\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Izin siap. WAJIB: tpas_approved=true, tp_approved=true. Optional: caf_approved (jika TP sewa pihak lain), tgl_berlaku_permit_tpas, tgl_berakhir_permit_tpas."
+                "description": "Izin siap. WAJIB: tpas_approved=true, tp_approved=true (jika false → success=false). Optional: caf_approved, tgl_berlaku_permit_tpas (YYYY-MM-DD), tgl_berakhir_permit_tpas (YYYY-MM-DD)."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_ready', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_ready'); });"], "type": "text/javascript" } }],
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_ready + approval fields tersimpan', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_ready'); pm.expect(j.data.tpas_approved).to.be.true; pm.expect(j.data.tp_approved).to.be.true; pm.expect(j.data.caf_approved).to.be.true; pm.expect(j.data.tgl_berlaku_permit_tpas).to.eql('2026-03-11'); pm.expect(j.data.tgl_berakhir_permit_tpas).to.eql('2027-03-11'); });"], "type": "text/javascript" } }],
               "response": []
             },
             {
@@ -712,9 +712,9 @@
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Proses akses tower. WAJIB: tower_provider (MITRATEL|STP|PTI|DMT|Lainnya), jenis_kunci (PADLOCK|SMARTLOCK|QUADLOCK). Optional: pic_akses_nama, pic_akses_telp."
+                "description": "Proses akses tower. WAJIB: tower_provider (MITRATEL|STP|PTI|DMT|Lainnya), jenis_kunci (PADLOCK|SMARTLOCK|QUADLOCK) — jika kosong → success=false. Optional: pic_akses_nama, pic_akses_telp."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = akses_process', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('akses_process'); });"], "type": "text/javascript" } }],
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = akses_process + akses fields tersimpan', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('akses_process'); pm.expect(j.data.tower_provider).to.eql('STP'); pm.expect(j.data.jenis_kunci).to.eql('SMARTLOCK'); pm.expect(j.data.pic_akses_nama).to.eql('John Doe'); pm.expect(j.data.pic_akses_telp).to.eql('081234567890'); });"], "type": "text/javascript" } }],
               "response": []
             },
             {
@@ -740,13 +740,13 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"implementasi\",\n  \"tgl_rencana_implementasi\": \"2026-03-12\",\n  \"tgl_aktual_mulai\": \"2026-03-11\",\n  \"jam_checkin\": \"2026-03-11T08:00:00\",\n  \"notes\": \"Pekerjaan lapangan dimulai\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_cico_done\": false,\n  \"impl_rfs_done\": false,\n  \"impl_dokumen_done\": false,\n  \"ineom_registered\": false\n}",
+                  "raw": "{\n  \"stage\": \"implementasi\",\n  \"tgl_rencana_implementasi\": \"2026-03-12\",\n  \"tgl_aktual_mulai\": \"2026-03-11\",\n  \"jam_checkin\": \"08:00\",\n  \"notes\": \"Pekerjaan lapangan dimulai\",\n  \"changed_by\": \"Tim Lapangan\"\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Implementasi fisik dimulai. WAJIB: tgl_rencana_implementasi. Optional: tgl_aktual_mulai, jam_checkin (datetime CI). Field progress: impl_cico_done, impl_rfs_done, impl_dokumen_done, ineom_registered."
+                "description": "Implementasi fisik dimulai. WAJIB: tgl_rencana_implementasi (YYYY-MM-DD) — jika kosong → success=false. Optional: tgl_aktual_mulai (YYYY-MM-DD), jam_checkin (format HH:MM)."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = implementasi', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('implementasi'); });"], "type": "text/javascript" } }],
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = implementasi + impl fields tersimpan', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('implementasi'); pm.expect(j.data.tgl_rencana_implementasi).to.eql('2026-03-12'); pm.expect(j.data.tgl_aktual_mulai).to.eql('2026-03-11'); pm.expect(j.data.jam_checkin).to.eql('08:00'); });"], "type": "text/javascript" } }],
               "response": []
             },
             {
@@ -756,13 +756,13 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"stage\": \"rfi_done\",\n  \"jam_checkout\": \"2026-03-11T17:00:00\",\n  \"notes\": \"Radio Frequency Inspection selesai, CI/CO sudah lengkap\",\n  \"changed_by\": \"Tim Lapangan\",\n  \"impl_cico_done\": true\n}",
+                  "raw": "{\n  \"stage\": \"rfi_done\",\n  \"jam_checkout\": \"17:00\",\n  \"notes\": \"Radio Frequency Inspection selesai, CI/CO sudah lengkap\",\n  \"changed_by\": \"Tim Lapangan\"\n}",
                   "options": { "raw": { "language": "json" } }
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "RFI (Radio Frequency Inspection) selesai. WAJIB: jam_checkout (datetime CO). Set impl_cico_done=true setelah CI/CO complete."
+                "description": "RFI (Radio Frequency Inspection) selesai. WAJIB: jam_checkout (format HH:MM) — jika kosong → success=false. Menandai CI/CO selesai."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = rfi_done', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('rfi_done'); });"], "type": "text/javascript" } }],
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = rfi_done + jam_checkout tersimpan', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('rfi_done'); pm.expect(j.data.jam_checkout).to.eql('17:00'); });"], "type": "text/javascript" } }],
               "response": []
             },
             {
@@ -879,7 +879,7 @@
           ]
         },
         {
-          "name": "Site BOQ - UPDATE 10 MARET",
+          "name": "Site BOQ - UPDATE 12 MARET",
           "description": "Bill of Quantity: daftar material/jasa per site dari kontrak. Tab 'Material Item' di Detail Site.",
           "item": [
             {
@@ -988,7 +988,7 @@
           ]
         },
         {
-          "name": "SKP - UPDATE 10 MARET",
+          "name": "SKP - UPDATE 12 MARET",
           "description": "Surat Perintah Ambil Material. Status flow: Draft → Submitted → Received.",
           "item": [
             {
@@ -1132,7 +1132,7 @@
           ]
         },
         {
-          "name": "Site Evidence - UPDATE 10 MARET",
+          "name": "Site Evidence - UPDATE 12 MARET",
           "description": "Foto lapangan yang diupload per tag progress. Digunakan untuk dokumentasi pekerjaan di lapangan.",
           "item": [
             {
@@ -1295,9 +1295,186 @@
                 }
               ],
               "response": []
-            }
+            },
             {
-              "name": "Site Issue - UPDATE 11 MARET",
+              "name": "Site Permit Docs - Upload TPAS",
+              "description": "Dokumen perizinan (TPAS, TP, CAF, dll) yang diupload saat transisi ke stage permit_ready. Wajib diupload sebelum Ajukan T1. Endpoint: GET/POST /api/sites/:site_id/permit-docs, GET/DELETE /api/permit-docs/:doc_id, GET /api/permit-docs/:doc_id/preview.",
+              "item": [
+                {
+                  "name": "List Permit Docs",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/sites/{{site_id}}/permit-docs",
+                      "host": ["{{base_url}}"],
+                      "path": ["sites", "{{site_id}}", "permit-docs"]
+                    },
+                    "description": "Ambil semua dokumen perizinan yang dimiliki oleh sebuah site. Diurutkan berdasarkan uploaded_at DESC."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('Response is array', () => {",
+                          "  const body = pm.response.json();",
+                          "  pm.expect(body).to.be.an('array');",
+                          "});"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "response": []
+                },
+                {
+                  "name": "Upload Permit Doc (multipart)",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": [],
+                          "description": "File dokumen perizinan (PDF, JPG, PNG). Wajib diisi."
+                        },
+                        {
+                          "key": "doc_type",
+                          "value": "tpas",
+                          "type": "text",
+                          "description": "Tipe dokumen: tpas | tp | caf | lainnya"
+                        },
+                        {
+                          "key": "uploaded_by",
+                          "value": "Tim Perizinan",
+                          "type": "text",
+                          "description": "Nama pengunggah dokumen"
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/sites/{{site_id}}/permit-docs",
+                      "host": ["{{base_url}}"],
+                      "path": ["sites", "{{site_id}}", "permit-docs"]
+                    },
+                    "description": "Upload dokumen perizinan (TPAS/TP/CAF/lainnya) untuk site tertentu. File dikirim sebagai multipart/form-data. File disimpan sebagai base64 data URL di database. doc_type wajib salah satu dari: tpas, tp, caf, lainnya."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200 or 201', () => {",
+                          "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                          "});",
+                          "pm.test('Response has id', () => {",
+                          "  const body = pm.response.json();",
+                          "  pm.expect(body).to.have.property('id');",
+                          "  const raw = body.id;",
+                          "  const docId = typeof raw === 'object' && raw.id ? raw.id : (typeof raw === 'string' ? raw.split(':')[1] || raw : String(raw));",
+                          "  pm.environment.set('permit_doc_id', docId);",
+                          "  console.log('permit_doc_id set to:', docId);",
+                          "});"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "response": []
+                },
+                {
+                  "name": "Get Permit Doc by ID",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/permit-docs/{{permit_doc_id}}",
+                      "host": ["{{base_url}}"],
+                      "path": ["permit-docs", "{{permit_doc_id}}"]
+                    },
+                    "description": "Ambil metadata dokumen perizinan berdasarkan ID. Mengembalikan semua field kecuali konten biner (file_url berisi data URL base64 lengkap di DB, tidak dikembalikan di sini)."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('Has doc_type field', () => {",
+                          "  const body = pm.response.json();",
+                          "  pm.expect(body).to.have.property('doc_type');",
+                          "});"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "response": []
+                },
+                {
+                  "name": "Preview Permit Doc (Binary)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/permit-docs/{{permit_doc_id}}/preview",
+                      "host": ["{{base_url}}"],
+                      "path": ["permit-docs", "{{permit_doc_id}}", "preview"]
+                    },
+                    "description": "Ambil konten biner dokumen perizinan untuk ditampilkan di browser. Server mendecode base64 data URL yang tersimpan di DB dan mengembalikan bytes mentah dengan header Content-Type yang sesuai (misal: image/jpeg, application/pdf). Gunakan URL ini sebagai src pada tag <img> atau <iframe> untuk preview langsung di frontend."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                          "pm.test('Content-Type header present', () => {",
+                          "  pm.expect(pm.response.headers.get('Content-Type')).to.exist;",
+                          "});"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "response": []
+                },
+                {
+                  "name": "Delete Permit Doc",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [],
+                    "url": {
+                      "raw": "{{base_url}}/permit-docs/{{permit_doc_id}}",
+                      "host": ["{{base_url}}"],
+                      "path": ["permit-docs", "{{permit_doc_id}}"]
+                    },
+                    "description": "Hapus dokumen perizinan berdasarkan ID. Operasi ini permanen dan tidak bisa dibatalkan."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "pm.test('Status 200 or 204', () => {",
+                          "  pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                          "});"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "response": []
+                }
+              ]
+            },
+            {
+              "name": "Site Issue - UPDATE 12 MARET",
               "description": "Issue/Blocker management per site. Tindakan: 'tahan' (hold, status=open) atau 'eskalasi' (status=escalated). Setelah masalah selesai, gunakan endpoint Resolve.",
               "item": [
                 {
@@ -2297,6 +2474,112 @@
           "response": []
         },
         {
+          "name": "\ud83c\udd95 Ajukan Termin (Multipart + Dokumen Pengajuan)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text",
+                  "description": "ID project (format: projects:xxx atau hanya xxx)"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text",
+                  "description": "ID site (format: sites:xxx atau hanya xxx)"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_1",
+                  "type": "text",
+                  "description": "Tipe termin: TERMIN_1 | TERMIN_2 | TERMIN_3 | TERMIN_4"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-03-12",
+                  "type": "text",
+                  "description": "Tanggal terima (YYYY-MM-DD, opsional)"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "30000000",
+                  "type": "text",
+                  "description": "Jumlah pembayaran dalam Rupiah (wajib)"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Urutan termin: 1 s.d. 6 (wajib)"
+                },
+                {
+                  "key": "percentage",
+                  "value": "30",
+                  "type": "text",
+                  "description": "Persentase termin: 1-100 (wajib)"
+                },
+                {
+                  "key": "submitted_by",
+                  "value": "Budi Santoso",
+                  "type": "text",
+                  "description": "Nama pengaju. Jika diisi, status langsung pending_review"
+                },
+                {
+                  "key": "nomor_rekening_tujuan",
+                  "value": "BCA 1234567890 an. PT Mitra",
+                  "type": "text",
+                  "description": "Nomor rekening tujuan pembayaran (opsional)"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Pengajuan T1 - permit sudah ready",
+                  "type": "text",
+                  "description": "Catatan pengajuan (opsional)"
+                },
+                {
+                  "key": "dokumen_pengajuan",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload dokumen pengajuan: permit doc, inv proforma, dsb (PDF/JPG/PNG, opsional). Dokumen dari stage permit_ready dapat dilampirkan di sini."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/termins",
+              "host": ["{{base_url}}"],
+              "path": ["termins"]
+            },
+            "description": "Ajukan termin menggunakan multipart/form-data dengan lampiran dokumen pengajuan (permit doc, inv proforma, dsb). Endpoint POST /termins mendukung KEDUANYA: JSON (tanpa file) dan multipart/form-data (dengan file dokumen_pengajuan)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Termin created', () => {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.be.true;",
+                  "  if (body.data && body.data.id) {",
+                  "    const raw = body.data.id;",
+                  "    const id = typeof raw === 'object' && raw.id ? raw.id : (typeof raw === 'string' ? raw.split(':')[1] || raw : String(raw));",
+                  "    pm.environment.set('termin_id_only', id);",
+                  "    console.log('termin_id_only set to:', id);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "response": []
+        },
+        {
           "name": "\u2705 Create Termin 1 (VALID - 30%)",
           "request": {
             "method": "POST",
@@ -3039,6 +3322,11 @@
     {
       "key": "evidence_id",
       "value": "site_evidence:your_evidence_id_here",
+      "type": "string"
+    },
+    {
+      "key": "permit_doc_id",
+      "value": "your_permit_doc_id_here",
       "type": "string"
     },
     {
