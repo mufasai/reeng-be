@@ -6,6 +6,17 @@
 
 ## 📋 Changelog
 
+### v2.2.1 (2026-03-14)
+**⏱️ Site Stage & Permit Day Metrics**
+
+- ✅ **ENHANCED RESPONSE:** Endpoint site kini mengembalikan metrik hitungan hari:
+  - `days_in_stage`: jumlah hari sejak `stage_updated_at`
+  - `permit_days_total`: total durasi permit (`tgl_berlaku_permit_tpas` → `tgl_berakhir_permit_tpas`)
+  - `permit_days_elapsed`: hari berjalan permit
+  - `permit_days_remaining`: sisa hari permit (minimum `0`)
+- ✅ **COVERAGE:** Berlaku untuk response `POST /sites`, `GET /sites`, `GET /sites/:id`, `GET /sites/project/:project_id`, `PUT /sites/:id`, dan `POST /sites/:id/stage`
+- 🔧 **Fallback permit start:** Jika `tgl_berlaku_permit_tpas` belum ada, backend memakai `permit_date` sebagai tanggal mulai permit
+
 ### v2.2.0 (2026-03-11)
 **🎯 Stage-Specific Fields & Termin Rekening Tujuan**
 
@@ -35,8 +46,8 @@
 - ✅ `nomor_rekening_tujuan` (string, opsional) — Nomor rekening tujuan pengajuan (contoh: "BCA 1234567890 an. PT Mitra")
 - 🔧 **Updated Models:** `Termin`, `CreateTerminRequest`, `TerminWithSiteInfo`
 
-**🏗️ Stage Fields on `sites` table (lengkap setelah v2.2):**
-`stage`, `stage_updated_at`, `stage_notes`, `permit_date`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`, `tpas_approved`, `tp_approved`, `caf_approved`, `tgl_berlaku_permit_tpas`, `tgl_berakhir_permit_tpas`, `tower_provider`, `jenis_kunci`, `pic_akses_nama`, `pic_akses_telp`, `tgl_rencana_implementasi`, `tgl_aktual_mulai`, `jam_checkin`, `jam_checkout`
+**🏗️ Stage Fields on `sites` table (lengkap setelah v2.2.1):**
+`stage`, `stage_updated_at`, `days_in_stage`, `stage_notes`, `permit_date`, `permit_days_total`, `permit_days_elapsed`, `permit_days_remaining`, `impl_cico_done`, `impl_rfs_done`, `impl_dokumen_done`, `ineom_registered`, `tpas_approved`, `tp_approved`, `caf_approved`, `tgl_berlaku_permit_tpas`, `tgl_berakhir_permit_tpas`, `tower_provider`, `jenis_kunci`, `pic_akses_nama`, `pic_akses_telp`, `tgl_rencana_implementasi`, `tgl_aktual_mulai`, `jam_checkin`, `jam_checkout`
 
 ---
 
@@ -809,6 +820,12 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
 ### List All Sites
 **GET** `/sites`
 
+Endpoint ini juga mengembalikan metrik waktu:
+- `days_in_stage`
+- `permit_days_total`
+- `permit_days_elapsed`
+- `permit_days_remaining`
+
 **Response (200 OK):**
 ```json
 {
@@ -828,6 +845,15 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
       "cost_estimated": 450000000,
       "pemberi_tugas": "PT Telkom Indonesia",
       "penerima_tugas": "PT SmartElco Solutions",
+      "stage": "permit_ready",
+      "stage_updated_at": "2026-03-12T09:00:00Z",
+      "days_in_stage": 2,
+      "permit_date": "2026-03-11",
+      "tgl_berlaku_permit_tpas": "2026-03-11",
+      "tgl_berakhir_permit_tpas": "2027-03-11",
+      "permit_days_total": 365,
+      "permit_days_elapsed": 3,
+      "permit_days_remaining": 362,
       "site_document": null,
       "created_at": "2026-02-20T09:39:14Z",
       "updated_at": "2026-02-20T09:39:14Z"
@@ -865,7 +891,14 @@ curl -X POST http://localhost:3000/api/projects/import-excel \
     "penerima_tugas": "PT SmartElco Solutions",
     "stage": "implementasi",
     "stage_updated_at": "2026-03-10T07:00:00Z",
+    "days_in_stage": 4,
     "stage_notes": "Pekerjaan dimulai",
+    "permit_date": "2026-03-11",
+    "tgl_berlaku_permit_tpas": "2026-03-11",
+    "tgl_berakhir_permit_tpas": "2027-03-11",
+    "permit_days_total": 365,
+    "permit_days_elapsed": 3,
+    "permit_days_remaining": 362,
     "impl_cico_done": false,
     "impl_rfs_done": false,
     "impl_dokumen_done": false,
@@ -2287,7 +2320,14 @@ rfi_done → rfs_done → dokumen_done → bast → invoice → completed
     "site_name": "Site Menteng",
     "stage": "implementasi",
     "stage_updated_at": "2026-03-10T07:00:00Z",
+    "days_in_stage": 4,
     "stage_notes": "Implementasi dimulai hari ini",
+    "permit_date": "2026-03-11",
+    "tgl_berlaku_permit_tpas": "2026-03-11",
+    "tgl_berakhir_permit_tpas": "2027-03-11",
+    "permit_days_total": 365,
+    "permit_days_elapsed": 3,
+    "permit_days_remaining": 362,
     "impl_cico_done": false,
     "impl_rfs_done": false,
     "impl_dokumen_done": false,

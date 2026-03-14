@@ -233,8 +233,16 @@ pub struct Site {
     // Stage tracking
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub days_in_stage: Option<i64>,
     pub stage_notes: Option<String>,
     pub permit_date: Option<String>,        // Tanggal buat permit (diisi saat masuk permit_process)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permit_days_total: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permit_days_elapsed: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub permit_days_remaining: Option<i64>,
     pub impl_cico_done: Option<bool>,
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,

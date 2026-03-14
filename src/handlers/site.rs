@@ -1,5 +1,6 @@
 use axum::{extract::{Json, Multipart}, http::StatusCode};
 use base64::Engine;
+use chrono::{DateTime, NaiveDate, Utc};
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 
@@ -57,10 +58,12 @@ pub async fn create_site(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let sites: Vec<Site> = response.take(0).map_err(|e| {
+    let mut sites: Vec<Site> = response.take(0).map_err(|e| {
         eprintln!("Parse error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    enrich_sites_timing_fields(&mut sites);
 
     let created_site = sites.into_iter().next().ok_or_else(|| {
         eprintln!("No site returned after creation");
@@ -134,6 +137,9 @@ pub async fn create_site(
         }
     }
 
+    let mut created_site = created_site;
+    enrich_site_timing_fields(&mut created_site);
+
     Ok(Json(ApiResponse {
         success: true,
         data: Some(created_site),
@@ -153,10 +159,12 @@ pub async fn list_sites(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let sites: Vec<Site> = response.take(0).map_err(|e| {
+    let mut sites: Vec<Site> = response.take(0).map_err(|e| {
         eprintln!("Parse error: {}", e);
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    enrich_sites_timing_fields(&mut sites);
 
     Ok(Json(ApiResponse {
         success: true,
@@ -218,6 +226,8 @@ pub async fn get_site_by_id(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
+    enrich_sites_timing_fields(&mut sites);
+
     if sites.is_empty() {
         return Ok(Json(ApiResponse {
             success: false,
@@ -240,6 +250,64 @@ fn parse_thing_id(id_str: &str) -> Result<Thing, StatusCode> {
         eprintln!("Failed to parse Thing from '{}'", id_str);
         StatusCode::BAD_REQUEST
     })
+}
+
+fn parse_datetime_to_utc(value: &str) -> Option<DateTime<Utc>> {
+    DateTime::parse_from_rfc3339(value)
+        .ok()
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+fn parse_date_to_utc_start(value: &str) -> Option<DateTime<Utc>> {
+    if let Ok(date) = NaiveDate::parse_from_str(value, "%Y-%m-%d") {
+        return date
+            .and_hms_opt(0, 0, 0)
+            .map(|naive| DateTime::<Utc>::from_naive_utc_and_offset(naive, Utc));
+    }
+
+    parse_datetime_to_utc(value)
+}
+
+fn non_negative_days_between(start: DateTime<Utc>, end: DateTime<Utc>) -> i64 {
+    let diff = end.signed_duration_since(start).num_days();
+    if diff < 0 { 0 } else { diff }
+}
+
+fn enrich_site_timing_fields(site: &mut Site) {
+    let now = Utc::now();
+
+    if let Some(stage_updated_at) = site.stage_updated_at.as_deref() {
+        if let Some(stage_started_at) = parse_datetime_to_utc(stage_updated_at)
+            .or_else(|| parse_date_to_utc_start(stage_updated_at))
+        {
+            site.days_in_stage = Some(non_negative_days_between(stage_started_at, now));
+        }
+    }
+
+    let permit_start = site
+        .tgl_berlaku_permit_tpas
+        .as_deref()
+        .and_then(parse_date_to_utc_start)
+        .or_else(|| site.permit_date.as_deref().and_then(parse_date_to_utc_start));
+
+    let permit_end = site
+        .tgl_berakhir_permit_tpas
+        .as_deref()
+        .and_then(parse_date_to_utc_start);
+
+    if let (Some(start), Some(end)) = (permit_start, permit_end) {
+        site.permit_days_total = Some(non_negative_days_between(start, end));
+        site.permit_days_elapsed = Some(non_negative_days_between(start, now));
+
+        let remaining = end.signed_duration_since(now).num_days();
+        site.permit_days_remaining = Some(if remaining < 0 { 0 } else { remaining });
+    }
+}
+
+fn enrich_sites_timing_fields(sites: &mut [Site]) {
+    for site in sites {
+        enrich_site_timing_fields(site);
+    }
 }
 
 pub async fn update_site(
@@ -387,10 +455,12 @@ pub async fn update_site(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let updated_site = updated_sites.into_iter().next().ok_or_else(|| {
+    let mut updated_site = updated_sites.into_iter().next().ok_or_else(|| {
         eprintln!("No site returned after update");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    enrich_site_timing_fields(&mut updated_site);
 
     Ok(Json(ApiResponse {
         success: true,
@@ -1010,10 +1080,12 @@ pub async fn update_site_stage(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let site = updated.into_iter().next().ok_or_else(|| {
+    let mut site = updated.into_iter().next().ok_or_else(|| {
         eprintln!("Site not found after stage update");
         StatusCode::NOT_FOUND
     })?;
+
+    enrich_site_timing_fields(&mut site);
 
     // Catat log perubahan stage
     let log_query = "CREATE site_stage_log SET \
