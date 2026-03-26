@@ -16,6 +16,7 @@
   - `permit_days_remaining`: sisa hari permit (minimum `0`)
 - ✅ **COVERAGE:** Berlaku untuk response `POST /sites`, `GET /sites`, `GET /sites/:id`, `GET /sites/project/:project_id`, `PUT /sites/:id`, dan `POST /sites/:id/stage`
 - 🔧 **Fallback permit start:** Jika `tgl_berlaku_permit_tpas` belum ada, backend memakai `permit_date` sebagai tanggal mulai permit
+- ✅ **BREAKING UPDATE (Stage 04):** `POST /sites/:id/stage` untuk `stage=permit_ready` wajib menggunakan `multipart/form-data` dan upload file dokumen TPAS (`file`)
 
 ### v2.2.0 (2026-03-11)
 **🎯 Stage-Specific Fields & Termin Rekening Tujuan**
@@ -2225,6 +2226,10 @@ team_peoples:
 ### Update Site Stage
 **POST** `/sites/:id/stage`
 
+> **Format Request:**
+> - Stage selain `permit_ready`: boleh `application/json` atau `multipart/form-data`
+> - Khusus `stage=permit_ready`: **wajib** `multipart/form-data` + field file `file` (dokumen TPAS)
+
 **Path Parameters:**
 - `id`: ID site (format: `sites:xxx` atau hanya `xxx`)
 
@@ -2291,6 +2296,9 @@ rfi_done → rfs_done → dokumen_done → bast → invoice → completed
 - `notes` (string, optional): Catatan perubahan stage
 - `changed_by` (string, optional): Nama/ID user yang mengubah (default: "system")
 - `evidence_urls` (array string, optional): URL foto/dokumen pendukung yang diupload
+- `file` (binary, **required saat stage=`permit_ready`**): Dokumen TPAS yang diupload sebagai multipart
+- `doc_type` (string, optional saat multipart): `tpas` \| `tp` \| `caf` \| `lainnya` (default `tpas` untuk Stage 04)
+- `uploaded_by` (string, optional saat multipart): Nama uploader dokumen permit (fallback ke `changed_by`)
 - `permit_date` (string, **required** saat stage=`permit_process`): Tanggal buat permit (YYYY-MM-DD)
 - `tpas_approved` (boolean, **required** saat stage=`permit_ready`): TPAS sudah approve
 - `tp_approved` (boolean, **required** saat stage=`permit_ready`): TP sudah approve
@@ -2309,6 +2317,22 @@ rfi_done → rfs_done → dokumen_done → bast → invoice → completed
 - `impl_rfs_done` (boolean, optional): RFS sudah selesai
 - `impl_dokumen_done` (boolean, optional): Dokumen implementasi sudah selesai
 - `ineom_registered` (boolean, optional): iNeOM sudah didaftarkan
+
+**Contoh multipart untuk Stage 04 (`permit_ready`):**
+
+| Key | Type | Value contoh | Required |
+|---|---|---|---|
+| `file` | file | `dokumen_tpas.pdf` | ✅ |
+| `stage` | text | `permit_ready` | ✅ |
+| `tpas_approved` | text | `true` | ✅ |
+| `tp_approved` | text | `true` | ✅ |
+| `caf_approved` | text | `true` | opsional |
+| `tgl_berlaku_permit_tpas` | text | `2026-03-11` | opsional |
+| `tgl_berakhir_permit_tpas` | text | `2027-03-11` | opsional |
+| `doc_type` | text | `tpas` | opsional |
+| `uploaded_by` | text | `Tim Perizinan` | opsional |
+| `notes` | text | `Semua approval selesai` | opsional |
+| `changed_by` | text | `Tim Perizinan` | opsional |
 
 **Response (200 OK):**
 ```json

@@ -1,4 +1,7 @@
-use axum::{extract::{Json, Multipart}, http::StatusCode};
+use axum::{
+    extract::{FromRequest, Json, Multipart, Request},
+    http::{header, StatusCode},
+};
 use base64::Engine;
 use chrono::{DateTime, NaiveDate, Utc};
 use std::sync::Arc;
@@ -250,6 +253,14 @@ fn parse_thing_id(id_str: &str) -> Result<Thing, StatusCode> {
         eprintln!("Failed to parse Thing from '{}'", id_str);
         StatusCode::BAD_REQUEST
     })
+}
+
+fn parse_bool_loose(value: &str) -> Option<bool> {
+    match value.trim().to_lowercase().as_str() {
+        "true" | "1" | "yes" | "y" => Some(true),
+        "false" | "0" | "no" | "n" => Some(false),
+        _ => None,
+    }
 }
 
 fn parse_datetime_to_utc(value: &str) -> Option<DateTime<Utc>> {
@@ -917,8 +928,227 @@ pub async fn remove_site_team_member(
 pub async fn update_site_stage(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<UpdateSiteStageRequest>,
+    request: Request,
 ) -> Result<Json<ApiResponse<Site>>, StatusCode> {
+    let content_type = request
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    let req: UpdateSiteStageRequest;
+    let mut permit_doc_file_bytes: Option<Vec<u8>> = None;
+    let mut permit_doc_filename: Option<String> = None;
+    let mut permit_doc_content_type: Option<String> = None;
+    let mut permit_doc_type: Option<String> = None;
+    let mut permit_doc_uploaded_by: Option<String> = None;
+
+    if content_type.starts_with("multipart/form-data") {
+        let mut multipart = Multipart::from_request(request, &state)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+        let mut stage_opt: Option<String> = None;
+        let mut notes_opt: Option<String> = None;
+        let mut changed_by_opt: Option<String> = None;
+        let mut evidence_urls: Vec<String> = Vec::new();
+        let mut permit_date_opt: Option<String> = None;
+        let mut impl_cico_done_opt: Option<bool> = None;
+        let mut impl_rfs_done_opt: Option<bool> = None;
+        let mut impl_dokumen_done_opt: Option<bool> = None;
+        let mut ineom_registered_opt: Option<bool> = None;
+        let mut tpas_approved_opt: Option<bool> = None;
+        let mut tp_approved_opt: Option<bool> = None;
+        let mut caf_approved_opt: Option<bool> = None;
+        let mut tgl_berlaku_permit_tpas_opt: Option<String> = None;
+        let mut tgl_berakhir_permit_tpas_opt: Option<String> = None;
+        let mut tower_provider_opt: Option<String> = None;
+        let mut jenis_kunci_opt: Option<String> = None;
+        let mut pic_akses_nama_opt: Option<String> = None;
+        let mut pic_akses_telp_opt: Option<String> = None;
+        let mut tgl_rencana_implementasi_opt: Option<String> = None;
+        let mut tgl_aktual_mulai_opt: Option<String> = None;
+        let mut jam_checkin_opt: Option<String> = None;
+        let mut jam_checkout_opt: Option<String> = None;
+
+        while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+            let name = field.name().unwrap_or("").to_string();
+            match name.as_str() {
+                "file" | "dokumen_tpas" | "dokumen_permit" | "permit_file" => {
+                    permit_doc_filename = field.file_name().map(|s| s.to_string());
+                    permit_doc_content_type = field.content_type().map(|s| s.to_string());
+                    let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !bytes.is_empty() {
+                        permit_doc_file_bytes = Some(bytes.to_vec());
+                    }
+                }
+                "doc_type" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        permit_doc_type = Some(value);
+                    }
+                }
+                "uploaded_by" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        permit_doc_uploaded_by = Some(value);
+                    }
+                }
+                "stage" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        stage_opt = Some(value);
+                    }
+                }
+                "notes" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        notes_opt = Some(value);
+                    }
+                }
+                "changed_by" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        changed_by_opt = Some(value);
+                    }
+                }
+                "evidence_urls" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    let trimmed = value.trim();
+                    if !trimmed.is_empty() {
+                        evidence_urls.push(trimmed.to_string());
+                    }
+                }
+                "permit_date" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        permit_date_opt = Some(value);
+                    }
+                }
+                "impl_cico_done" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    impl_cico_done_opt = parse_bool_loose(&value);
+                }
+                "impl_rfs_done" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    impl_rfs_done_opt = parse_bool_loose(&value);
+                }
+                "impl_dokumen_done" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    impl_dokumen_done_opt = parse_bool_loose(&value);
+                }
+                "ineom_registered" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    ineom_registered_opt = parse_bool_loose(&value);
+                }
+                "tpas_approved" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    tpas_approved_opt = parse_bool_loose(&value);
+                }
+                "tp_approved" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    tp_approved_opt = parse_bool_loose(&value);
+                }
+                "caf_approved" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    caf_approved_opt = parse_bool_loose(&value);
+                }
+                "tgl_berlaku_permit_tpas" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        tgl_berlaku_permit_tpas_opt = Some(value);
+                    }
+                }
+                "tgl_berakhir_permit_tpas" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        tgl_berakhir_permit_tpas_opt = Some(value);
+                    }
+                }
+                "tower_provider" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        tower_provider_opt = Some(value);
+                    }
+                }
+                "jenis_kunci" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        jenis_kunci_opt = Some(value);
+                    }
+                }
+                "pic_akses_nama" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        pic_akses_nama_opt = Some(value);
+                    }
+                }
+                "pic_akses_telp" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        pic_akses_telp_opt = Some(value);
+                    }
+                }
+                "tgl_rencana_implementasi" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        tgl_rencana_implementasi_opt = Some(value);
+                    }
+                }
+                "tgl_aktual_mulai" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        tgl_aktual_mulai_opt = Some(value);
+                    }
+                }
+                "jam_checkin" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        jam_checkin_opt = Some(value);
+                    }
+                }
+                "jam_checkout" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        jam_checkout_opt = Some(value);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        req = UpdateSiteStageRequest {
+            stage: stage_opt.ok_or(StatusCode::BAD_REQUEST)?,
+            notes: notes_opt,
+            changed_by: changed_by_opt,
+            evidence_urls: if evidence_urls.is_empty() { None } else { Some(evidence_urls) },
+            permit_date: permit_date_opt,
+            impl_cico_done: impl_cico_done_opt,
+            impl_rfs_done: impl_rfs_done_opt,
+            impl_dokumen_done: impl_dokumen_done_opt,
+            ineom_registered: ineom_registered_opt,
+            tpas_approved: tpas_approved_opt,
+            tp_approved: tp_approved_opt,
+            caf_approved: caf_approved_opt,
+            tgl_berlaku_permit_tpas: tgl_berlaku_permit_tpas_opt,
+            tgl_berakhir_permit_tpas: tgl_berakhir_permit_tpas_opt,
+            tower_provider: tower_provider_opt,
+            jenis_kunci: jenis_kunci_opt,
+            pic_akses_nama: pic_akses_nama_opt,
+            pic_akses_telp: pic_akses_telp_opt,
+            tgl_rencana_implementasi: tgl_rencana_implementasi_opt,
+            tgl_aktual_mulai: tgl_aktual_mulai_opt,
+            jam_checkin: jam_checkin_opt,
+            jam_checkout: jam_checkout_opt,
+        };
+    } else {
+        let Json(json_req) = Json::<UpdateSiteStageRequest>::from_request(request, &state)
+            .await
+            .map_err(|_| StatusCode::BAD_REQUEST)?;
+        req = json_req;
+    }
+
     let valid_stages = [
         "imported", "assigned", "permit_process", "permit_ready",
         "akses_process", "akses_ready", "implementasi",
@@ -964,6 +1194,20 @@ pub async fn update_site_stage(
 
     // Validasi field wajib saat transisi ke permit_ready
     if req.stage == "permit_ready" {
+        if !content_type.starts_with("multipart/form-data") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("Stage permit_ready wajib menggunakan multipart/form-data dan upload dokumen TPAS (field file)".to_string()),
+            }));
+        }
+        if permit_doc_file_bytes.is_none() {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("Dokumen TPAS wajib diupload saat masuk stage permit_ready (field file)".to_string()),
+            }));
+        }
         if !req.tpas_approved.unwrap_or(false) {
             return Ok(Json(ApiResponse {
                 success: false,
@@ -1084,6 +1328,79 @@ pub async fn update_site_stage(
         eprintln!("Site not found after stage update");
         StatusCode::NOT_FOUND
     })?;
+
+    if req.stage == "permit_ready" {
+        let file_bytes = permit_doc_file_bytes.ok_or(StatusCode::BAD_REQUEST)?;
+        let filename = permit_doc_filename
+            .clone()
+            .unwrap_or_else(|| format!("permit_tpas_{}.bin", Utc::now().timestamp()));
+
+        let doc_type_str = permit_doc_type.clone().unwrap_or_else(|| "tpas".to_string());
+        let valid_doc_types = ["tpas", "tp", "caf", "lainnya"];
+        if !valid_doc_types.contains(&doc_type_str.as_str()) {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some(format!(
+                    "doc_type '{}' tidak valid. Gunakan: tpas | tp | caf | lainnya",
+                    doc_type_str
+                )),
+            }));
+        }
+
+        let mime_type = permit_doc_content_type
+            .clone()
+            .filter(|ct| ct != "application/octet-stream" && !ct.is_empty())
+            .unwrap_or_else(|| {
+                let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+                match ext.as_str() {
+                    "pdf" => "application/pdf",
+                    "jpg" | "jpeg" => "image/jpeg",
+                    "png" => "image/png",
+                    "gif" => "image/gif",
+                    "webp" => "image/webp",
+                    "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "zip" => "application/zip",
+                    _ => "application/octet-stream",
+                }
+                .to_string()
+            });
+
+        let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+        let data_url = format!("data:{};base64,{}", mime_type, base64_data);
+        let uploaded_by_value = permit_doc_uploaded_by
+            .clone()
+            .or_else(|| req.changed_by.clone())
+            .unwrap_or_else(|| "system".to_string());
+
+        let create_doc_query = "CREATE site_permit_doc SET \
+            site_id = $site_id, \
+            filename = $filename, \
+            original_name = $filename, \
+            file_url = $file_url, \
+            mime_type = $mime_type, \
+            file_size = $file_size, \
+            doc_type = $doc_type, \
+            uploaded_by = $uploaded_by, \
+            uploaded_at = time::now()";
+
+        state
+            .db
+            .query(create_doc_query)
+            .bind(("site_id", site_thing.clone()))
+            .bind(("filename", filename))
+            .bind(("file_url", data_url))
+            .bind(("mime_type", mime_type))
+            .bind(("file_size", file_bytes.len() as i64))
+            .bind(("doc_type", doc_type_str))
+            .bind(("uploaded_by", uploaded_by_value))
+            .await
+            .map_err(|e| {
+                eprintln!("Database error creating permit doc during stage update: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+    }
 
     enrich_site_timing_fields(&mut site);
 

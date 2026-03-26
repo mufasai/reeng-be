@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 12 MARET v2.2",
+    "name": "SmartElco API Collection - UPDATE 26 MARET v2.2",
     "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -640,7 +640,7 @@
           ]
         },
         {
-          "name": "Site Stage - UPDATE 12 MARET",
+          "name": "Site Stage - UPDATE 26 MARET",
           "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nResponse stage sekarang include hitungan hari (hari, bukan jam): days_in_stage + metrik permit (permit_days_total, permit_days_elapsed, permit_days_remaining).",
           "item": [
             {
@@ -695,14 +695,71 @@
               "name": "Stage 04 - permit_ready (Izin Siap)",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"stage\": \"permit_ready\",\n  \"tpas_approved\": true,\n  \"tp_approved\": true,\n  \"caf_approved\": true,\n  \"tgl_berlaku_permit_tpas\": \"2026-03-11\",\n  \"tgl_berakhir_permit_tpas\": \"2027-03-11\",\n  \"notes\": \"Semua approval selesai, izin TPAS sudah ditandatangani\",\n  \"changed_by\": \"Tim Perizinan\"\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": [],
+                      "description": "Dokumen TPAS (WAJIB)"
+                    },
+                    {
+                      "key": "stage",
+                      "value": "permit_ready",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tpas_approved",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tp_approved",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "caf_approved",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tgl_berlaku_permit_tpas",
+                      "value": "2026-03-11",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tgl_berakhir_permit_tpas",
+                      "value": "2027-03-11",
+                      "type": "text"
+                    },
+                    {
+                      "key": "doc_type",
+                      "value": "tpas",
+                      "type": "text",
+                      "description": "Opsional. Default = tpas"
+                    },
+                    {
+                      "key": "uploaded_by",
+                      "value": "Tim Perizinan",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Semua approval selesai, izin TPAS sudah ditandatangani",
+                      "type": "text"
+                    },
+                    {
+                      "key": "changed_by",
+                      "value": "Tim Perizinan",
+                      "type": "text"
+                    }
+                  ]
                 },
                 "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "Izin siap. WAJIB: tpas_approved=true, tp_approved=true (jika false → success=false). Optional: caf_approved, tgl_berlaku_permit_tpas (YYYY-MM-DD), tgl_berakhir_permit_tpas (YYYY-MM-DD)."
+                "description": "Izin siap. WAJIB multipart/form-data + upload dokumen TPAS (field file). WAJIB juga: tpas_approved=true dan tp_approved=true. Optional: caf_approved, tgl_berlaku_permit_tpas, tgl_berakhir_permit_tpas, doc_type (default=tpas), uploaded_by."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage = permit_ready + approval fields tersimpan', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.eql('permit_ready'); pm.expect(j.data.tpas_approved).to.be.true; pm.expect(j.data.tp_approved).to.be.true; pm.expect(j.data.caf_approved).to.be.true; pm.expect(j.data.tgl_berlaku_permit_tpas).to.eql('2026-03-11'); pm.expect(j.data.tgl_berakhir_permit_tpas).to.eql('2027-03-11'); pm.expect(j.data.days_in_stage).to.be.a('number'); pm.expect(j.data.permit_days_total).to.be.a('number'); pm.expect(j.data.permit_days_elapsed).to.be.a('number'); pm.expect(j.data.permit_days_remaining).to.be.a('number'); });"], "type": "text/javascript" } }],
               "response": []
