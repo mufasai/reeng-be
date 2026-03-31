@@ -1,6 +1,10 @@
 mod handlers;
 mod models;
 mod state;
+mod common;
+mod config;
+mod permissions;
+mod services;
 
 use axum::{
     extract::Json,
