@@ -258,12 +258,30 @@ pub struct Site {
     pub jenis_kunci: Option<String>,        // PADLOCK | SMARTLOCK | QUADLOCK
     pub pic_akses_nama: Option<String>,
     pub pic_akses_telp: Option<String>,
+    // Akses ready stage data (diisi saat transisi → akses_ready)
+    pub survey_result: Option<String>,      // "ok" atau "nok"
+    pub survey_nok_reason: Option<String>,  // Alasan jika survey = nok
+    pub erfin_number: Option<String>,       // Nomor ERFIN
+    pub erfin_date: Option<String>,         // Tanggal ERFIN
+    pub has_akses_gedung: Option<bool>,     // Toggle: ada akses ke gedung?
+    pub gedung_nama: Option<String>,        // Nama gedung/building
+    pub gedung_pic_nama: Option<String>,    // Nama PIC gedung
+    pub gedung_pic_telp: Option<String>,    // Telepon PIC gedung
+    pub gedung_akses_status: Option<String>, // Status akses gedung
+    pub konfirmasi_akses: Option<bool>,     // Sudah akses ke tower?
     // Implementasi stage data (diisi saat transisi → implementasi)
     pub tgl_rencana_implementasi: Option<String>,
     pub tgl_aktual_mulai: Option<String>,
     pub jam_checkin: Option<String>,
     // RFI done stage data (diisi saat transisi → rfi_done)
     pub jam_checkout: Option<String>,
+    pub konfirmasi_rfi: Option<bool>,       // RFI selesai?
+    // RFS done stage data (diisi saat transisi → rfs_done)
+    pub konfirmasi_rfs: Option<bool>,       // RFS selesai?
+    // BAST stage data (diisi saat transisi → bast)
+    pub konfirmasi_dok: Option<bool>,       // Dokumentasi lengkap?
+    pub konfirmasi_final: Option<bool>,     // Final confirmation?
+    pub catatan_teknis: Option<String>,     // Catatan teknis tambahan
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -339,28 +357,57 @@ pub struct UpdateSiteStageRequest {
     pub notes: Option<String>,
     pub changed_by: Option<String>,  // user id atau nama yang mengubah
     pub evidence_urls: Option<Vec<String>>,
-    pub permit_date: Option<String>, // Tanggal buat permit (wajib saat masuk permit_process)
+    
+    // ============ ASSIGNED → PERMIT_PROCESS ============
+    pub permit_date: Option<String>, // Tanggal buat permit (wajib)
+    
+    // ============ PERMIT_PROCESS → PERMIT_READY ============
+    pub tpas_approved: Option<bool>, // Konfirmasi TPAS Approved (wajib)
+    pub tp_approved: Option<bool>,   // Konfirmasi TP Approved (wajib)
+    pub caf_approved: Option<bool>,  // Konfirmasi CAF Approved (wajib)
+    pub tgl_berlaku_permit_tpas: Option<String>, // Tanggal berlaku permit
+    pub tgl_berakhir_permit_tpas: Option<String>, // Tanggal berakhir permit
+    
+    // ============ PERMIT_READY → AKSES_PROCESS ============
+    pub tower_provider: Option<String>,  // Pilihan tower provider (wajib)
+    pub jenis_kunci: Option<String>,     // Jenis kunci yang digunakan (wajib)
+    pub pic_akses_nama: Option<String>,  // Nama PIC akses (wajib)
+    pub pic_akses_telp: Option<String>,  // Telepon PIC akses (wajib)
+    
+    // ============ AKSES_PROCESS → AKSES_READY ============
+    pub survey_result: Option<String>,   // "ok" atau "nok" - hasil survey
+    pub survey_nok_reason: Option<String>, // Alasan jika survey = nok
+    pub erfin_number: Option<String>,    // Nomor ERFIN
+    pub erfin_date: Option<String>,      // Tanggal ERFIN
+    pub has_akses_gedung: Option<bool>,  // Toggle: ada akses ke gedung? (wajib)
+    pub gedung_nama: Option<String>,     // Nama gedung jika has_akses_gedung = true (wajib)
+    pub gedung_pic_nama: Option<String>, // Nama PIC gedung (wajib)
+    pub gedung_pic_telp: Option<String>, // Telepon PIC gedung (wajib)
+    pub gedung_akses_status: Option<String>, // Status akses gedung
+    pub konfirmasi_akses: Option<bool>,  // Checkbox: sudah akses ke tower? (wajib)
+    
+    // ============ AKSES_READY → IMPLEMENTASI ============
+    pub tgl_rencana_implementasi: Option<String>, // Tanggal rencana implementasi (wajib)
+    
+    // ============ IMPLEMENTASI → RFI_DONE ============
+    pub tgl_aktual_mulai: Option<String>, // Tanggal aktual mulai (wajib)
+    pub jam_checkin: Option<String>,      // Jam check-in (wajib)
+    pub konfirmasi_rfi: Option<bool>,     // Checkbox: RFI selesai? (wajib)
+    
+    // ============ RFI_DONE → RFS_DONE ============
+    pub jam_checkout: Option<String>,     // Jam check-out (wajib)
+    pub konfirmasi_rfs: Option<bool>,     // Checkbox: RFS selesai? (wajib)
+    
+    // ============ RFS_DONE → BAST ============
+    pub konfirmasi_dok: Option<bool>,     // Checkbox: dokumentasi lengkap? (wajib)
+    pub konfirmasi_final: Option<bool>,   // Checkbox: final confirmation? (wajib)
+    pub catatan_teknis: Option<String>,   // Catatan teknis tambahan
+    
+    // Common fields
     pub impl_cico_done: Option<bool>,
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
-    // Permit ready stage fields (wajib saat transisi → permit_ready)
-    pub tpas_approved: Option<bool>,
-    pub tp_approved: Option<bool>,
-    pub caf_approved: Option<bool>,
-    pub tgl_berlaku_permit_tpas: Option<String>,
-    pub tgl_berakhir_permit_tpas: Option<String>,
-    // Akses process stage fields (wajib saat transisi → akses_process)
-    pub tower_provider: Option<String>,
-    pub jenis_kunci: Option<String>,
-    pub pic_akses_nama: Option<String>,
-    pub pic_akses_telp: Option<String>,
-    // Implementasi stage fields (wajib saat transisi → implementasi)
-    pub tgl_rencana_implementasi: Option<String>,
-    pub tgl_aktual_mulai: Option<String>,
-    pub jam_checkin: Option<String>,
-    // RFI done stage fields (wajib saat transisi → rfi_done)
-    pub jam_checkout: Option<String>,
 }
 
 // ==================== TEAM MODELS ====================

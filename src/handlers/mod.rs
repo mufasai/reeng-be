@@ -9,3 +9,4 @@ pub mod files;
 pub mod termins;
 pub mod teams;
 pub mod bulk_import;
+pub mod site_stages;

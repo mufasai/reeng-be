@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 26 MARET v2.2",
-    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
+    "name": "SmartElco API Collection - UPDATE 31 MARET v2.3",
+    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -640,8 +640,8 @@
           ]
         },
         {
-          "name": "Site Stage - UPDATE 26 MARET",
-          "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nResponse stage sekarang include hitungan hari (hari, bukan jam): days_in_stage + metrik permit (permit_days_total, permit_days_elapsed, permit_days_remaining).",
+          "name": "Site Stage - UPDATE 31 MARET v2.3",
+          "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nUPDATE v2.3 (31 MARET 2026):\n- 40+ dynamic fields across 8 categories: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST\n- Per-stage field validation: required fields divalidasi ketat sesuai stage\n- New helper endpoint: GET /sites/:id/valid-next-stages\n- SQL injection prevention on all string fields\n- Comprehensive error messages dalam Indonesian\n\nResponse include hitungan hari + metrik permit: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n+ semua field yang baru disimpan untuk UI visual feedback.",
           "item": [
             {
               "name": "Stage 01 - imported (Reset/Awal)",
@@ -937,6 +937,21 @@
                 "description": "Ambil riwayat perubahan stage site. Terurut dari terbaru ke terlama. Setelah menjalankan 13 stage di atas, minimal akan ada 13 log entries."
               },
               "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Data is array with entries', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data).to.be.an('array'); pm.expect(j.data.length).to.be.greaterThan(0); });"], "type": "text/javascript" } }],
+              "response": []
+            },
+            {
+              "name": "Get Valid Next Stages (NEW v2.3 - Helper Endpoint)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/valid-next-stages",
+                  "host": ["{{base_url}}"],
+                  "path": ["sites", "{{site_id}}", "valid-next-stages"]
+                },
+                "description": "NEW ENDPOINT v2.3: Helper endpoint untuk UI flow — return list stage apa saja yang valid dipilih dari current stage. Sangat berguna untuk populate dropdown 'Select Next Stage' di frontend.\n\nResponse include current_stage, valid_next_stages array (berisi stage name + description),  dan required_field_descriptions untuk konteks field mana yang wajib diisi."
+              },
+              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Returns current_stage & valid_next_stages', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.current_stage).to.exist; pm.expect(j.data.valid_next_stages).to.be.an('array'); pm.expect(j.data.required_field_descriptions).to.be.an('object'); });"], "type": "text/javascript" } }],
               "response": []
             }
           ]
