@@ -62,18 +62,18 @@
 
 #### Per-Stage Field Requirements Matrix:
 
-| # | Stage | Required Fields | Optional Fields | Notes |
-|---|---|---|---|---|
-| 01 | `imported` | — | — | Tahap awal, data baru |
-| 02 | `assigned` | — | notes, changed_by | Tim sudah ditugaskan |
-| 03 | `permit_process` | permit_date | notes, changed_by | Perizinan sedang berjalan |
-| 04 | `permit_ready` | tpas_approved, tp_approved | caf_approved, tgl_berlaku/berakhir | Upload dokumen TPAS via multipart |
-| 05 | `akses_process` | tower_provider, jenis_kunci | pic_akses_nama, pic_akses_telp | Akses tower sedang disetujui |
-| 06 | `akses_ready` | — | notes, changed_by | Akses siap untuk implementasi |
-| 07 | `implementasi` | tgl_rencana_implementasi | tgl_aktual_mulai | Kerja fisik dimulai |
-| 08 | `rfi_done` | jam_checkout | konfirmasi_rfi, catatan_teknis | Check-in/out di lokasi |
-| 09 | `rfs_done` | — | konfirmasi_rfs | Ready For Service confirmed |
-| 10 | `dokumen_done` | — | notes | As-built doc serah terima |
+| # | Stage | Required Fields | Optional Fields | File Upload | Notes |
+|---|---|---|---|---|---|
+| 01 | `imported` | — | — | — | Tahap awal, data baru |
+| 02 | `assigned` | — | notes, changed_by | — | Tim sudah ditugaskan |
+| 03 | `permit_process` | permit_date | notes, changed_by | — | Perizinan sedang berjalan |
+| 04 | `permit_ready` | tpas_approved, tp_approved | caf_approved, tgl_berlaku/berakhir | **file (TPAS)** | Upload dokumen TPAS via multipart |
+| 05 | `akses_process` | tower_provider, jenis_kunci | pic_akses_nama, pic_akses_telp | — | Akses tower sedang disetujui |
+| 06 | `akses_ready` | — | notes, changed_by | — | Akses siap untuk implementasi |
+| 07 | `implementasi` | tgl_rencana_implementasi | tgl_aktual_mulai | **file_evidence** | Kerja fisik dimulai + progress photos |
+| 08 | `rfi_done` | jam_checkout | konfirmasi_rfi, catatan_teknis | **file_rfi_results** | Check-in/out di lokasi + RF test results |
+| 09 | `rfs_done` | — | konfirmasi_rfs | — | Ready For Service confirmed |
+| 10 | `dokumen_done` | — | notes | **file_asbuilt** | As-built doc serah terima + technical drawings |
 | 11 | `bast` | — | konfirmasi_dok, catatan_final | BAST ditandatangani |
 | 12 | `invoice` | — | notes | Invoice ke finance client |
 | 13 | `completed` | — | konfirmasi_final | Project selesai total |
@@ -174,6 +174,41 @@ POST /sites/sites:xxx/stage
 - 📊 **Tested:** All 13 stage transitions tested, all 40+ field validations verified
 - 🔧 **Code Quality:** Clean, reusable, comprehensive error handling
 - 🚀 **Production Ready:** Deployed with 0 errors, verified release build
+
+#### Postman Collection Update (v2.3.0 + testing)
+
+All 13 stage update requests have been refactored to use **PUT method with form-data** instead of POST with JSON:
+
+| Stage | Endpoint | Method | Format | File Upload | Notes |
+|---|---|---|---|---|---|
+| 01 | `/sites/:site_id/stage` | PUT | formdata | — | ✅ Changed from POST to PUT |
+| 02-03 | `/sites/:site_id/stage` | PUT | formdata | — | Update survey & permit |
+| **04** | `/sites/:site_id/stage` | PUT | formdata | **📄 file** | TPAS document upload |
+| 05-06 | `/sites/:site_id/stage` | PUT | formdata | — | Access tower info |
+| **07** | `/sites/:site_id/stage` | PUT | formdata | **📸 file_evidence** | Field work photos |
+| **08** | `/sites/:site_id/stage` | PUT | formdata | **📊 file_rfi_results** | RF test results |
+| 09 | `/sites/:site_id/stage` | PUT | formdata | — | RFS confirmation |
+| **10** | `/sites/:site_id/stage` | PUT | formdata | **📐 file_asbuilt** | As-built drawings |
+| 11-13 | `/sites/:site_id/stage` | PUT | formdata | — | Handover & finalization |
+
+**Benefits:**
+- ✅ **PUT semantics:** Follows REST convention (PUT for state changes)
+- ✅ **Form-data format:** Consistent with all file upload endpoints
+- ✅ **Easy testing:** Postman's form-data UI is more intuitive
+- ✅ **File support:** All stages ready for document uploads
+- ✅ **Backward compatible:** Backend continues supporting both POST/PUT
+
+**File Upload Fields:**
+- `file` (Stage 04) - TPAS permit document
+- `file_evidence` (Stage 07) - Field work evidence photos
+- `file_rfi_results` (Stage 08) - RF test results/inspection report
+- `file_asbuilt` (Stage 10) - As-built technical drawings
+
+**Import into Postman:**
+1. Open Postman → Collections
+2. Click "Import" → Upload `SmartElco_API_Collection.postman_collection.json`
+3. All 13 stage requests ready to test with formdata fields + file uploads
+4. Use `{{base_url}}` and `{{site_id}}` variables as defined in environment
 
 ---
 

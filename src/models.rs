@@ -282,6 +282,11 @@ pub struct Site {
     pub konfirmasi_dok: Option<bool>,       // Dokumentasi lengkap?
     pub konfirmasi_final: Option<bool>,     // Final confirmation?
     pub catatan_teknis: Option<String>,     // Catatan teknis tambahan
+    // File storage (stored as JSON strings containing FileData)
+    pub file_tpas: Option<String>,          // Stage 04 PERMIT READY: TPAS document
+    pub file_evidence_data: Option<String>, // Stage 07 IMPLEMENTASI: Evidence photos
+    pub file_rfi_data: Option<String>,      // Stage 08 RFI DONE: RFI test results
+    pub file_asbuilt_data: Option<String>,  // Stage 10 DOKUMEN DONE: As-built drawings
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -408,6 +413,61 @@ pub struct UpdateSiteStageRequest {
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
+}
+
+// ==================== MULTIPART FILE UPLOAD MODELS ====================
+
+/// File metadata stored in database as base64
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileData {
+    pub filename: String,
+    pub content_type: String,
+    pub size: usize,
+    pub data: String,  // base64 encoded
+}
+
+/// Stage update with multipart form support
+#[derive(Debug)]
+pub struct UpdateSiteStageMultipart {
+    pub stage: String,
+    pub notes: Option<String>,
+    pub changed_by: Option<String>,
+    
+    // File uploads (optional, stored as base64)
+    pub file: Option<FileData>,                // TPAS document (Stage 04)
+    pub file_evidence: Option<FileData>,       // Field work photos (Stage 07)
+    pub file_rfi_results: Option<FileData>,    // RFI test results (Stage 08)
+    pub file_asbuilt: Option<FileData>,        // As-built drawings (Stage 10)
+    
+    // Stage-specific fields (from Postman formdata with stage_ prefix)
+    pub stage_permit_date: Option<String>,
+    pub stage_tpas_approved: Option<bool>,
+    pub stage_tp_approved: Option<bool>,
+    pub stage_caf_approved: Option<bool>,
+    pub stage_permit_berlaku: Option<String>,
+    pub stage_permit_berakhir: Option<String>,
+    pub stage_akses_provider: Option<String>,
+    pub stage_akses_kunci: Option<String>,
+    pub stage_akses_pic_nama: Option<String>,
+    pub stage_akses_pic_telp: Option<String>,
+    pub stage_survey_result: Option<String>,
+    pub stage_survey_nok_reason: Option<String>,
+    pub stage_erfin_number: Option<String>,
+    pub stage_erfin_date: Option<String>,
+    pub stage_gedung_akses: Option<bool>,
+    pub stage_gedung_nama: Option<String>,
+    pub stage_gedung_pic_nama: Option<String>,
+    pub stage_gedung_pic_telp: Option<String>,
+    pub stage_gedung_status: Option<String>,
+    pub stage_impl_rencana_tgl: Option<String>,
+    pub stage_impl_real_tgl: Option<String>,
+    pub stage_impl_real_jam_mulai: Option<String>,
+    pub stage_rfi_real_jam_selesai: Option<String>,
+    pub stage_rfi_confirm: Option<bool>,
+    pub stage_rfs_confirm: Option<bool>,
+    pub stage_rfs_catatan: Option<String>,
+    pub stage_bast_dok_confirm: Option<bool>,
+    pub stage_bast_final_confirm: Option<bool>,
 }
 
 // ==================== TEAM MODELS ====================
