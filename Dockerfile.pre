@@ -1,0 +1,26 @@
+# ================================
+# Builder stage
+# ================================
+FROM rust:1.91-slim AS builder
+
+# ----------------
+# System deps
+# ----------------
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ----------------
+# Cache dependencies
+# ----------------
+COPY Cargo.toml ./
+
+# Create dummy main.rs to cache dependencies
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN cargo build --release || true
+# end of build pre cache dependency

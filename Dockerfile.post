@@ -1,0 +1,33 @@
+# =========================
+# Builder stage
+# =========================
+FROM reenginering-tools-be-pre AS builder
+
+# Build real app
+COPY . .
+RUN cargo build --release --bin reengineering-tool-be
+
+# =========================
+# Runtime stage
+# =========================
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r app \
+    && useradd -r -g app app
+
+WORKDIR /app
+
+COPY --from=builder /app/target/release/reengineering-tool-be /app/reengineering-tool-be
+
+RUN chown app:app /app/reengineering-tool-be
+
+USER app
+
+EXPOSE 8080
+ENTRYPOINT ["/app/reengineering-tool-be"]
+
+
