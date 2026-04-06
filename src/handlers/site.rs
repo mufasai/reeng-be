@@ -1137,6 +1137,7 @@ pub async fn update_site_stage(
             jenis_kunci: jenis_kunci_opt,
             pic_akses_nama: pic_akses_nama_opt,
             pic_akses_telp: pic_akses_telp_opt,
+            survey_date: None,
             survey_result: None,
             survey_nok_reason: None,
             erfin_number: None,

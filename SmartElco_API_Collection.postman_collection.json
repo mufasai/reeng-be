@@ -700,6 +700,7 @@
                   "mode": "formdata",
                   "formdata": [
                     { "key": "stage", "value": "assigned", "type": "text", "description": "Current/target stage (required)" },
+                    { "key": "stage_survey_date", "value": "2026-03-15", "type": "text", "description": "🔴 SURVEY DATE - Required for Survey step: YYYY-MM-DD format" },
                     { "key": "stage_survey_result", "value": "LAYAK", "type": "text", "description": "🔴 SURVEY RESULT - Required for Survey step: LAYAK | TIDAK_LAYAK | PERLU_MODIFIKASI" },
                     { "key": "stage_survey_nok_reason", "value": "", "type": "text", "description": "If result=TIDAK_LAYAK: reason why (optional)" },
                     { "key": "stage_erfin_number", "value": "ERF-2026-0031", "type": "text", "description": "🔴 ERFIN ID - Required for Survey step: Electrical Requirement Form & Infrastructure Notice" },

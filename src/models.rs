@@ -259,6 +259,7 @@ pub struct Site {
     pub pic_akses_nama: Option<String>,
     pub pic_akses_telp: Option<String>,
     // Akses ready stage data (diisi saat transisi → akses_ready)
+    pub survey_date: Option<String>,        // Tanggal survey dimulai (diisi saat assigned→survey)
     pub survey_result: Option<String>,      // "ok" atau "nok"
     pub survey_nok_reason: Option<String>,  // Alasan jika survey = nok
     pub erfin_number: Option<String>,       // Nomor ERFIN
@@ -379,6 +380,9 @@ pub struct UpdateSiteStageRequest {
     pub pic_akses_nama: Option<String>,  // Nama PIC akses (wajib)
     pub pic_akses_telp: Option<String>,  // Telepon PIC akses (wajib)
     
+    // ============ ASSIGNED → SURVEY ============
+    pub survey_date: Option<String>,     // Tanggal survey dimulai (wajib saat transisi)
+    
     // ============ AKSES_PROCESS → AKSES_READY ============
     pub survey_result: Option<String>,   // "ok" atau "nok" - hasil survey
     pub survey_nok_reason: Option<String>, // Alasan jika survey = nok
@@ -450,6 +454,7 @@ pub struct UpdateSiteStageMultipart {
     pub stage_akses_kunci: Option<String>,
     pub stage_akses_pic_nama: Option<String>,
     pub stage_akses_pic_telp: Option<String>,
+    pub stage_survey_date: Option<String>,
     pub stage_survey_result: Option<String>,
     pub stage_survey_nok_reason: Option<String>,
     pub stage_erfin_number: Option<String>,
