@@ -21,6 +21,6 @@ WORKDIR /app
 COPY Cargo.toml ./
 
 # Create dummy main.rs to cache dependencies
-RUN mkdir -p src && echo "fn main() {}" > src/main.rs
+RUN mkdir -p src && echo 'fn main() { println!("prebuild binnary"); }' > src/main.rs
 RUN cargo build --release || true
 # end of build pre cache dependency
