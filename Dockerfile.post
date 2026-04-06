@@ -1,7 +1,7 @@
 # =========================
 # Builder stage
 # =========================
-FROM reenginering-tools-be-pre AS builder
+FROM reengineering-tool-be-pre AS builder
 
 # Build real app
 COPY . .

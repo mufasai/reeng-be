@@ -1,5 +1,5 @@
-img = g3n1k/reenginering-tools-be
-imgpre ?= reenginering-tools-be-pre
+img = g3n1k/reengineering-tool-be
+imgpre ?= reengineering-tool-be-pre
 file_docker ?= $(imgpre).docker
 
 build-pre:
@@ -12,7 +12,7 @@ build-post:
 	docker build -f Dockerfile.post -t $(img) .
 
 save:
-	docker save -o $(file_docker) g3n1k/rmj-be
+	docker save -o $(file_docker) g3n1k/reengineering-tool-be
 
 scp:
 	scp $(file_docker) rocky37:/home/rocky/tmp/
