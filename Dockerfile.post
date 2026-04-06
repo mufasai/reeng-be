@@ -4,30 +4,19 @@
 FROM reengineering-tool-be-pre AS builder
 
 # Build real app
-COPY . .
-RUN cargo build --release --bin reengineering-tool-be
+COPY src ./src
+RUN cargo build --release --target x86_64-unknown-linux-musl -p reengineering-tool-be
 
 # =========================
 # Runtime stage
 # =========================
-FROM debian:bookworm-slim
-
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd -r app \
-    && useradd -r -g app app
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-COPY --from=builder /app/target/release/reengineering-tool-be /app/reengineering-tool-be
-
-RUN chown app:app /app/reengineering-tool-be
-
-USER app
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/reengineering-tool-be /app/reengineering-tool-be
 
 EXPOSE 8080
+
 ENTRYPOINT ["/app/reengineering-tool-be"]
-
-

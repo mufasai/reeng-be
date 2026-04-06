@@ -17,3 +17,6 @@ save:
 scp:
 	scp $(file_docker) rocky37:/home/rocky/tmp/
 
+run-post:
+	docker run --rm -p 3001:3001 $(img)
+
