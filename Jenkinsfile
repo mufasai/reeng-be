@@ -71,11 +71,30 @@ pipeline {
             }
         }
 
+        stage('check imagepre sudah tersedia') {
+            steps {
+                script {
+                    def imageExists = sh(
+                        script: "docker image inspect ${IMAGEPRE} > /dev/null 2>&1 && echo 'true' || echo 'false'",
+                        returnStdout: true
+                    ).trim()
+
+                    if (imageExists == 'true') {
+                        env.IMAGEPRE_EXISTS = "true"
+                        echo "✅ Pre image ${IMAGEPRE} sudah tersedia"
+                    } else {
+                        env.IMAGEPRE_EXISTS = "false"
+                        echo "⚠️ Pre image ${IMAGEPRE} belum tersedia"
+                    }
+                }
+            }
+        }
+
         // jika diubah, ubah env.CARGO_CHANGED = true
         // build dahulu pre image
         stage('build pre image') {
             when {
-                expression { env.CARGO_CHANGED == "true" }
+                expression { env.CARGO_CHANGED == "true" || env.IMAGEPRE_EXISTS == "false" }
             }
             steps {
                 script {
