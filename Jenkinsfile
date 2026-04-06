@@ -47,10 +47,10 @@ pipeline {
             }
         }
 
-        // apakah ada perubahan pada Cargo.toml
-        // check dengan command git apakah Cargo toml diubah
-        // jika diubah, ubah env.CARGO_CHANGED = true
-        stage('check Cargo.toml changes') {
+        // apakah ada perubahan pada Cargo.toml atau Dockerfile.pre
+        // check dengan command git apakah Cargo toml atau Dockerfile.pre diubah
+        // jika diubah, ubah env.REBUILD_PRE = true
+        stage('check prefile changes') {
             steps {
                 script {
                     def changedFiles = sh(
@@ -58,14 +58,16 @@ pipeline {
                         returnStdout: true
                     ).trim()
 
-                    echo "Changed files:\n${changedFiles}"
+                    // echo "Changed files:\n${changedFiles}"
+                    def filesToCheck = ['Cargo.toml', 'Dockerfile.pre']
+                    def changed = changedFiles.split('\n').findAll { it in filesToCheck }
 
-                    if (changedFiles.split('\n').any { it == 'Cargo.toml' }) {
-                        env.CARGO_CHANGED = "true"
-                        echo "✅ Cargo.toml changed"
+                    if (changed.size() > 0) {
+                        env.REBUILD_PRE = "true"
+                        echo "ℹ️ ${changed.join(', ')} berubah, rebuild preimage  "
                     } else {
-                        env.CARGO_CHANGED = "false"
-                        echo "ℹ️ Cargo.toml not changed"
+                        env.REBUILD_PRE = "false"
+                        echo "✅ preimage component tidak berubah"
                     }
                 }
             }
@@ -90,16 +92,15 @@ pipeline {
             }
         }
 
-        // jika diubah, ubah env.CARGO_CHANGED = true
-        // build dahulu pre image
+        // jika diubah, build dahulu pre image
         stage('build pre image') {
             when {
-                expression { env.CARGO_CHANGED == "true" || env.IMAGEPRE_EXISTS == "false" }
+                expression { env.REBUILD_PRE == "true" || env.IMAGEPRE_EXISTS == "false" }
             }
             steps {
                 script {
-                    if (env.CARGO_CHANGED == "true") {
-                        sendTelegramMessage("🧱 Cargo.toml berubah, build pre image dimulai")
+                    if (env.REBUILD_PRE == "true") {
+                        sendTelegramMessage("🧱 Cargo.toml/Dockerfile.pre berubah, build pre image dimulai")
                     } else {
                         sendTelegramMessage("🧱 Pre image belum tersedia, build pre image dimulai")
                     }
