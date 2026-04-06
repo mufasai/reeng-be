@@ -76,6 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:site_id/team-structure/:member_id", put(site::update_site_team_member))
         .route("/api/sites/:site_id/team-structure/:member_id", delete(site::remove_site_team_member))
         // Site Stage routes
+        .route("/api/sites/:id/stage", post(site::update_site_stage))
         .route("/api/sites/:id/stage", put(site::update_site_stage))
         .route("/api/sites/:id/stage-logs", get(site::get_site_stage_logs))
         // Site BOQ routes
