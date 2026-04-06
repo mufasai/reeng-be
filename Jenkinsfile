@@ -98,7 +98,11 @@ pipeline {
             }
             steps {
                 script {
-                    sendTelegramMessage("🧱 Cargo.toml berubah, build pre image dimulai")
+                    if (env.CARGO_CHANGED == "true") {
+                        sendTelegramMessage("🧱 Cargo.toml berubah, build pre image dimulai")
+                    } else {
+                        sendTelegramMessage("🧱 Pre image belum tersedia, build pre image dimulai")
+                    }
 
                     try {
                         sh """
