@@ -253,6 +253,8 @@ pub struct Site {
     pub caf_approved: Option<bool>,
     pub tgl_berlaku_permit_tpas: Option<String>,
     pub tgl_berakhir_permit_tpas: Option<String>,
+    pub dokumen_tpas_url: Option<String>,
+    pub approval_chain: Option<String>,
     // Akses process stage data (diisi saat transisi → akses_process)
     pub tower_provider: Option<String>,     // MITRATEL | STP | PTI | DMT | Lainnya
     pub jenis_kunci: Option<String>,        // PADLOCK | SMARTLOCK | QUADLOCK
@@ -264,6 +266,7 @@ pub struct Site {
     pub survey_nok_reason: Option<String>,  // Alasan jika survey = nok
     pub erfin_number: Option<String>,       // Nomor ERFIN
     pub erfin_date: Option<String>,         // Tanggal ERFIN
+    pub erfin_ready_date: Option<String>,   // Tanggal ERFIN ready
     pub has_akses_gedung: Option<bool>,     // Toggle: ada akses ke gedung?
     pub gedung_nama: Option<String>,        // Nama gedung/building
     pub gedung_pic_nama: Option<String>,    // Nama PIC gedung
@@ -373,6 +376,8 @@ pub struct UpdateSiteStageRequest {
     pub caf_approved: Option<bool>,  // Konfirmasi CAF Approved (wajib)
     pub tgl_berlaku_permit_tpas: Option<String>, // Tanggal berlaku permit
     pub tgl_berakhir_permit_tpas: Option<String>, // Tanggal berakhir permit
+    pub approval_chain: Option<String>,
+    pub dokumen_tpas_url: Option<String>,
     
     // ============ PERMIT_READY → AKSES_PROCESS ============
     pub tower_provider: Option<String>,  // Pilihan tower provider (wajib)
@@ -388,6 +393,7 @@ pub struct UpdateSiteStageRequest {
     pub survey_nok_reason: Option<String>, // Alasan jika survey = nok
     pub erfin_number: Option<String>,    // Nomor ERFIN
     pub erfin_date: Option<String>,      // Tanggal ERFIN
+    pub erfin_ready_date: Option<String>,// Tanggal ERFIN ready
     pub has_akses_gedung: Option<bool>,  // Toggle: ada akses ke gedung? (wajib)
     pub gedung_nama: Option<String>,     // Nama gedung jika has_akses_gedung = true (wajib)
     pub gedung_pic_nama: Option<String>, // Nama PIC gedung (wajib)
@@ -450,6 +456,7 @@ pub struct UpdateSiteStageMultipart {
     pub stage_caf_approved: Option<bool>,
     pub stage_permit_berlaku: Option<String>,
     pub stage_permit_berakhir: Option<String>,
+    pub stage_approval_chain: Option<String>,
     pub stage_akses_provider: Option<String>,
     pub stage_akses_kunci: Option<String>,
     pub stage_akses_pic_nama: Option<String>,
@@ -459,6 +466,7 @@ pub struct UpdateSiteStageMultipart {
     pub stage_survey_nok_reason: Option<String>,
     pub stage_erfin_number: Option<String>,
     pub stage_erfin_date: Option<String>,
+    pub stage_erfin_ready_date: Option<String>,
     pub stage_gedung_akses: Option<bool>,
     pub stage_gedung_nama: Option<String>,
     pub stage_gedung_pic_nama: Option<String>,
@@ -1284,4 +1292,41 @@ pub struct ApiResponse<T> {
     pub success: bool,
     pub data: Option<T>,
     pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateSiteResponse {
+    pub site: Site,
+    pub operation: String,  // "created" | "updated"
+    pub changes: Option<Vec<String>>,  // List of fields that were updated
+}
+
+// ==================== NEW MODULES (DIRECTOR & BULK) ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulkCreateMaterialRequest {
+    pub project_id: String,
+    pub site_id: String,
+    pub materials: Vec<MaterialItemInput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaterialItemInput {
+    pub skp: Option<String>,
+    pub name: String,
+    pub unit: String,
+    pub qty: i64,
+    pub tgl: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TerminDirectorSummaryResponse {
+    pub termin: Termin,
+    pub site_name: Option<String>,
+    pub project_name: Option<String>,
+    pub current_stage: String,
+    pub required_stage: String,
+    pub is_stage_compliant: bool,
+    pub total_material_items: i64,
+    pub materials: Vec<Material>,
 }

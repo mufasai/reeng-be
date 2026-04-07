@@ -67,6 +67,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites", post(site::create_site))
         .route("/api/sites", get(site::list_sites))
         .route("/api/sites/project/:project_id", get(site::get_sites_by_project))
+        .route("/api/sites/type", get(site::list_sites_by_type))
+        .route("/api/sites/category/:category", get(site::list_sites_by_category))
         .route("/api/sites/:id", get(site::get_site_by_id))
         .route("/api/sites/:id", put(site::update_site))
         .route("/api/sites/:id", delete(site::delete_site))
@@ -112,6 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/people/:id", get(people::get_people))
         .route("/api/people/:id", put(people::update_people))
         .route("/api/people/:id", delete(people::delete_people))
+        .route("/api/people/upload", post(people::upload_people_excel))
         // Team routes
         .route("/api/teams", post(teams::create_team))
         .route("/api/teams", get(teams::list_teams))
@@ -194,12 +197,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  POST   /api/sites");
     println!("  GET    /api/sites");
     println!("  GET    /api/sites/project/:project_id");
+    println!("  GET    /api/sites/type          (Filter by type)");
+    println!("  GET    /api/sites/category/:cat (Filter by category)");
     println!("\n👥 People:");
     println!("  POST   /api/people");
     println!("  GET    /api/people");
     println!("  GET    /api/people/:id");
     println!("  PUT    /api/people/:id");
     println!("  DELETE /api/people/:id");
+    println!("  POST   /api/people/upload  (Excel upload)");
     println!("\n👥 Teams:");
     println!("  POST   /api/teams/upload  (Excel upload)");
     println!("\n💰 Costs:");

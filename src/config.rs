@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 pub const STAGE_ORDER: &[&str] = &[
     "imported",
     "assigned",
+    "survey",
+    "erfin_diproses",
+    "erfin_ready",
     "permit_process",
     "permit_ready",
     "akses_process",
@@ -27,14 +30,7 @@ pub const MILESTONE_STAGES: &[&str] = &["assigned", "permit_ready", "akses_ready
 
 /// Stages untuk project type tertentu
 pub fn get_allowed_stages_for_project_type(project_type: &str) -> Vec<&str> {
-    match project_type {
-        "RESCOPING" => vec![
-            "imported", "assigned", "survey", "survey_nok", "erfin_process", "erfin_ready",
-            "permit_process", "permit_ready", "akses_process", "akses_ready", "implementasi",
-            "rfi_done", "rfs_done", "dokumen_done", "bast", "invoice", "completed",
-        ],
-        _ => STAGE_ORDER.to_vec(),
-    }
+    STAGE_ORDER.to_vec()
 }
 
 // ─── TERMIN CONFIGURATIONS ───────────────────────────────────────────────────
@@ -182,28 +178,43 @@ pub fn get_stage_requirements(
             description: "Assign tim untuk mengerjakan site".to_string(),
         }),
 
-        // ASSIGNED → PERMIT_PROCESS
-        ("assigned", "permit_process") => Some(StageRequirements {
-            required_fields: vec!["permit_date".to_string()],
-            description: "Catat tanggal pengajuan permit ke TPAS".to_string(),
-        }),
-
-        // ASSIGNED → SURVEY (untuk RESCOPING)
-        ("assigned", "survey") if project_type == "RESCOPING" => Some(StageRequirements {
+        // ASSIGNED → SURVEY
+        ("assigned", "survey") => Some(StageRequirements {
             required_fields: vec!["survey_date".to_string()],
             description: "Catat tanggal survei lapangan".to_string(),
+        }),
+        
+        // SURVEY → ERFIN_DIPROSES
+        ("survey", "erfin_diproses") => Some(StageRequirements {
+            required_fields: vec!["survey_result".to_string()],
+            description: "Isi hasil survey OK atau NOK".to_string(),
+        }),
+
+        // ERFIN_DIPROSES → ERFIN_READY
+        ("erfin_diproses", "erfin_ready") => Some(StageRequirements {
+            required_fields: vec!["erfin_number".to_string(), "erfin_date".to_string(), "erfin_ready_date".to_string()],
+            description: "Input nomor erfin, tanggal erfin, dan tanggal erfin ready".to_string(),
+        }),
+
+        // ERFIN_READY → PERMIT_PROCESS
+        ("erfin_ready", "permit_process") => Some(StageRequirements {
+            required_fields: vec!["permit_date".to_string()],
+            description: "Input tanggal buat permit".to_string(),
         }),
 
         // PERMIT_PROCESS → PERMIT_READY
         ("permit_process", "permit_ready") => Some(StageRequirements {
             required_fields: vec![
+                "approval_chain".to_string(),
                 "tpas_approved".to_string(),
                 "tp_approved".to_string(),
+                "caf_approved".to_string(),
                 "tgl_berlaku_permit_tpas".to_string(),
                 "tgl_berakhir_permit_tpas".to_string(),
+                "dokumen_tpas_url".to_string(),
             ],
             description:
-                "Konfirm semua approval dan validity permit dari TPAS".to_string(),
+                "Input Approval Chain, TPAS, TP, CAF, dan upload dokumen".to_string(),
         }),
 
         // PERMIT_READY → AKSES_PROCESS

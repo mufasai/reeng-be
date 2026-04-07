@@ -105,3 +105,47 @@ pub async fn get_materials_by_site(
         message: None,
     }))
 }
+
+pub async fn bulk_create_materials(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<crate::models::BulkCreateMaterialRequest>,
+) -> Result<Json<ApiResponse<Vec<Material>>>, StatusCode> {
+    let mut created_materials = Vec::new();
+    
+    for item in req.materials {
+        let query = r#"
+            CREATE materials CONTENT {
+                skp: $skp,
+                name: $name,
+                unit: $unit,
+                qty: $qty,
+                project_id: type::thing($project_id),
+                site_id: type::thing($site_id),
+                tgl: $tgl,
+                created_at: time::now(),
+                updated_at: time::now()
+            }
+        "#;
+
+        let mut result = state.db.query(query)
+            .bind(("skp", item.skp.clone()))
+            .bind(("name", item.name.clone()))
+            .bind(("unit", item.unit.clone()))
+            .bind(("qty", item.qty))
+            .bind(("project_id", req.project_id.clone()))
+            .bind(("site_id", req.site_id.clone()))
+            .bind(("tgl", item.tgl.clone()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if let Ok(Some(material)) = result.take::<Option<Material>>(0) {
+            created_materials.push(material);
+        }
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(created_materials),
+        message: Some("Bulk materials created successfully".to_string()),
+    }))
+}
