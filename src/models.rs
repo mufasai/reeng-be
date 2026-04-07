@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use surrealdb::sql::Thing;
 
 // ==================== CUSTOM SERIALIZERS ====================
@@ -6,6 +6,8 @@ use surrealdb::sql::Thing;
 // Custom serializer for Thing to display as "table:id" string format
 mod thing_serializer {
     use super::*;
+    use serde::de::{self, Visitor};
+    use std::fmt;
     
     pub fn serialize<S>(thing: &Option<Thing>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -16,24 +18,155 @@ mod thing_serializer {
             None => serializer.serialize_none(),
         }
     }
+
+    struct ThingVisitor;
+    
+    impl<'de> Visitor<'de> for ThingVisitor {
+        type Value = Option<Thing>;
+        
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string representation of a Thing (table:id)")
+        }
+        
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+        
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+        
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Thing::try_from(value).map(Some).map_err(|_| E::custom(format!("Failed to parse Thing from string: {}", value)))
+        }
+        
+        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            self.visit_str(&value)
+        }
+        
+        // This handles cases where surrealdb returns the Thing object
+        fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+        where
+            M: de::MapAccess<'de>,
+        {
+            let mut tb: Option<String> = None;
+            let mut id: Option<String> = None;
+            
+            while let Some(key) = access.next_key::<String>()? {
+                if key == "tb" {
+                    tb = Some(access.next_value()?);
+                } else if key == "id" {
+                    id = Some(access.next_value()?);
+                } else {
+                    let _ = access.next_value::<de::IgnoredAny>()?;
+                }
+            }
+            
+            if let (Some(t), Some(i)) = (tb, id) {
+                Thing::try_from((t.as_str(), i.as_str())).map(Some).map_err(|_| de::Error::custom("Failed to parse Thing from map"))
+            } else {
+                Err(de::Error::custom("Missing tb or id in Thing map"))
+            }
+        }
+    }
+    
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Thing>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(ThingVisitor)
+    }
 }
 
 // ==================== AUTH MODELS ====================
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, PartialEq)]
 pub enum UserRole {
-    #[serde(rename = "backoffice admin")]
     BackofficeAdmin,
     Management,
-    #[serde(rename = "team leader")]
     TeamLeader,
-    #[serde(rename = "head office")]
     HeadOffice,
     Finance,
     Engineer,
     Admin,
     Direktur,
+}
+
+impl Serialize for UserRole {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            UserRole::BackofficeAdmin => "backoffice admin",
+            UserRole::Management => "management",
+            UserRole::TeamLeader => "team leader",
+            UserRole::HeadOffice => "head office",
+            UserRole::Finance => "finance",
+            UserRole::Engineer => "engineer",
+            UserRole::Admin => "admin",
+            UserRole::Direktur => "direktur",
+        };
+        serializer.serialize_str(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for UserRole {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+        use std::fmt;
+
+        struct UserRoleVisitor;
+
+        impl<'de> Visitor<'de> for UserRoleVisitor {
+            type Value = UserRole;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a valid user role string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<UserRole, E>
+            where
+                E: de::Error,
+            {
+                match value.to_lowercase().as_str() {
+                    "backoffice admin" | "backofficeadmin" => Ok(UserRole::BackofficeAdmin),
+                    "management" => Ok(UserRole::Management),
+                    "team leader" | "teamleader" => Ok(UserRole::TeamLeader),
+                    "head office" | "headoffice" => Ok(UserRole::HeadOffice),
+                    "finance" => Ok(UserRole::Finance),
+                    "engineer" => Ok(UserRole::Engineer),
+                    "admin" => Ok(UserRole::Admin),
+                    "direktur" => Ok(UserRole::Direktur),
+                    _ => Err(E::custom(format!("unknown user role: {}", value))),
+                }
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<UserRole, E>
+            where
+                E: de::Error,
+            {
+                self.visit_str(&value)
+            }
+        }
+
+        deserializer.deserialize_string(UserRoleVisitor)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,20 +201,78 @@ pub struct UserInfo {
 
 // ==================== ENUMS ====================
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ProjectType {
     Combat,
-    #[serde(rename = "L2H")]
     L2h,
-    #[serde(rename = "BLACK SITE")]
     BlackSite,
     Refinen,
     Filter,
-    #[serde(rename = "BEBAN OPERASIONAL")]
     BebanOperasional,
-    #[serde(rename = "OSP")]
     Osp,
+}
+
+impl Serialize for ProjectType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            ProjectType::Combat => "COMBAT",
+            ProjectType::L2h => "L2H",
+            ProjectType::BlackSite => "BLACK SITE",
+            ProjectType::Refinen => "REFINEN",
+            ProjectType::Filter => "FILTER",
+            ProjectType::BebanOperasional => "BEBAN OPERASIONAL",
+            ProjectType::Osp => "OSP",
+        };
+        serializer.serialize_str(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for ProjectType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+        use std::fmt;
+
+        struct ProjectTypeVisitor;
+
+        impl<'de> Visitor<'de> for ProjectTypeVisitor {
+            type Value = ProjectType;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a valid project type string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<ProjectType, E>
+            where
+                E: de::Error,
+            {
+                match value.to_uppercase().as_str() {
+                    "COMBAT" => Ok(ProjectType::Combat),
+                    "L2H" => Ok(ProjectType::L2h),
+                    "BLACK SITE" => Ok(ProjectType::BlackSite),
+                    "REFINEN" => Ok(ProjectType::Refinen),
+                    "FILTER" => Ok(ProjectType::Filter),
+                    "BEBAN OPERASIONAL" => Ok(ProjectType::BebanOperasional),
+                    "OSP" => Ok(ProjectType::Osp),
+                    _ => Err(E::custom(format!("unknown project type: {}", value))),
+                }
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<ProjectType, E>
+            where
+                E: de::Error,
+            {
+                self.visit_str(&value)
+            }
+        }
+
+        deserializer.deserialize_string(ProjectTypeVisitor)
+    }
 }
 
 // ==================== PEOPLE MODELS ====================
