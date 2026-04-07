@@ -246,6 +246,115 @@ pub async fn get_site_by_id(
     }))
 }
 
+/// GET /api/sites/type?type={value}
+/// Filter sites by type (case-insensitive search on site_info and pekerjaan fields)
+pub async fn list_sites_by_type(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<Vec<Site>>>, StatusCode> {
+    let type_filter = params.get("type")
+        .ok_or_else(|| {
+            eprintln!("Missing 'type' query parameter");
+            StatusCode::BAD_REQUEST
+        })?
+        .to_lowercase();
+
+    if type_filter.is_empty() {
+        return Ok(Json(ApiResponse {
+            success: true,
+            data: Some(vec![]),
+            message: Some("Type filter is empty".to_string()),
+        }));
+    }
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM sites ORDER BY created_at DESC")
+        .await
+        .map_err(|e| {
+            eprintln!("Database error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut sites: Vec<Site> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Client-side filtering (case-insensitive)
+    sites.retain(|site| {
+        let site_info = site.site_info.as_str().to_lowercase();
+        let pekerjaan = site.pekerjaan.as_str().to_lowercase();
+        site_info.contains(&type_filter) || pekerjaan.contains(&type_filter)
+    });
+
+    enrich_sites_timing_fields(&mut sites);
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(sites),
+        message: None,
+    }))
+}
+
+/// GET /api/sites/category/{category}
+/// Filter sites by category (BLACKSITE, COMBAT, FILTER, L2H, REFINEN)
+pub async fn list_sites_by_category(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Path(category): axum::extract::Path<String>,
+) -> Result<Json<ApiResponse<Vec<Site>>>, StatusCode> {
+    // Normalize category name to standard format
+    let standard_category = match category.to_lowercase().as_str() {
+        "blacksite" | "black" | "bs" => "BLACK SITE",
+        "combat" | "cb" => "COMBAT",
+        "filter" | "ft" | "filter_site" => "FILTER",
+        "l2h" | "l2h_site" => "L2H",
+        "refinen" | "refinery" | "ref" => "REFINEN",
+        _ => return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!("Invalid category: {}. Supported: blacksite, combat, filter, l2h, refinen", category)),
+        })),
+    };
+
+    let mut response = state
+        .db
+        .query("SELECT * FROM sites ORDER BY created_at DESC")
+        .await
+        .map_err(|e| {
+            eprintln!("Database error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let mut sites: Vec<Site> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Filter by category (search in site_info and pekerjaan fields)
+    sites.retain(|site| {
+        let site_info = site.site_info.as_str().to_uppercase();
+        let pekerjaan = site.pekerjaan.as_str().to_uppercase();
+        site_info.contains(standard_category) || pekerjaan.contains(standard_category)
+    });
+
+    enrich_sites_timing_fields(&mut sites);
+
+    if sites.is_empty() {
+        return Ok(Json(ApiResponse {
+            success: true,
+            data: Some(sites),
+            message: Some(format!("No sites found for category: {}", standard_category)),
+        }));
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(sites),
+        message: None,
+    }))
+}
+
 // Helper function to parse "table:id" string into Thing
 fn parse_thing_id(id_str: &str) -> Result<Thing, StatusCode> {
     // Use from_string to parse Thing from "table:id" format
@@ -744,7 +853,7 @@ pub async fn add_site_team_member(
     let mut insert_res = state
         .db
         .query(insert_query)
-        .bind(("site_id", site_thing))
+        .bind(("site_id", site_thing.clone()))
         .bind(("team_master_id", team_master_thing.clone()))
         .bind(("role", req.role.clone()))
         .bind(("vendor", req.vendor.clone()))
@@ -763,6 +872,38 @@ pub async fn add_site_team_member(
         eprintln!("No site_team_members record returned after creation");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+
+    // Auto-update stage from "imported" to "assigned" when team member is added
+    let _get_site_query = "SELECT stage FROM type::thing($site_id)";
+    if let Ok(mut site_res) = state
+        .db
+        .query(_get_site_query)
+        .bind(("site_id", site_thing.clone()))
+        .await
+    {
+        let sites: Vec<Site> = site_res.take(0).unwrap_or_default();
+        if let Some(site) = sites.first() {
+            if let Some(current_stage) = &site.stage {
+                if current_stage == "imported" {
+                    let auto_update_query = "UPDATE type::thing($site_id) SET \
+                        stage = 'assigned', \
+                        stage_updated_at = time::now(), \
+                        updated_at = time::now()";
+                    
+                    if let Err(e) = state
+                        .db
+                        .query(auto_update_query)
+                        .bind(("site_id", site_thing.clone()))
+                        .await
+                    {
+                        eprintln!("Warning: Failed to auto-update stage to assigned: {}", e);
+                    } else {
+                        eprintln!("✓ Stage auto-updated: imported → assigned");
+                    }
+                }
+            }
+        }
+    }
 
     // Enrich with master team data
     let mut detail = SiteTeamMemberDetail {
@@ -800,7 +941,7 @@ pub async fn add_site_team_member(
     Ok(Json(ApiResponse {
         success: true,
         data: Some(detail),
-        message: Some("Team member added to site structure successfully".to_string()),
+        message: Some("Team member added to site structure successfully. Stage updated: imported → assigned".to_string()),
     }))
 }
 
@@ -1133,14 +1274,18 @@ pub async fn update_site_stage(
             caf_approved: caf_approved_opt,
             tgl_berlaku_permit_tpas: tgl_berlaku_permit_tpas_opt,
             tgl_berakhir_permit_tpas: tgl_berakhir_permit_tpas_opt,
+            approval_chain: None,
+            dokumen_tpas_url: None,
             tower_provider: tower_provider_opt,
             jenis_kunci: jenis_kunci_opt,
             pic_akses_nama: pic_akses_nama_opt,
             pic_akses_telp: pic_akses_telp_opt,
+            survey_date: None,
             survey_result: None,
             survey_nok_reason: None,
             erfin_number: None,
             erfin_date: None,
+            erfin_ready_date: None,
             has_akses_gedung: None,
             gedung_nama: None,
             gedung_pic_nama: None,

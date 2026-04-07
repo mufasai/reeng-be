@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 31 MARET v2.3",
-    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
+    "name": "SmartElco API Collection - UPDATE 7 APRIL v2.5",
+    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 7 APRIL 2026 (v2.5):\n- NEW: POST /people/upload — Bulk import people dari file Excel dengan auto-detection kolom\n- NEW: POST /sites/{site_id}/team-structure — Auto-update stage dari \"imported\" → \"assigned\" ketika tim ditambahkan\n- NEW: GET /sites/type — Filter site berdasarkan jenis pekerjaan (query parameter)\n- NEW: GET /sites/category/{category} — Filter site berdasarkan kategori (BLACK SITE, COMBAT, FILTER, L2H, REFINEN)\n- Enhanced: People import dengan handling date conversion Excel serial format\n- Enhanced: Auto stage transition complete dengan timestamp logging\n- Field validation untuk duplicate detection pada site creation\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -534,6 +534,52 @@
           "response": []
         },
         {
+          "name": "Filter Sites by Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sites/type?type=combat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites",
+                "type"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "combat",
+                  "description": "Jenis pekerjaan (case-insensitive). Cari di site_info dan pekerjaan fields. Contoh: combat, fiber, tower, ngrekonstruksi"
+                }
+              ]
+            },
+            "description": "Filter dan tampilkan semua sites berdasarkan jenis pekerjaan. Search dilakukan pada field site_info dan pekerjaan (case-insensitive). Contoh query: /sites/type?type=fiber"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Sites by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/sites/category/combat",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites",
+                "category",
+                "combat"
+              ]
+            },
+            "description": "Filter dan tampilkan semua sites berdasarkan kategori tetap.\n\n**Supported Categories:**\n- blacksite (atau: black, bs) → BLACK SITE\n- combat (atau: cb) → COMBAT\n- filter (atau: ft, filter_site) → FILTER\n- l2h (atau: l2h_site) → L2H\n- refinen (atau: refinery, ref) → REFINEN\n\n**Auto-normalisasi:** Endpoint menerima berbagai alias untuk category, contoh: /sites/category/blacksite atau /sites/category/black keduanya valid untuk filter BLACK SITE."
+          },
+          "response": []
+        },
+        {
           "name": "Tim Struktur - UPDATE 6 MARET",
           "description": "Tim Struktur: relasi Data Master Team ke Site tertentu. Pilih member dari GET /api/teams, klik -> POST ke endpoint ini.",
           "item": [
@@ -640,18 +686,18 @@
           ]
         },
         {
-          "name": "Site Stage - UPDATE 31 MARET v2.3",
+          "name": "Site Stage - UPDATE 6 APRIL v2.4 (Multipart File Uploads)",
           "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nUPDATE v2.3 (31 MARET 2026):\n- 40+ dynamic fields across 8 categories: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST\n- Per-stage field validation: required fields divalidasi ketat sesuai stage\n- New helper endpoint: GET /sites/:id/valid-next-stages\n- SQL injection prevention on all string fields\n- Comprehensive error messages dalam Indonesian\n\nResponse include hitungan hari + metrik permit: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n+ semua field yang baru disimpan untuk UI visual feedback.",
           "item": [
             {
-              "name": "Stage 01 - imported (Reset/Awal) — Comprehensive Multi-Step",
+              "name": "Stage 01 - assigned (Reset/Awal) — Comprehensive Multi-Step",
               "request": {
-                "method": "PUT",
+                "method": "POST",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "imported", "type": "text", "description": "Target stage (WAJIB)" },
+                    { "key": "stage", "value": "assigned", "type": "text", "description": "Target stage (WAJIB)" },
                     { "key": "notes", "value": "Full workflow setup from imported to completed", "type": "text", "description": "Change notes (optional)" },
                     { "key": "changed_by", "value": "System", "type": "text", "description": "User making change (optional)" },
                     { "key": "stage_permit_date", "value": "", "type": "text", "description": "S3: Permit creation date YYYY-MM-DD (null)" },
@@ -700,6 +746,7 @@
                   "mode": "formdata",
                   "formdata": [
                     { "key": "stage", "value": "assigned", "type": "text", "description": "Current/target stage (required)" },
+                    { "key": "stage_survey_date", "value": "2026-03-15", "type": "text", "description": "🔴 SURVEY DATE - Required for Survey step: YYYY-MM-DD format" },
                     { "key": "stage_survey_result", "value": "LAYAK", "type": "text", "description": "🔴 SURVEY RESULT - Required for Survey step: LAYAK | TIDAK_LAYAK | PERLU_MODIFIKASI" },
                     { "key": "stage_survey_nok_reason", "value": "", "type": "text", "description": "If result=TIDAK_LAYAK: reason why (optional)" },
                     { "key": "stage_erfin_number", "value": "ERF-2026-0031", "type": "text", "description": "🔴 ERFIN ID - Required for Survey step: Electrical Requirement Form & Infrastructure Notice" },
@@ -1968,6 +2015,36 @@
               "path": [
                 "people",
                 "{{people_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload People from Excel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "<path_to_excel_file>",
+                  "description": "Excel file dengan kolom: name/nama/nama_karyawan, tanggal_lahir, tempat_lahir, agama, jenis_kelamin, no_ktp, no_hp, email/alamat_email, jabatan_kerja, regional, lokasi_kerja, pekerjaan"
+                }
+              ]
+            },
+            "description": "Bulk import people dari file Excel (.xlsx)\n\n**Excel Column Requirements:**\n- Header row wajib ada (auto-detected)\n- Minimal: \"name\" atau \"nama\" atau \"nama_karyawan\" kolom\n- Supported columns: tanggal_lahir, tempat_lahir, agama, jenis_kelamin, no_ktp, no_hp, email/alamat_email, jabatan_kerja, regional, lokasi_kerja, pekerjaan\n- Date format: YYYY-MM-DD atau Excel date serial\n\n**Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_rows\": 100,\n    \"success_count\": 98,\n    \"failed_count\": 2,\n    \"errors\": [\n      \"Row 5: Invalid date format\",\n      \"Row 10: Database error\"\n    ]\n  },\n  \"message\": \"98 of 100 people imported successfully\"\n}\n```",
+            "url": {
+              "raw": "{{base_url}}/people/upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "people",
+                "upload"
               ]
             }
           },

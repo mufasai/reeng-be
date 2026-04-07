@@ -343,7 +343,8 @@ async fn parse_eproc_format(
             site_id, project_type_hint, file_name);
         
         // Create Site
-        let create_site_query = "CREATE sites SET 
+        // let site_id = format!("{}-{}", project_id_clean, site_name.replace(" ", "_").to_lowercase());
+        let create_site_query = "UPDATE type::thing(\"sites\", $imported_site_id) MERGE 
             project_id = type::thing($project_id),
             site_name = $site_name,
             site_info = $site_info,
@@ -363,6 +364,7 @@ async fn parse_eproc_format(
             updated_at = time::now()";
         
         match state.db.query(create_site_query)
+            .bind(("imported_site_id", site_id.clone()))
             .bind(("project_id", project_thing.clone()))
             .bind(("site_name", site_name.clone()))
             .bind(("site_info", site_info))
@@ -591,7 +593,8 @@ async fn parse_old_format(
         let penerima_tugas = "Vendor/Pelaksana".to_string();
         
         // Create Site
-        let create_site_query = "CREATE sites SET 
+        let site_id = format!("{}-{}", project_id_clean, site_name.replace(" ", "_").to_lowercase());
+        let create_site_query = "UPDATE type::thing(\"sites\", $imported_site_id) MERGE 
             project_id = type::thing($project_id),
             site_name = $site_name,
             site_info = $site_info,
@@ -611,6 +614,7 @@ async fn parse_old_format(
             updated_at = time::now()";
         
         match state.db.query(create_site_query)
+            .bind(("imported_site_id", site_id.clone()))
             .bind(("project_id", project_thing.clone()))
             .bind(("site_name", site_name.clone()))
             .bind(("site_info", site_info))

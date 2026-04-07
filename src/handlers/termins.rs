@@ -1340,3 +1340,114 @@ pub async fn download_termin_file(
         None => Err(StatusCode::NOT_FOUND),
     }
 }
+
+pub async fn get_termin_director_summary(
+    State(state): State<Arc<AppState>>,
+    Path(termin_id): Path<String>,
+) -> Result<Json<ApiResponse<crate::models::TerminDirectorSummaryResponse>>, StatusCode> {
+    use crate::models::{Termin, Site, Project, Material};
+    use surrealdb::sql::Thing;
+
+    let thing = Thing::try_from(("termins", termin_id.as_str()))
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Fetch Termin
+    let query_termin = "SELECT * FROM type::thing($id)";
+    let mut termin_result = state.db.query(query_termin)
+        .bind(("id", thing.clone()))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let termin: Option<Termin> = termin_result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let termin = termin.ok_or(StatusCode::NOT_FOUND)?;
+
+    let termin_ke_value = termin.termin_ke.unwrap_or(0);
+    // Config needed here... use a default logic if parsing fails
+    let required_stage = if termin_ke_value == 1 {
+        "permit_ready"
+    } else if termin_ke_value == 2 || termin.type_termin == "T2a" {
+        "akses_ready"
+    } else if termin.type_termin == "T2b" {
+        "implementasi"
+    } else if termin.type_termin == "T2c" {
+        "rfi_done"
+    } else if termin_ke_value == 3 || termin.type_termin == "T3" {
+        "bast"
+    } else if termin_ke_value == 4 || termin.type_termin == "T4" {
+        "invoice"
+    } else {
+        ""
+    };
+
+    let mut current_stage = String::from("imported");
+    let mut site_name_str = None;
+    let mut project_name_str = None;
+    let mut is_compliant = true;
+
+    // Fetch Site Data
+    if let Some(ref site_thing) = termin.site_id {
+        let mut site_result = state.db.query("SELECT * FROM type::thing($site_id)")
+            .bind(("site_id", site_thing.clone()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if let Some(site) = site_result.take::<Option<Site>>(0).unwrap_or(None) {
+            current_stage = site.stage.clone().unwrap_or_else(|| "imported".to_string());
+            site_name_str = Some(site.site_name.clone());
+
+            // A simple placeholder stage hierarchy validation wrapper
+            let allowed_stages = vec![
+                "imported", "assigned", "survey", "survey_nok", "erfin_process", "erfin_ready",
+                "permit_process", "permit_ready", "akses_process", "akses_ready", "implementasi",
+                "rfi_done", "rfs_done", "dokumen_done", "bast", "invoice", "completed"
+            ];
+            
+            let cur_idx = allowed_stages.iter().position(|&r| r == current_stage).unwrap_or(0);
+            let req_idx = allowed_stages.iter().position(|&r| r == required_stage).unwrap_or(0);
+            if req_idx > cur_idx {
+                is_compliant = false;
+            }
+        }
+    }
+
+    // Fetch Project Data
+    if let Some(ref proj_thing) = termin.project_id {
+        let mut proj_result = state.db.query("SELECT * FROM type::thing($proj_id)")
+            .bind(("proj_id", proj_thing.clone()))
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if let Some(proj) = proj_result.take::<Option<Project>>(0).unwrap_or(None) {
+            project_name_str = Some(proj.name.clone());
+        }
+    }
+
+    // Fetch Materials
+    let mut materials: Vec<Material> = Vec::new();
+    let mut total_material_items: i64 = 0;
+
+    if let Some(ref site_thing) = termin.site_id {
+        let mat_query = "SELECT * FROM materials WHERE site_id = type::thing($site_id) ORDER BY created_at DESC";
+        if let Ok(mut mat_result) = state.db.query(mat_query).bind(("site_id", site_thing.clone())).await {
+            materials = mat_result.take(0).unwrap_or_default();
+            for m in &materials {
+                total_material_items += m.qty;
+            }
+        }
+    }
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(crate::models::TerminDirectorSummaryResponse {
+            termin,
+            site_name: site_name_str,
+            project_name: project_name_str,
+            current_stage,
+            required_stage: required_stage.to_string(),
+            is_stage_compliant: is_compliant,
+            total_material_items,
+            materials,
+        }),
+        message: Some("Termin director summary generated".to_string()),
+    }))
+}

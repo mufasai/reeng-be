@@ -56,14 +56,17 @@ pub async fn update_site_stage(
         stage_caf_approved: None,
         stage_permit_berlaku: None,
         stage_permit_berakhir: None,
+        stage_approval_chain: None,
         stage_akses_provider: None,
         stage_akses_kunci: None,
         stage_akses_pic_nama: None,
         stage_akses_pic_telp: None,
+        stage_survey_date: None,
         stage_survey_result: None,
         stage_survey_nok_reason: None,
         stage_erfin_number: None,
         stage_erfin_date: None,
+        stage_erfin_ready_date: None,
         stage_gedung_akses: None,
         stage_gedung_nama: None,
         stage_gedung_pic_nama: None,
@@ -315,6 +318,14 @@ fn validate_stage_transition_fields(
     req: &UpdateSiteStageRequest,
 ) -> Result<(), String> {
     match (from_stage, req.stage.as_str()) {
+        // ASSIGNED → SURVEY
+        // Required: Survey date when starting survey
+        ("assigned", "survey") => {
+            if req.survey_date.is_none() || req.survey_date.as_ref().map_or(true, |d| d.trim().is_empty()) {
+                return Err("❌ Tanggal Survey harus diisi".to_string());
+            }
+        }
+
         // ASSIGNED → PERMIT_PROCESS
         // Required: Permit date when requesting permit
         ("assigned", "permit_process") => {
@@ -523,6 +534,12 @@ fn add_update_fields(
             }
         }
 
+        ("assigned", "survey") => {
+            if let Some(tgl_survey) = &req.survey_date {
+                query.push_str(&format!(", survey_date = '{}'", escape_sql_string(tgl_survey)));
+            }
+        }
+
         ("implementasi", "rfi_done") => {
             if let Some(tgl_mulai) = &req.tgl_aktual_mulai {
                 query.push_str(&format!(", tgl_aktual_mulai = '{}'", escape_sql_string(tgl_mulai)));
@@ -667,14 +684,18 @@ fn map_multipart_to_request(mp: &UpdateSiteStageMultipart) -> UpdateSiteStageReq
         caf_approved: mp.stage_caf_approved,
         tgl_berlaku_permit_tpas: mp.stage_permit_berlaku.clone(),
         tgl_berakhir_permit_tpas: mp.stage_permit_berakhir.clone(),
+        approval_chain: mp.stage_approval_chain.clone(),
+        dokumen_tpas_url: None,
         tower_provider: mp.stage_akses_provider.clone(),
         jenis_kunci: mp.stage_akses_kunci.clone(),
         pic_akses_nama: mp.stage_akses_pic_nama.clone(),
         pic_akses_telp: mp.stage_akses_pic_telp.clone(),
+        survey_date: mp.stage_survey_date.clone(),
         survey_result: mp.stage_survey_result.clone(),
         survey_nok_reason: mp.stage_survey_nok_reason.clone(),
         erfin_number: mp.stage_erfin_number.clone(),
         erfin_date: mp.stage_erfin_date.clone(),
+        erfin_ready_date: mp.stage_erfin_ready_date.clone(),
         has_akses_gedung: mp.stage_gedung_akses,
         gedung_nama: mp.stage_gedung_nama.clone(),
         gedung_pic_nama: mp.stage_gedung_pic_nama.clone(),
