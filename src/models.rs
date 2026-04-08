@@ -275,6 +275,158 @@ impl<'de> Deserialize<'de> for ProjectType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TowerProvider {
+    Mitratel,
+    Stp,
+    Pti,
+    Dmt,
+    Lainnya,
+}
+
+impl TowerProvider {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            TowerProvider::Mitratel => "MITRATEL",
+            TowerProvider::Stp => "STP",
+            TowerProvider::Pti => "PTI",
+            TowerProvider::Dmt => "DMT",
+            TowerProvider::Lainnya => "Lainnya",
+        }
+    }
+}
+
+impl Serialize for TowerProvider {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            TowerProvider::Mitratel => "MITRATEL",
+            TowerProvider::Stp => "STP",
+            TowerProvider::Pti => "PTI",
+            TowerProvider::Dmt => "DMT",
+            TowerProvider::Lainnya => "Lainnya",
+        };
+        serializer.serialize_str(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for TowerProvider {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+        use std::fmt;
+
+        struct TowerProviderVisitor;
+
+        impl<'de> Visitor<'de> for TowerProviderVisitor {
+            type Value = TowerProvider;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a valid tower provider string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<TowerProvider, E>
+            where
+                E: de::Error,
+            {
+                match value.to_uppercase().as_str() {
+                    "MITRATEL" => Ok(TowerProvider::Mitratel),
+                    "STP" => Ok(TowerProvider::Stp),
+                    "PTI" => Ok(TowerProvider::Pti),
+                    "DMT" => Ok(TowerProvider::Dmt),
+                    "LAINNYA" => Ok(TowerProvider::Lainnya),
+                    _ => Err(E::custom(format!("unknown tower provider: {}", value))),
+                }
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<TowerProvider, E>
+            where
+                E: de::Error,
+            {
+                self.visit_str(&value)
+            }
+        }
+
+        deserializer.deserialize_string(TowerProviderVisitor)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum JenisKunci {
+    Padlock,
+    Smartlock,
+    Quadlock,
+}
+
+impl JenisKunci {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            JenisKunci::Padlock => "PADLOCK",
+            JenisKunci::Smartlock => "SMARTLOCK",
+            JenisKunci::Quadlock => "QUADLOCK",
+        }
+    }
+}
+
+impl Serialize for JenisKunci {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = match self {
+            JenisKunci::Padlock => "PADLOCK",
+            JenisKunci::Smartlock => "SMARTLOCK",
+            JenisKunci::Quadlock => "QUADLOCK",
+        };
+        serializer.serialize_str(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for JenisKunci {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+        use std::fmt;
+
+        struct JenisKunciVisitor;
+
+        impl<'de> Visitor<'de> for JenisKunciVisitor {
+            type Value = JenisKunci;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a valid jenis kunci string")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<JenisKunci, E>
+            where
+                E: de::Error,
+            {
+                match value.to_uppercase().as_str() {
+                    "PADLOCK" => Ok(JenisKunci::Padlock),
+                    "SMARTLOCK" => Ok(JenisKunci::Smartlock),
+                    "QUADLOCK" => Ok(JenisKunci::Quadlock),
+                    _ => Err(E::custom(format!("unknown jenis kunci: {}", value))),
+                }
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<JenisKunci, E>
+            where
+                E: de::Error,
+            {
+                self.visit_str(&value)
+            }
+        }
+
+        deserializer.deserialize_string(JenisKunciVisitor)
+    }
+}
+
 // ==================== PEOPLE MODELS ====================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -447,8 +599,8 @@ pub struct Site {
     pub dokumen_tpas_url: Option<String>,
     pub approval_chain: Option<String>,
     // Akses process stage data (diisi saat transisi → akses_process)
-    pub tower_provider: Option<String>,     // MITRATEL | STP | PTI | DMT | Lainnya
-    pub jenis_kunci: Option<String>,        // PADLOCK | SMARTLOCK | QUADLOCK
+    pub tower_provider: Option<TowerProvider>,     // MITRATEL | STP | PTI | DMT | Lainnya
+    pub jenis_kunci: Option<JenisKunci>,        // PADLOCK | SMARTLOCK | QUADLOCK
     pub pic_akses_nama: Option<String>,
     pub pic_akses_telp: Option<String>,
     // Akses ready stage data (diisi saat transisi → akses_ready)
@@ -571,8 +723,8 @@ pub struct UpdateSiteStageRequest {
     pub dokumen_tpas_url: Option<String>,
     
     // ============ PERMIT_READY → AKSES_PROCESS ============
-    pub tower_provider: Option<String>,  // Pilihan tower provider (wajib)
-    pub jenis_kunci: Option<String>,     // Jenis kunci yang digunakan (wajib)
+    pub tower_provider: Option<TowerProvider>,  // Pilihan tower provider (wajib)
+    pub jenis_kunci: Option<JenisKunci>,     // Jenis kunci yang digunakan (wajib)
     pub pic_akses_nama: Option<String>,  // Nama PIC akses (wajib)
     pub pic_akses_telp: Option<String>,  // Telepon PIC akses (wajib)
     
