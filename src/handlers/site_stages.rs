@@ -90,7 +90,7 @@ pub async fn update_site_stage(
     })? {
         let field_name = field.name().unwrap_or("").to_string();
         
-        // Handle file fields
+            // Handle file fields
         match field_name.as_str() {
             "file" => {
                 multipart_data.file = parse_file_field(field).await.ok().flatten();
@@ -115,92 +115,101 @@ pub async fn update_site_stage(
                 multipart_data.changed_by = field.text().await.ok();
             },
             // Permit fields
-            "stage_permit_date" => {
+            "stage_permit_date" | "permit_date" => {
                 multipart_data.stage_permit_date = field.text().await.ok();
             },
-            "stage_tpas_approved" => {
+            "stage_tpas_approved" | "tpas_approved" => {
                 multipart_data.stage_tpas_approved = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_tp_approved" => {
+            "stage_tp_approved" | "tp_approved" => {
                 multipart_data.stage_tp_approved = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_caf_approved" => {
+            "stage_caf_approved" | "caf_approved" => {
                 multipart_data.stage_caf_approved = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_permit_berlaku" => {
+            "stage_permit_berlaku" | "tgl_berlaku_permit_tpas" => {
                 multipart_data.stage_permit_berlaku = field.text().await.ok();
             },
-            "stage_permit_berakhir" => {
+            "stage_permit_berakhir" | "tgl_berakhir_permit_tpas" => {
                 multipart_data.stage_permit_berakhir = field.text().await.ok();
             },
+            "stage_approval_chain" | "approval_chain" => {
+                multipart_data.stage_approval_chain = field.text().await.ok();
+            },
             // Akses fields
-            "stage_akses_provider" => {
+            "stage_akses_provider" | "tower_provider" => {
                 multipart_data.stage_akses_provider = field.text().await.ok();
             },
-            "stage_akses_kunci" => {
+            "stage_akses_kunci" | "jenis_kunci" => {
                 multipart_data.stage_akses_kunci = field.text().await.ok();
             },
-            "stage_akses_pic_nama" => {
+            "stage_akses_pic_nama" | "pic_akses_nama" | "pic_nama" => {
                 multipart_data.stage_akses_pic_nama = field.text().await.ok();
             },
-            "stage_akses_pic_telp" => {
+            "stage_akses_pic_telp" | "pic_akses_telp" | "pic_telp" => {
                 multipart_data.stage_akses_pic_telp = field.text().await.ok();
             },
             // Survey fields
-            "stage_survey_result" => {
+            "stage_survey_date" | "survey_date" => {
+                multipart_data.stage_survey_date = field.text().await.ok();
+            },
+            "stage_survey_result" | "survey_result" => {
                 multipart_data.stage_survey_result = field.text().await.ok();
             },
-            "stage_survey_nok_reason" => {
+            "stage_survey_nok_reason" | "survey_nok_reason" => {
                 multipart_data.stage_survey_nok_reason = field.text().await.ok();
             },
-            "stage_erfin_number" => {
+            "stage_erfin_number" | "erfin_number" => {
                 multipart_data.stage_erfin_number = field.text().await.ok();
             },
-            "stage_erfin_date" => {
+            "stage_erfin_date" | "erfin_date" => {
                 multipart_data.stage_erfin_date = field.text().await.ok();
             },
+            "stage_erfin_ready_date" | "erfin_ready_date" => {
+                multipart_data.stage_erfin_ready_date = field.text().await.ok();
+            },
             // Building access fields
-            "stage_gedung_akses" => {
+            "stage_gedung_akses" | "has_akses_gedung" => {
                 multipart_data.stage_gedung_akses = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_gedung_nama" => {
+            "stage_gedung_nama" | "gedung_nama" => {
                 multipart_data.stage_gedung_nama = field.text().await.ok();
             },
-            "stage_gedung_pic_nama" => {
+            "stage_gedung_pic_nama" | "gedung_pic_nama" => {
                 multipart_data.stage_gedung_pic_nama = field.text().await.ok();
             },
-            "stage_gedung_pic_telp" => {
+            "stage_gedung_pic_telp" | "gedung_pic_telp" => {
                 multipart_data.stage_gedung_pic_telp = field.text().await.ok();
             },
-            "stage_gedung_status" => {
+            "stage_gedung_status" | "gedung_akses_status" => {
                 multipart_data.stage_gedung_status = field.text().await.ok();
             },
             // Implementation fields
-            "stage_impl_rencana_tgl" => {
+            "stage_impl_rencana_tgl" | "tgl_rencana_impl" | "tgl_rencana_implementasi" => {
                 multipart_data.stage_impl_rencana_tgl = field.text().await.ok();
             },
-            "stage_impl_real_tgl" => {
+            "stage_impl_real_tgl" | "tgl_aktual_mulai" => {
                 multipart_data.stage_impl_real_tgl = field.text().await.ok();
             },
-            "stage_impl_real_jam_mulai" => {
+            "stage_impl_real_jam_mulai" | "jam_checkin" | "ci_tim" => {
                 multipart_data.stage_impl_real_jam_mulai = field.text().await.ok();
             },
-            "stage_rfi_real_jam_selesai" => {
+            "stage_rfi_real_jam_selesai" | "jam_checkout" | "co_tim" => {
                 multipart_data.stage_rfi_real_jam_selesai = field.text().await.ok();
             },
-            "stage_rfi_confirm" => {
+            "stage_rfi_confirm" | "konfirmasi_rfi" => {
                 multipart_data.stage_rfi_confirm = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_rfs_confirm" => {
+            "stage_rfs_confirm" | "konfirmasi_rfs" => {
                 multipart_data.stage_rfs_confirm = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_rfs_catatan" => {
+            "stage_rfs_catatan" | "catatan_teknis" => {
                 multipart_data.stage_rfs_catatan = field.text().await.ok();
             },
-            "stage_bast_dok_confirm" => {
+            "stage_bast_dok_confirm" | "konfirmasi_dok" => {
                 multipart_data.stage_bast_dok_confirm = field.text().await.ok().map(|v| v == "true");
             },
-            "stage_bast_final_confirm" => {
+            "stage_bast_final_confirm" | "konfirmasi_final" => {
                 multipart_data.stage_bast_final_confirm = field.text().await.ok().map(|v| v == "true");
             },
             _ => {}
@@ -326,16 +335,43 @@ fn validate_stage_transition_fields(
             }
         }
 
-        // ASSIGNED → PERMIT_PROCESS
+        // SURVEY → ERFIN_DIPROSES
+        // Required: Survey result (OK/NOK)
+        ("survey", "erfin_diproses") => {
+            if req.survey_result.is_none() {
+                return Err("❌ Hasil Survey harus dipilih (OK/NOK)".to_string());
+            }
+            if req.survey_result.as_ref().map_or(false, |s| s.to_lowercase() == "nok") {
+                if req.survey_nok_reason.is_none() || req.survey_nok_reason.as_ref().map_or(true, |r| r.trim().is_empty()) {
+                    return Err("❌ Alasan Survey NOK harus diisi".to_string());
+                }
+            }
+        }
+
+        // ERFIN_DIPROSES → ERFIN_READY
+        // Required: ERFIN Number, ERFIN Date, ERFIN Ready Date
+        ("erfin_diproses", "erfin_ready") => {
+            if req.erfin_number.is_none() || req.erfin_number.as_ref().map_or(true, |n| n.trim().is_empty()) {
+                return Err("❌ Nomor ERFIN harus diisi".to_string());
+            }
+            if req.erfin_date.is_none() || req.erfin_date.as_ref().map_or(true, |d| d.trim().is_empty()) {
+                return Err("❌ Tanggal ERFIN harus diisi".to_string());
+            }
+            if req.erfin_ready_date.is_none() || req.erfin_ready_date.as_ref().map_or(true, |d| d.trim().is_empty()) {
+                return Err("❌ Tanggal ERFIN Ready harus diisi".to_string());
+            }
+        }
+
+        // ERFIN_READY → PERMIT_PROCESS
         // Required: Permit date when requesting permit
-        ("assigned", "permit_process") => {
+        ("erfin_ready", "permit_process") => {
             if req.permit_date.is_none() || req.permit_date.as_ref().map_or(true, |d| d.trim().is_empty()) {
-                return Err("❌ Tanggal Izin/Permit harus diisi".to_string());
+                return Err("❌ Tanggal Pembuatan Permit harus diisi".to_string());
             }
         }
 
         // PERMIT_PROCESS → PERMIT_READY
-        // Required: All three approval confirmations (TPAS, TP, CAF)
+        // Required: All three approval confirmations (TPAS, TP, CAF), Approval Chain, Dates, and Doc
         ("permit_process", "permit_ready") => {
             if !req.tpas_approved.unwrap_or(false) {
                 return Err("❌ Checkbox 'Konfirmasi TPAS Approved' harus di-check".to_string());
@@ -346,15 +382,27 @@ fn validate_stage_transition_fields(
             if !req.caf_approved.unwrap_or(false) {
                 return Err("❌ Checkbox 'Konfirmasi CAF Approved' harus di-check".to_string());
             }
+            if req.approval_chain.is_none() || req.approval_chain.as_ref().map_or(true, |a| a.trim().is_empty()) {
+                return Err("❌ Approval Chain harus diisi".to_string());
+            }
+            if req.tgl_berlaku_permit_tpas.is_none() || req.tgl_berlaku_permit_tpas.as_ref().map_or(true, |d| d.trim().is_empty()) {
+                return Err("❌ Tanggal Berlaku Permit TPAS harus diisi".to_string());
+            }
+            if req.tgl_berakhir_permit_tpas.is_none() || req.tgl_berakhir_permit_tpas.as_ref().map_or(true, |d| d.trim().is_empty()) {
+                return Err("❌ Tanggal Berakhir Permit TPAS harus diisi".to_string());
+            }
+            if req.dokumen_tpas_url.is_none() || req.dokumen_tpas_url.as_ref().map_or(true, |u| u.trim().is_empty()) {
+                return Err("❌ Dokumen TPAS harus diupload".to_string());
+            }
         }
 
         // PERMIT_READY → AKSES_PROCESS
         // Required: Tower provider, key type, and PIC contact info
         ("permit_ready", "akses_process") => {
-            if req.tower_provider.is_none() || req.tower_provider.as_ref().map_or(true, |p| p.trim().is_empty()) {
+            if req.tower_provider.is_none() {
                 return Err("❌ Tower Provider harus dipilih (MITRATEL/STP/PTI/DMT/Lainnya)".to_string());
             }
-            if req.jenis_kunci.is_none() || req.jenis_kunci.as_ref().map_or(true, |k| k.trim().is_empty()) {
+            if req.jenis_kunci.is_none() {
                 return Err("❌ Jenis Kunci harus dipilih (PADLOCK/SMARTLOCK/QUADLOCK)".to_string());
             }
             if req.pic_akses_nama.is_none() || req.pic_akses_nama.as_ref().map_or(true, |n| n.trim().is_empty()) {
@@ -366,17 +414,8 @@ fn validate_stage_transition_fields(
         }
 
         // AKSES_PROCESS → AKSES_READY
-        // Required: Survey result, and if has_akses_gedung=true, building details
+        // Required: if has_akses_gedung=true, building details
         ("akses_process", "akses_ready") => {
-            if req.survey_result.is_none() {
-                return Err("❌ Hasil Survey harus dipilih (OK/NOK)".to_string());
-            }
-            if req.survey_result.as_ref().map_or(false, |s| s == "nok") {
-                if req.survey_nok_reason.is_none() || req.survey_nok_reason.as_ref().map_or(true, |r| r.trim().is_empty()) {
-                    return Err("❌ Alasan Survey NOK harus diisi".to_string());
-                }
-            }
-            
             if req.has_akses_gedung == Some(true) {
                 if req.gedung_nama.is_none() || req.gedung_nama.as_ref().map_or(true, |n| n.trim().is_empty()) {
                     return Err("❌ Nama Gedung harus diisi (ada akses ke gedung)".to_string());
@@ -453,7 +492,33 @@ fn add_update_fields(
     req: &UpdateSiteStageRequest,
 ) -> Result<(), String> {
     match (from_stage, req.stage.as_str()) {
-        ("assigned", "permit_process") => {
+        // SURVEY → ERFIN_DIPROSES
+        ("survey", "erfin_diproses") => {
+            if let Some(survey) = &req.survey_result {
+                query.push_str(&format!(", survey_result = '{}'", escape_sql_string(survey)));
+                if survey.to_lowercase() == "nok" {
+                    if let Some(reason) = &req.survey_nok_reason {
+                        query.push_str(&format!(", survey_nok_reason = '{}'", escape_sql_string(reason)));
+                    }
+                }
+            }
+        }
+
+        // ERFIN_DIPROSES → ERFIN_READY
+        ("erfin_diproses", "erfin_ready") => {
+            if let Some(erfin_num) = &req.erfin_number {
+                query.push_str(&format!(", erfin_number = '{}'", escape_sql_string(erfin_num)));
+            }
+            if let Some(erfin_dt) = &req.erfin_date {
+                query.push_str(&format!(", erfin_date = '{}'", escape_sql_string(erfin_dt)));
+            }
+            if let Some(erfin_rd_dt) = &req.erfin_ready_date {
+                query.push_str(&format!(", erfin_ready_date = '{}'", escape_sql_string(erfin_rd_dt)));
+            }
+        }
+
+        // ERFIN_READY → PERMIT_PROCESS
+        ("erfin_ready", "permit_process") => {
             if let Some(permit_date) = &req.permit_date {
                 query.push_str(&format!(", permit_date = '{}'", escape_sql_string(permit_date)));
             }
@@ -466,6 +531,9 @@ fn add_update_fields(
                 req.tp_approved.unwrap_or(false),
                 req.caf_approved.unwrap_or(false)
             ));
+            if let Some(chain) = &req.approval_chain {
+                query.push_str(&format!(", approval_chain = '{}'", escape_sql_string(chain)));
+            }
             if let Some(date) = &req.tgl_berlaku_permit_tpas {
                 query.push_str(&format!(", tgl_berlaku_permit_tpas = '{}'", escape_sql_string(date)));
             }
@@ -476,10 +544,10 @@ fn add_update_fields(
 
         ("permit_ready", "akses_process") => {
             if let Some(provider) = &req.tower_provider {
-                query.push_str(&format!(", tower_provider = '{}'", escape_sql_string(provider)));
+                query.push_str(&format!(", tower_provider = '{}'", escape_sql_string(provider.as_str())));
             }
             if let Some(kunci) = &req.jenis_kunci {
-                query.push_str(&format!(", jenis_kunci = '{}'", escape_sql_string(kunci)));
+                query.push_str(&format!(", jenis_kunci = '{}'", escape_sql_string(kunci.as_str())));
             }
             if let Some(nama) = &req.pic_akses_nama {
                 query.push_str(&format!(", pic_akses_nama = '{}'", escape_sql_string(nama)));
@@ -505,22 +573,6 @@ fn add_update_fields(
                 if let Some(status) = &req.gedung_akses_status {
                     query.push_str(&format!(", gedung_akses_status = '{}'", escape_sql_string(status)));
                 }
-            }
-
-            if let Some(survey) = &req.survey_result {
-                query.push_str(&format!(", survey_result = '{}'", escape_sql_string(survey)));
-                if survey == "nok" {
-                    if let Some(reason) = &req.survey_nok_reason {
-                        query.push_str(&format!(", survey_nok_reason = '{}'", escape_sql_string(reason)));
-                    }
-                }
-            }
-
-            if let Some(erfin_num) = &req.erfin_number {
-                query.push_str(&format!(", erfin_number = '{}'", escape_sql_string(erfin_num)));
-            }
-            if let Some(erfin_dt) = &req.erfin_date {
-                query.push_str(&format!(", erfin_date = '{}'", erfin_dt));
             }
 
             if let Some(konfirmasi) = req.konfirmasi_akses {
@@ -685,9 +737,21 @@ fn map_multipart_to_request(mp: &UpdateSiteStageMultipart) -> UpdateSiteStageReq
         tgl_berlaku_permit_tpas: mp.stage_permit_berlaku.clone(),
         tgl_berakhir_permit_tpas: mp.stage_permit_berakhir.clone(),
         approval_chain: mp.stage_approval_chain.clone(),
-        dokumen_tpas_url: None,
-        tower_provider: mp.stage_akses_provider.clone(),
-        jenis_kunci: mp.stage_akses_kunci.clone(),
+        dokumen_tpas_url: mp.file.as_ref().map(|_| "uploaded".to_string()),
+        tower_provider: mp.stage_akses_provider.as_deref().and_then(|s| match s.to_uppercase().as_str() {
+            "MITRATEL" => Some(crate::models::TowerProvider::Mitratel),
+            "STP" => Some(crate::models::TowerProvider::Stp),
+            "PTI" => Some(crate::models::TowerProvider::Pti),
+            "DMT" => Some(crate::models::TowerProvider::Dmt),
+            "LAINNYA" => Some(crate::models::TowerProvider::Lainnya),
+            _ => None,
+        }),
+        jenis_kunci: mp.stage_akses_kunci.as_deref().and_then(|s| match s.to_uppercase().as_str() {
+            "PADLOCK" => Some(crate::models::JenisKunci::Padlock),
+            "SMARTLOCK" => Some(crate::models::JenisKunci::Smartlock),
+            "QUADLOCK" => Some(crate::models::JenisKunci::Quadlock),
+            _ => None,
+        }),
         pic_akses_nama: mp.stage_akses_pic_nama.clone(),
         pic_akses_telp: mp.stage_akses_pic_telp.clone(),
         survey_date: mp.stage_survey_date.clone(),

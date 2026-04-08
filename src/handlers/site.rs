@@ -1084,6 +1084,7 @@ pub async fn update_site_stage(
     let mut permit_doc_content_type: Option<String> = None;
     let mut permit_doc_type: Option<String> = None;
     let mut permit_doc_uploaded_by: Option<String> = None;
+    let mut multiple_evidence_files: Vec<(String, String, Vec<u8>)> = Vec::new();
 
     if content_type.starts_with("multipart/form-data") {
         let mut multipart = Multipart::from_request(request, &state)
@@ -1104,24 +1105,50 @@ pub async fn update_site_stage(
         let mut caf_approved_opt: Option<bool> = None;
         let mut tgl_berlaku_permit_tpas_opt: Option<String> = None;
         let mut tgl_berakhir_permit_tpas_opt: Option<String> = None;
-        let mut tower_provider_opt: Option<String> = None;
-        let mut jenis_kunci_opt: Option<String> = None;
+        let mut tower_provider_opt: Option<crate::models::TowerProvider> = None;
+        let mut jenis_kunci_opt: Option<crate::models::JenisKunci> = None;
         let mut pic_akses_nama_opt: Option<String> = None;
         let mut pic_akses_telp_opt: Option<String> = None;
+        let mut has_akses_gedung_opt: Option<bool> = None;
+        let mut gedung_nama_opt: Option<String> = None;
+        let mut gedung_pic_nama_opt: Option<String> = None;
+        let mut gedung_pic_telp_opt: Option<String> = None;
+        let mut gedung_akses_status_opt: Option<String> = None;
+        let mut konfirmasi_akses_opt: Option<bool> = None;
         let mut tgl_rencana_implementasi_opt: Option<String> = None;
         let mut tgl_aktual_mulai_opt: Option<String> = None;
         let mut jam_checkin_opt: Option<String> = None;
         let mut jam_checkout_opt: Option<String> = None;
+        let mut konfirmasi_rfi_opt: Option<bool> = None;
+        let mut catatan_teknis_opt: Option<String> = None;
+        
+        // Survey & ERFIN options
+        let mut survey_date_opt: Option<String> = None;
+        let mut survey_result_opt: Option<String> = None;
+        let mut survey_nok_reason_opt: Option<String> = None;
+        let mut erfin_number_opt: Option<String> = None;
+        let mut erfin_date_opt: Option<String> = None;
+        let mut erfin_ready_date_opt: Option<String> = None;
 
         while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
             let name = field.name().unwrap_or("").to_string();
             match name.as_str() {
                 "file" | "dokumen_tpas" | "dokumen_permit" | "permit_file" => {
-                    permit_doc_filename = field.file_name().map(|s| s.to_string());
-                    permit_doc_content_type = field.content_type().map(|s| s.to_string());
+                    let fn_opt = field.file_name().map(|s| s.to_string());
+                    let ct_opt = field.content_type().map(|s| s.to_string());
                     let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
                     if !bytes.is_empty() {
+                        permit_doc_filename = fn_opt;
+                        permit_doc_content_type = ct_opt;
                         permit_doc_file_bytes = Some(bytes.to_vec());
+                    }
+                }
+                "evidence_files" | "files" | "files[]" | "bukti_akses" => {
+                    let fn_opt = field.file_name().unwrap_or("evidence.bin").to_string();
+                    let ct_opt = field.content_type().unwrap_or("application/octet-stream").to_string();
+                    let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !bytes.is_empty() {
+                        multiple_evidence_files.push((fn_opt, ct_opt, bytes.to_vec()));
                     }
                 }
                 "doc_type" => {
@@ -1210,13 +1237,25 @@ pub async fn update_site_stage(
                 "tower_provider" => {
                     let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
                     if !value.trim().is_empty() {
-                        tower_provider_opt = Some(value);
+                        tower_provider_opt = match value.to_uppercase().as_str() {
+                            "MITRATEL" => Some(crate::models::TowerProvider::Mitratel),
+                            "STP" => Some(crate::models::TowerProvider::Stp),
+                            "PTI" => Some(crate::models::TowerProvider::Pti),
+                            "DMT" => Some(crate::models::TowerProvider::Dmt),
+                            "LAINNYA" => Some(crate::models::TowerProvider::Lainnya),
+                            _ => None,
+                        };
                     }
                 }
                 "jenis_kunci" => {
                     let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
                     if !value.trim().is_empty() {
-                        jenis_kunci_opt = Some(value);
+                        jenis_kunci_opt = match value.to_uppercase().as_str() {
+                            "PADLOCK" => Some(crate::models::JenisKunci::Padlock),
+                            "SMARTLOCK" => Some(crate::models::JenisKunci::Smartlock),
+                            "QUADLOCK" => Some(crate::models::JenisKunci::Quadlock),
+                            _ => None,
+                        };
                     }
                 }
                 "pic_akses_nama" => {
@@ -1230,6 +1269,38 @@ pub async fn update_site_stage(
                     if !value.trim().is_empty() {
                         pic_akses_telp_opt = Some(value);
                     }
+                }
+                "has_akses_gedung" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    has_akses_gedung_opt = parse_bool_loose(&value);
+                }
+                "gedung_nama" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        gedung_nama_opt = Some(value);
+                    }
+                }
+                "gedung_pic_nama" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        gedung_pic_nama_opt = Some(value);
+                    }
+                }
+                "gedung_pic_telp" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        gedung_pic_telp_opt = Some(value);
+                    }
+                }
+                "gedung_akses_status" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        gedung_akses_status_opt = Some(value);
+                    }
+                }
+                "konfirmasi_akses" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    konfirmasi_akses_opt = parse_bool_loose(&value);
                 }
                 "tgl_rencana_implementasi" => {
                     let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -1254,6 +1325,40 @@ pub async fn update_site_stage(
                     if !value.trim().is_empty() {
                         jam_checkout_opt = Some(value);
                     }
+                }
+                "konfirmasi_rfi" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    konfirmasi_rfi_opt = parse_bool_loose(&value);
+                }
+                "catatan_teknis" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() {
+                        catatan_teknis_opt = Some(value);
+                    }
+                }
+                "survey_date" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { survey_date_opt = Some(value); }
+                }
+                "survey_result" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { survey_result_opt = Some(value); }
+                }
+                "survey_nok_reason" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { survey_nok_reason_opt = Some(value); }
+                }
+                "erfin_number" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { erfin_number_opt = Some(value); }
+                }
+                "erfin_date" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { erfin_date_opt = Some(value); }
+                }
+                "erfin_ready_date" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { erfin_ready_date_opt = Some(value); }
                 }
                 _ => {}
             }
@@ -1280,27 +1385,27 @@ pub async fn update_site_stage(
             jenis_kunci: jenis_kunci_opt,
             pic_akses_nama: pic_akses_nama_opt,
             pic_akses_telp: pic_akses_telp_opt,
-            survey_date: None,
-            survey_result: None,
-            survey_nok_reason: None,
-            erfin_number: None,
-            erfin_date: None,
-            erfin_ready_date: None,
-            has_akses_gedung: None,
-            gedung_nama: None,
-            gedung_pic_nama: None,
-            gedung_pic_telp: None,
-            gedung_akses_status: None,
-            konfirmasi_akses: None,
+            survey_date: survey_date_opt,
+            survey_result: survey_result_opt,
+            survey_nok_reason: survey_nok_reason_opt,
+            erfin_number: erfin_number_opt,
+            erfin_date: erfin_date_opt,
+            erfin_ready_date: erfin_ready_date_opt,
+            has_akses_gedung: has_akses_gedung_opt,
+            gedung_nama: gedung_nama_opt,
+            gedung_pic_nama: gedung_pic_nama_opt,
+            gedung_pic_telp: gedung_pic_telp_opt,
+            gedung_akses_status: gedung_akses_status_opt,
+            konfirmasi_akses: konfirmasi_akses_opt,
             tgl_rencana_implementasi: tgl_rencana_implementasi_opt,
             tgl_aktual_mulai: tgl_aktual_mulai_opt,
             jam_checkin: jam_checkin_opt,
             jam_checkout: jam_checkout_opt,
-            konfirmasi_rfi: None,
+            konfirmasi_rfi: konfirmasi_rfi_opt,
             konfirmasi_rfs: None,
             konfirmasi_dok: None,
             konfirmasi_final: None,
-            catatan_teknis: None,
+            catatan_teknis: catatan_teknis_opt,
         };
     } else {
         let Json(json_req) = Json::<UpdateSiteStageRequest>::from_request(request, &state)
@@ -1310,7 +1415,7 @@ pub async fn update_site_stage(
     }
 
     let valid_stages = [
-        "imported", "assigned", "permit_process", "permit_ready",
+        "imported", "assigned", "survey", "erfin_diproses", "erfin_ready", "permit_process", "permit_ready",
         "akses_process", "akses_ready", "implementasi",
         "rfi_done", "rfs_done", "dokumen_done", "bast", "invoice", "completed",
     ];
@@ -1342,6 +1447,45 @@ pub async fn update_site_stage(
     let from_stage = rows.into_iter().next()
         .and_then(|r| r.stage)
         .unwrap_or_else(|| "imported".to_string());
+
+    // Validasi field wajib survey - erfin
+    if req.stage == "survey" && (req.survey_date.is_none() || req.survey_date.as_deref() == Some("")) {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("survey_date (Tanggal Survey) wajib diisi saat masuk stage survey".to_string()),
+        }));
+    }
+    if req.stage == "erfin_diproses" && (req.survey_result.is_none() || req.survey_result.as_deref() == Some("")) {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("survey_result (Hasil Survey: OK/NOK) wajib diisi saat masuk stage erfin_diproses".to_string()),
+        }));
+    }
+    if req.stage == "erfin_ready" {
+        if req.erfin_number.is_none() || req.erfin_number.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("erfin_number (Nomor ERFIN) wajib diisi saat masuk stage erfin_ready".to_string()),
+            }));
+        }
+        if req.erfin_date.is_none() || req.erfin_date.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("erfin_date (Tanggal ERFIN) wajib diisi saat masuk stage erfin_ready".to_string()),
+            }));
+        }
+        if req.erfin_ready_date.is_none() || req.erfin_ready_date.as_deref() == Some("") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("erfin_ready_date (Tanggal ERFIN Ready) wajib diisi saat masuk stage erfin_ready".to_string()),
+            }));
+        }
+    }
 
     // Validasi permit_date wajib saat masuk permit_process
     if req.stage == "permit_process" && req.permit_date.is_none() {
@@ -1386,18 +1530,56 @@ pub async fn update_site_stage(
 
     // Validasi field wajib saat transisi ke akses_process
     if req.stage == "akses_process" {
-        if req.tower_provider.is_none() || req.tower_provider.as_deref() == Some("") {
+        if req.tower_provider.is_none() {
             return Ok(Json(ApiResponse {
                 success: false,
                 data: None,
                 message: Some("tower_provider (Tower Provider) wajib diisi saat masuk stage akses_process".to_string()),
             }));
         }
-        if req.jenis_kunci.is_none() || req.jenis_kunci.as_deref() == Some("") {
+        if req.jenis_kunci.is_none() {
             return Ok(Json(ApiResponse {
                 success: false,
                 data: None,
                 message: Some("jenis_kunci (Jenis Kunci) wajib diisi saat masuk stage akses_process".to_string()),
+            }));
+        }
+    }
+
+    // Validasi field wajib saat transisi ke akses_ready
+    if req.stage == "akses_ready" {
+        if !content_type.starts_with("multipart/form-data") {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("Stage akses_ready wajib menggunakan multipart/form-data".to_string()),
+            }));
+        }
+
+        if !req.konfirmasi_akses.unwrap_or(false) {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("konfirmasi_akses (Akses ke site sudah READY EKSEKUSI) wajib dicentang".to_string()),
+            }));
+        }
+
+        if req.has_akses_gedung.unwrap_or(false) {
+            if req.gedung_nama.is_none() || req.gedung_nama.as_deref() == Some("") {
+                return Ok(Json(ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some("gedung_nama (Nama Gedung) wajib diisi bila Ada Akses Gedung = Ya".to_string()),
+                }));
+            }
+        }
+        
+        // Memastikan ada file bukti akses atau minimal sudah ada evidence file
+        if multiple_evidence_files.is_empty() {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("Foto kondisi site / bukti akses wajib diupload (field file / files[]) saat masuk stage akses_ready".to_string()),
             }));
         }
     }
@@ -1422,6 +1604,14 @@ pub async fn update_site_stage(
                 message: Some("jam_checkout (Jam Check-Out) wajib diisi saat masuk stage rfi_done".to_string()),
             }));
         }
+
+        if !req.konfirmasi_rfi.unwrap_or(false) {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some("konfirmasi_rfi (RFI sudah selesai dilakukan) wajib dicentang".to_string()),
+            }));
+        }
     }
 
     // Update stage di sites
@@ -1443,10 +1633,24 @@ pub async fn update_site_stage(
         jenis_kunci = IF $stage = 'akses_process' THEN $jenis_kunci ELSE jenis_kunci END, \
         pic_akses_nama = IF $stage = 'akses_process' THEN $pic_akses_nama ELSE pic_akses_nama END, \
         pic_akses_telp = IF $stage = 'akses_process' THEN $pic_akses_telp ELSE pic_akses_telp END, \
+        has_akses_gedung = IF $stage = 'akses_ready' THEN $has_akses_gedung ELSE has_akses_gedung END, \
+        gedung_nama = IF $stage = 'akses_ready' THEN $gedung_nama ELSE gedung_nama END, \
+        gedung_pic_nama = IF $stage = 'akses_ready' THEN $gedung_pic_nama ELSE gedung_pic_nama END, \
+        gedung_pic_telp = IF $stage = 'akses_ready' THEN $gedung_pic_telp ELSE gedung_pic_telp END, \
+        gedung_akses_status = IF $stage = 'akses_ready' THEN $gedung_akses_status ELSE gedung_akses_status END, \
+        konfirmasi_akses = IF $stage = 'akses_ready' THEN $konfirmasi_akses ELSE konfirmasi_akses END, \
         tgl_rencana_implementasi = IF $stage = 'implementasi' THEN $tgl_rencana_implementasi ELSE tgl_rencana_implementasi END, \
         tgl_aktual_mulai = IF $stage = 'implementasi' THEN $tgl_aktual_mulai ELSE tgl_aktual_mulai END, \
         jam_checkin = IF $stage = 'implementasi' THEN $jam_checkin ELSE jam_checkin END, \
         jam_checkout = IF $stage = 'rfi_done' THEN $jam_checkout ELSE jam_checkout END, \
+        survey_date = IF $stage = 'survey' THEN $survey_date ELSE survey_date END, \
+        survey_result = IF $stage = 'erfin_diproses' THEN $survey_result ELSE survey_result END, \
+        survey_nok_reason = IF $stage = 'erfin_diproses' THEN $survey_nok_reason ELSE survey_nok_reason END, \
+        erfin_number = IF $stage = 'erfin_ready' THEN $erfin_number ELSE erfin_number END, \
+        erfin_date = IF $stage = 'erfin_ready' THEN $erfin_date ELSE erfin_date END, \
+        erfin_ready_date = IF $stage = 'erfin_ready' THEN $erfin_ready_date ELSE erfin_ready_date END, \
+        konfirmasi_rfi = IF $stage = 'rfi_done' THEN $konfirmasi_rfi ELSE konfirmasi_rfi END, \
+        catatan_teknis = IF $stage = 'rfi_done' OR $stage = 'implementasi' THEN $catatan_teknis ELSE catatan_teknis END, \
         updated_at = time::now()";
 
     let mut update_res = state
@@ -1465,14 +1669,28 @@ pub async fn update_site_stage(
         .bind(("caf_approved", req.caf_approved.unwrap_or(false)))
         .bind(("tgl_berlaku_permit_tpas", req.tgl_berlaku_permit_tpas.clone()))
         .bind(("tgl_berakhir_permit_tpas", req.tgl_berakhir_permit_tpas.clone()))
-        .bind(("tower_provider", req.tower_provider.clone()))
-        .bind(("jenis_kunci", req.jenis_kunci.clone()))
+        .bind(("tower_provider", req.tower_provider.map(|ep| ep.as_str().to_string())))
+        .bind(("jenis_kunci", req.jenis_kunci.map(|ek| ek.as_str().to_string())))
         .bind(("pic_akses_nama", req.pic_akses_nama.clone()))
         .bind(("pic_akses_telp", req.pic_akses_telp.clone()))
+        .bind(("has_akses_gedung", req.has_akses_gedung.unwrap_or(false)))
+        .bind(("gedung_nama", req.gedung_nama.clone()))
+        .bind(("gedung_pic_nama", req.gedung_pic_nama.clone()))
+        .bind(("gedung_pic_telp", req.gedung_pic_telp.clone()))
+        .bind(("gedung_akses_status", req.gedung_akses_status.clone()))
+        .bind(("konfirmasi_akses", req.konfirmasi_akses.unwrap_or(false)))
         .bind(("tgl_rencana_implementasi", req.tgl_rencana_implementasi.clone()))
         .bind(("tgl_aktual_mulai", req.tgl_aktual_mulai.clone()))
         .bind(("jam_checkin", req.jam_checkin.clone()))
         .bind(("jam_checkout", req.jam_checkout.clone()))
+        .bind(("konfirmasi_rfi", req.konfirmasi_rfi.unwrap_or(false)))
+        .bind(("catatan_teknis", req.catatan_teknis.clone()))
+        .bind(("survey_date", req.survey_date.clone()))
+        .bind(("survey_result", req.survey_result.clone()))
+        .bind(("survey_nok_reason", req.survey_nok_reason.clone()))
+        .bind(("erfin_number", req.erfin_number.clone()))
+        .bind(("erfin_date", req.erfin_date.clone()))
+        .bind(("erfin_ready_date", req.erfin_ready_date.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error updating site stage: {}", e);
@@ -1560,6 +1778,44 @@ pub async fn update_site_stage(
                 eprintln!("Database error creating permit doc during stage update: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })?;
+    }
+
+    if (req.stage == "akses_ready" || req.stage == "rfi_done" || req.stage == "implementasi") && !multiple_evidence_files.is_empty() {
+        // Upload each file to site_evidence
+        for (filename, mime_type, file_bytes) in multiple_evidence_files {
+            use base64::Engine;
+            let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+            let data_url = format!("data:{};base64,{}", mime_type, base64_data);
+            let uploaded_by_value = req.changed_by.clone().unwrap_or_else(|| "system".to_string());
+
+            let create_evidence_query = "CREATE site_evidence SET \
+                site_id = $site_id, \
+                filename = $filename, \
+                original_name = $filename, \
+                file_url = $file_url, \
+                mime_type = $mime_type, \
+                file_size = $file_size, \
+                progress_tag = $progress_tag, \
+                stage_context = $stage_context, \
+                uploaded_by = $uploaded_by, \
+                uploaded_at = time::now()";
+
+            let _ = state
+                .db
+                .query(create_evidence_query)
+                .bind(("site_id", site_thing.clone()))
+                .bind(("filename", filename))
+                .bind(("file_url", data_url))
+                .bind(("mime_type", mime_type))
+                .bind(("file_size", file_bytes.len() as i64))
+                .bind(("progress_tag", req.stage.clone()))
+                .bind(("stage_context", "Update Bukti Akses".to_string()))
+                .bind(("uploaded_by", uploaded_by_value))
+                .await
+                .map_err(|e| {
+                    eprintln!("Omitted evidence upload error: {}", e);
+                });
+        }
     }
 
     enrich_site_timing_fields(&mut site);

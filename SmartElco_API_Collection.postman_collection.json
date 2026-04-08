@@ -379,7 +379,7 @@
                 "import-excel"
               ]
             },
-            "description": "Bulk import Project and Sites from Excel file.\n\n**Excel Format:**\n- **Sheet:** \"Active Project Details\" (Sheet 3)\n- **Row 2:** Total values (BOQ AKTUAL in column I, TOTAL NILAI PO in column M)\n- **Row 5:** Headers (NO, TIPE PROJECT, AREA, etc.)\n- **Row 6+:** Site data (up to 100+ rows)\n\n**Filename Examples:** \n- `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`\n- `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`\n- `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`\n\n**Column Mapping:**\n- B: TIPE PROJECT \u2192 project type & name (FILTER, COMBAT, L2H, etc.)\n- L: NAMA LOP [SITE] \u2192 site_name\n- D: WTIEL \u2192 lokasi\n- K: NAMA PO \u2192 pekerjaan\n- J: NOMOR PO \u2192 nomor_kontrak\n- G: TANGGAL WO \u2192 start\n- M: NILAI PO \u2192 maximal_budget\n- H: BOQ KONTRAK \u2192 cost_estimated\n- B+N+P: Combined \u2192 site_info\n\n**Auto-generated:**\n- **Project name:** '{TIPE} Project {LOKASI}' (e.g., 'FILTER Project Jakarta')\n- **Project type:** Parsed from Column B Row 6 (TIPE PROJECT)\n- **Project date:** Extracted from filename (YYYYMMDD format)\n- **Project lokasi:** Extracted from last part of filename\n- **Project budget:** From Row 2 totals (Column I & M)"
+            "description": "Bulk import Project and Sites from Excel file.\n\n**Excel Format:**\n- **Sheet:** \"Active Project Details\" (Sheet 3)\n- **Row 2:** Total values (BOQ AKTUAL in column I, TOTAL NILAI PO in column M)\n- **Row 5:** Headers (NO, TIPE PROJECT, AREA, etc.)\n- **Row 6+:** Site data (up to 100+ rows)\n\n**Filename Examples:** \n- `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`\n- `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`\n- `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`\n\n**Column Mapping:**\n- B: TIPE PROJECT → project type & name (FILTER, COMBAT, L2H, etc.)\n- L: NAMA LOP [SITE] → site_name\n- D: WTIEL → lokasi\n- K: NAMA PO → pekerjaan\n- J: NOMOR PO → nomor_kontrak\n- G: TANGGAL WO → start\n- M: NILAI PO → maximal_budget\n- H: BOQ KONTRAK → cost_estimated\n- B+N+P: Combined → site_info\n\n**Auto-generated:**\n- **Project name:** '{TIPE} Project {LOKASI}' (e.g., 'FILTER Project Jakarta')\n- **Project type:** Parsed from Column B Row 6 (TIPE PROJECT)\n- **Project date:** Extracted from filename (YYYYMMDD format)\n- **Project lokasi:** Extracted from last part of filename\n- **Project budget:** From Row 2 totals (Column I & M)"
           },
           "response": []
         }
@@ -438,8 +438,13 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/sites/{{site_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["sites", "{{site_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "sites",
+                "{{site_id}}"
+              ]
             },
             "description": "Ambil detail satu site berdasarkan ID. Gunakan format sites:xxx untuk site_id.\n\nResponse include metrik hari:\n- days_in_stage\n- permit_days_total\n- permit_days_elapsed\n- permit_days_remaining"
           },
@@ -628,7 +633,7 @@
                     "team-structure"
                   ]
                 },
-                "description": "Tambah member dari Data Master Team ke Tim Struktur site. Otomatis enrich response dengan data master (nik, nama, jabatan, no_hp, regional). Cegah duplikat otomatis \u2014 member yang sama tidak bisa ditambah 2x ke site yang sama."
+                "description": "Tambah member dari Data Master Team ke Tim Struktur site. Otomatis enrich response dengan data master (nik, nama, jabatan, no_hp, regional). Cegah duplikat otomatis — member yang sama tidak bisa ditambah 2x ke site yang sama."
               },
               "response": []
             },
@@ -686,7 +691,7 @@
           ]
         },
         {
-          "name": "Site Stage - UPDATE 6 APRIL v2.4 (Multipart File Uploads)",
+          "name": "Site Stage - UPDATE 8 APRIL v2.6 (16 Stages Flow)",
           "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nUPDATE v2.3 (31 MARET 2026):\n- 40+ dynamic fields across 8 categories: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST\n- Per-stage field validation: required fields divalidasi ketat sesuai stage\n- New helper endpoint: GET /sites/:id/valid-next-stages\n- SQL injection prevention on all string fields\n- Comprehensive error messages dalam Indonesian\n\nResponse include hitungan hari + metrik permit: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n+ semua field yang baru disimpan untuk UI visual feedback.",
           "item": [
             {
@@ -697,341 +702,909 @@
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "assigned", "type": "text", "description": "Target stage (WAJIB)" },
-                    { "key": "notes", "value": "Full workflow setup from imported to completed", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "System", "type": "text", "description": "User making change (optional)" },
-                    { "key": "stage_permit_date", "value": "", "type": "text", "description": "S3: Permit creation date YYYY-MM-DD (null)" },
-                    { "key": "stage_tpas_approved", "value": "", "type": "text", "description": "S4: TPAS approval (true|false|null)" },
-                    { "key": "stage_tp_approved", "value": "", "type": "text", "description": "S4: TP approval (true|false|null)" },
-                    { "key": "stage_caf_approved", "value": "", "type": "text", "description": "S4: CAF approval (true|false|null)" },
-                    { "key": "stage_permit_berlaku", "value": "", "type": "text", "description": "S4: Permit start date YYYY-MM-DD (null)" },
-                    { "key": "stage_permit_berakhir", "value": "", "type": "text", "description": "S4: Permit end date YYYY-MM-DD (null)" },
-                    { "key": "stage_survey_result", "value": "", "type": "text", "description": "S2: Survey result (LAYAK|TIDAK_LAYAK|PERLU_MODIFIKASI|null)" },
-                    { "key": "stage_survey_nok_reason", "value": "", "type": "text", "description": "S2: NOK reason if not feasible (null)" },
-                    { "key": "stage_erfin_number", "value": "", "type": "text", "description": "S2: ERFIN ID (null)" },
-                    { "key": "stage_erfin_date", "value": "", "type": "text", "description": "S2: ERFIN date YYYY-MM-DD (null)" },
-                    { "key": "stage_akses_provider", "value": "", "type": "text", "description": "S5: Tower provider (MITRATEL|STP|PTI|DMT|Lainnya|null)" },
-                    { "key": "stage_akses_kunci", "value": "", "type": "text", "description": "S5: Lock type (PADLOCK|SMARTLOCK|QUADLOCK|null)" },
-                    { "key": "stage_akses_pic_nama", "value": "", "type": "text", "description": "S5: Access PIC name (null)" },
-                    { "key": "stage_akses_pic_telp", "value": "", "type": "text", "description": "S5: Access PIC phone (null)" },
-                    { "key": "stage_gedung_akses", "value": "", "type": "text", "description": "S7: Building access needed (true|false|null)" },
-                    { "key": "stage_gedung_nama", "value": "", "type": "text", "description": "S7: Building name (null)" },
-                    { "key": "stage_gedung_pic_nama", "value": "", "type": "text", "description": "S7: Building PIC name (null)" },
-                    { "key": "stage_gedung_pic_telp", "value": "", "type": "text", "description": "S7: Building PIC phone (null)" },
-                    { "key": "stage_gedung_status", "value": "", "type": "text", "description": "S7: Access status (GRANTED|PENDING|DENIED|null)" },
-                    { "key": "stage_impl_rencana_tgl", "value": "", "type": "text", "description": "S7: Planned impl date YYYY-MM-DD (null)" },
-                    { "key": "stage_impl_aktual_tgl", "value": "", "type": "text", "description": "S8: Actual start date YYYY-MM-DD (null)" },
-                    { "key": "stage_impl_check_in", "value": "", "type": "text", "description": "S8: Check-in datetime ISO8601 (null)" },
-                    { "key": "stage_impl_check_out", "value": "", "type": "text", "description": "S8: Check-out datetime ISO8601 (null)" },
-                    { "key": "stage_rfi_confirm", "value": "", "type": "text", "description": "S8: RFI confirmation (true|false|null)" },
-                    { "key": "stage_rfs_confirm", "value": "", "type": "text", "description": "S9: RFS confirmation (true|false|null)" },
-                    { "key": "stage_rfs_catatan", "value": "", "type": "text", "description": "S9: RFS technical notes (null)" },
-                    { "key": "stage_bast_dok_confirm", "value": "", "type": "text", "description": "S11: Document confirmation (true|false|null)" },
-                    { "key": "stage_bast_final_confirm", "value": "", "type": "text", "description": "S13: Final confirmation (true|false|null)" },
-                    { "key": "stage_catatan_final", "value": "", "type": "text", "description": "S13: Final notes (null)" }
+                    {
+                      "key": "stage",
+                      "value": "assigned",
+                      "type": "text",
+                      "description": "Target stage (WAJIB)"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Full workflow setup from imported to completed",
+                      "type": "text",
+                      "description": "Change notes (optional)"
+                    },
+                    {
+                      "key": "changed_by",
+                      "value": "System",
+                      "type": "text",
+                      "description": "User making change (optional)"
+                    },
+                    {
+                      "key": "stage_permit_date",
+                      "value": "",
+                      "type": "text",
+                      "description": "S3: Permit creation date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_tpas_approved",
+                      "value": "",
+                      "type": "text",
+                      "description": "S4: TPAS approval (true|false|null)"
+                    },
+                    {
+                      "key": "stage_tp_approved",
+                      "value": "",
+                      "type": "text",
+                      "description": "S4: TP approval (true|false|null)"
+                    },
+                    {
+                      "key": "stage_caf_approved",
+                      "value": "",
+                      "type": "text",
+                      "description": "S4: CAF approval (true|false|null)"
+                    },
+                    {
+                      "key": "stage_permit_berlaku",
+                      "value": "",
+                      "type": "text",
+                      "description": "S4: Permit start date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_permit_berakhir",
+                      "value": "",
+                      "type": "text",
+                      "description": "S4: Permit end date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_survey_result",
+                      "value": "",
+                      "type": "text",
+                      "description": "S2: Survey result (OK|NOK|null)"
+                    },
+                    {
+                      "key": "stage_survey_nok_reason",
+                      "value": "",
+                      "type": "text",
+                      "description": "S2: NOK reason if survey_result is NOK (null)"
+                    },
+                    {
+                      "key": "stage_erfin_number",
+                      "value": "",
+                      "type": "text",
+                      "description": "S2: ERFIN ID (null)"
+                    },
+                    {
+                      "key": "stage_erfin_date",
+                      "value": "",
+                      "type": "text",
+                      "description": "S2: ERFIN date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_akses_provider",
+                      "value": "",
+                      "type": "text",
+                      "description": "S5: Tower provider (MITRATEL|STP|PTI|DMT|Lainnya|null)"
+                    },
+                    {
+                      "key": "stage_akses_kunci",
+                      "value": "",
+                      "type": "text",
+                      "description": "S5: Lock type (PADLOCK|SMARTLOCK|QUADLOCK|null)"
+                    },
+                    {
+                      "key": "stage_akses_pic_nama",
+                      "value": "",
+                      "type": "text",
+                      "description": "S5: Access PIC name (null)"
+                    },
+                    {
+                      "key": "stage_akses_pic_telp",
+                      "value": "",
+                      "type": "text",
+                      "description": "S5: Access PIC phone (null)"
+                    },
+                    {
+                      "key": "stage_gedung_akses",
+                      "value": "",
+                      "type": "text",
+                      "description": "S7: Building access needed (true|false|null)"
+                    },
+                    {
+                      "key": "stage_gedung_nama",
+                      "value": "",
+                      "type": "text",
+                      "description": "S7: Building name (null)"
+                    },
+                    {
+                      "key": "stage_gedung_pic_nama",
+                      "value": "",
+                      "type": "text",
+                      "description": "S7: Building PIC name (null)"
+                    },
+                    {
+                      "key": "stage_gedung_pic_telp",
+                      "value": "",
+                      "type": "text",
+                      "description": "S7: Building PIC phone (null)"
+                    },
+                    {
+                      "key": "stage_gedung_status",
+                      "value": "",
+                      "type": "text",
+                      "description": "S7: Access status (GRANTED|PENDING|DENIED|null)"
+                    },
+                    {
+                      "key": "stage_impl_rencana_tgl",
+                      "value": "",
+                      "type": "text",
+                      "description": "S7: Planned impl date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_impl_aktual_tgl",
+                      "value": "",
+                      "type": "text",
+                      "description": "S8: Actual start date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_impl_check_in",
+                      "value": "",
+                      "type": "text",
+                      "description": "S8: Check-in datetime ISO8601 (null)"
+                    },
+                    {
+                      "key": "stage_impl_check_out",
+                      "value": "",
+                      "type": "text",
+                      "description": "S8: Check-out datetime ISO8601 (null)"
+                    },
+                    {
+                      "key": "stage_rfi_confirm",
+                      "value": "",
+                      "type": "text",
+                      "description": "S8: RFI confirmation (true|false|null)"
+                    },
+                    {
+                      "key": "stage_rfs_confirm",
+                      "value": "",
+                      "type": "text",
+                      "description": "S9: RFS confirmation (true|false|null)"
+                    },
+                    {
+                      "key": "stage_rfs_catatan",
+                      "value": "",
+                      "type": "text",
+                      "description": "S9: RFS technical notes (null)"
+                    },
+                    {
+                      "key": "stage_bast_dok_confirm",
+                      "value": "",
+                      "type": "text",
+                      "description": "S11: Document confirmation (true|false|null)"
+                    },
+                    {
+                      "key": "stage_bast_final_confirm",
+                      "value": "",
+                      "type": "text",
+                      "description": "S13: Final confirmation (true|false|null)"
+                    },
+                    {
+                      "key": "stage_catatan_final",
+                      "value": "",
+                      "type": "text",
+                      "description": "S13: Final notes (null)"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
                 "description": "🔄 ONE-STEP COMPREHENSIVE: POST with formdata containing ALL fields from stages 1-13, all nullable. Each field prefixed with 'stage_' + step number in description.\n\nUsage:\n- To update single stage: fill only relevant fields, leave others empty\n- All fields optional (null = skip)\n- S2 = Survey | S3 = Permit Process | S4 = Permit Ready | S5 = Akses | S7 = Implementasi | S8 = RFI | S9 = RFS | S11 = BAST | S13 = Completed"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 02 - UPDATE SURVEY - Comprehensive Update",
+              "name": "Stage 02 - UPDATE SURVEY",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "assigned", "type": "text", "description": "Current/target stage (required)" },
-                    { "key": "stage_survey_date", "value": "2026-03-15", "type": "text", "description": "🔴 SURVEY DATE - Required for Survey step: YYYY-MM-DD format" },
-                    { "key": "stage_survey_result", "value": "LAYAK", "type": "text", "description": "🔴 SURVEY RESULT - Required for Survey step: LAYAK | TIDAK_LAYAK | PERLU_MODIFIKASI" },
-                    { "key": "stage_survey_nok_reason", "value": "", "type": "text", "description": "If result=TIDAK_LAYAK: reason why (optional)" },
-                    { "key": "stage_erfin_number", "value": "ERF-2026-0031", "type": "text", "description": "🔴 ERFIN ID - Required for Survey step: Electrical Requirement Form & Infrastructure Notice" },
-                    { "key": "stage_erfin_date", "value": "2026-03-31", "type": "text", "description": "🔴 ERFIN DATE - Required for Survey step: YYYY-MM-DD format" },
-                    { "key": "stage_permit_date", "value": "", "type": "text", "description": "S3: Permit date (optional, for other steps)" },
-                    { "key": "stage_tpas_approved", "value": "", "type": "text", "description": "S4: TPAS approval (optional)" },
-                    { "key": "stage_tp_approved", "value": "", "type": "text", "description": "S4: TP approval (optional)" },
-                    { "key": "stage_akses_provider", "value": "", "type": "text", "description": "S5: Tower provider (optional)" },
-                    { "key": "stage_akses_kunci", "value": "", "type": "text", "description": "S5: Lock type (optional)" },
-                    { "key": "stage_gedung_akses", "value": "", "type": "text", "description": "S7: Building access (optional)" },
-                    { "key": "stage_impl_rencana_tgl", "value": "", "type": "text", "description": "S7: Impl date (optional)" },
-                    { "key": "stage_impl_check_out", "value": "", "type": "text", "description": "S8: Check-out time (optional)" },
-                    { "key": "stage_rfs_confirm", "value": "", "type": "text", "description": "S9: RFS confirm (optional)" },
-                    { "key": "notes", "value": "Survey completed - site is feasible for fiber installation", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Surveyor Team", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "survey",
+                      "type": "text",
+                      "description": "Target stage: survey"
+                    },
+                    {
+                      "key": "survey_date",
+                      "value": "2026-04-08",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Update ke SURVEY",
+                      "type": "text",
+                      "description": "Optional notes"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "📊 UPDATE SURVEY STEP (Stage 02) - PUT formdata\n\n✅ REQUIRED FIELDS FOR SURVEY STEP:\n  • stage_survey_result: LAYAK | TIDAK_LAYAK | PERLU_MODIFIKASI\n  • stage_erfin_number: Electrical Requirement Form ID\n  • stage_erfin_date: Date survay ERFIN (YYYY-MM-DD)\n  • stage_survey_nok_reason: (ONLY if result=TIDAK_LAYAK)\n\n✅ OPTIONAL FIELDS:\n  • All other stage_* fields (for future steps)\n  • notes, changed_by\n\nNOTE: This is UPDATE (PUT), not POST. Can be called multiple times to update different fields progressively."
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: stage_survey_date"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Survey fields saved', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage_survey_result).to.exist; pm.expect(j.data.stage_erfin_number).to.exist; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 03 - UPDATE PERMIT PROCESS - formdata",
+              "name": "Stage 03 - UPDATE ERFIN DIPROSES",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "permit_process", "type": "text", "description": "Target stage (required)" },
-                    { "key": "stage_permit_date", "value": "2026-03-11", "type": "text", "description": "🔴 WAJIB: Tanggal permohonan izin (YYYY-MM-DD)" },
-                    { "key": "stage_survey_result", "value": "", "type": "text", "description": "S2: Survey result (optional for this step)" },
-                    { "key": "stage_survey_nok_reason", "value": "", "type": "text", "description": "S2: NOK reason (optional)" },
-                    { "key": "stage_erfin_number", "value": "", "type": "text", "description": "S2: ERFIN number (optional)" },
-                    { "key": "stage_erfin_date", "value": "", "type": "text", "description": "S2: ERFIN date (optional)" },
-                    { "key": "stage_tpas_approved", "value": "", "type": "text", "description": "S4: TPAS approval (optional)" },
-                    { "key": "stage_tp_approved", "value": "", "type": "text", "description": "S4: TP approval (optional)" },
-                    { "key": "stage_akses_provider", "value": "", "type": "text", "description": "S5: Tower provider (optional)" },
-                    { "key": "stage_akses_kunci", "value": "", "type": "text", "description": "S5: Lock type (optional)" },
-                    { "key": "stage_impl_rencana_tgl", "value": "", "type": "text", "description": "S7: Impl date (optional)" },
-                    { "key": "stage_impl_check_out", "value": "", "type": "text", "description": "S8: Check-out (optional)" },
-                    { "key": "notes", "value": "Permit process sedang berjalan", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Perizinan", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "erfin_diproses",
+                      "type": "text",
+                      "description": "Target stage: erfin_diproses"
+                    },
+                    {
+                      "key": "survey_result",
+                      "value": "OK",
+                      "type": "text"
+                    },
+                    {
+                      "key": "survey_nok_reason",
+                      "value": "Site masih dalam sengketa tanah, tidak aman untuk dibangun",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Uncheck/disable if survey_result is OK. Isi jika NOK"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Update ke ERFIN DIPROSES",
+                      "type": "text",
+                      "description": "Optional notes"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "🔐 UPDATE PERMIT PROCESS (Stage 03) - PUT formdata\n\n✅ REQUIRED FIELD:\n  • stage_permit_date: Tanggal permohonan izin (YYYY-MM-DD)\n\n✅ OTHER FIELDS: All optional (can be filled progressively)"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: stage_survey_result"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Permit date saved', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage_permit_date).to.exist; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 04 - UPDATE PERMIT READY - formdata",
+              "name": "Stage 03 (ERROR) - Tanpa Hasil Survey (OK/NOK)",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "file", "type": "file", "src": [], "description": "Dokumen TPAS (WAJIB upload file)" },
-                    { "key": "stage", "value": "permit_ready", "type": "text", "description": "Target stage (required)" },
-                    { "key": "stage_tpas_approved", "value": "true", "type": "text", "description": "🔴 WAJIB: TPAS approval (true/false)" },
-                    { "key": "stage_tp_approved", "value": "true", "type": "text", "description": "🔴 WAJIB: TP approval (true/false)" },
-                    { "key": "stage_caf_approved", "value": "true", "type": "text", "description": "CAF approval (true/false/null)" },
-                    { "key": "stage_permit_berlaku", "value": "2026-03-11", "type": "text", "description": "Permit start date YYYY-MM-DD (optional)" },
-                    { "key": "stage_permit_berakhir", "value": "2027-03-11", "type": "text", "description": "Permit end date YYYY-MM-DD (optional)" },
-                    { "key": "stage_survey_result", "value": "", "type": "text", "description": "S2: Survey result (optional)" },
-                    { "key": "stage_erfin_number", "value": "", "type": "text", "description": "S2: ERFIN number (optional)" },
-                    { "key": "stage_akses_provider", "value": "", "type": "text", "description": "S5: Tower provider (optional)" },
-                    { "key": "stage_akses_kunci", "value": "", "type": "text", "description": "S5: Lock type (optional)" },
-                    { "key": "stage_impl_rencana_tgl", "value": "", "type": "text", "description": "S7: Impl date (optional)" },
-                    { "key": "doc_type", "value": "tpas", "type": "text", "description": "Document type (optional, default=tpas)" },
-                    { "key": "uploaded_by", "value": "Tim Perizinan", "type": "text", "description": "Who uploaded (optional)" },
-                    { "key": "notes", "value": "Permit siap - all approvals done", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Perizinan", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "erfin_diproses",
+                      "type": "text",
+                      "description": "Target stage: erfin_diproses"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Mencoba bypass tanpa isi Hasil Survey",
+                      "type": "text"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "✅ UPDATE PERMIT READY (Stage 04) - PUT multipart formdata\n\n✅ REQUIRED FIELDS:\n  • file: Upload TPAS document\n  • stage_tpas_approved: true/false\n  • stage_tp_approved: true/false\n\n✅ OPTIONAL FIELDS:\n  • stage_caf_approved\n  • stage_permit_berlaku, stage_permit_berakhir\n  • All other stage_* fields"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "❌ TEST ERROR: Mensimulasikan pengguna yang lupa mencentang/memilih radio button Hasil Survey (OK/NOK). Ber-ekspektasi dapat HTTP 400/200 dengan JSON success=false."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Permit approvals saved', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage_tpas_approved).to.be.true; pm.expect(j.data.stage_tp_approved).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('System menangkap kelalaian user', () => { const j = pm.response.json(); pm.expect(j.success).to.be.false; pm.expect(j.message).to.include('wajib diisi'); });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 05 - UPDATE AKSES PROCESS - formdata",
+              "name": "Stage 04 - UPDATE ERFIN READY",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "akses_process", "type": "text", "description": "Target stage (required)" },
-                    { "key": "stage_akses_provider", "value": "STP", "type": "text", "description": "🔴 Tower provider (MITRATEL|STP|PTI|DMT)" },
-                    { "key": "stage_akses_kunci", "value": "SMARTLOCK", "type": "text", "description": "🔴 Lock type (PADLOCK|SMARTLOCK|QUADLOCK)" },
-                    { "key": "stage_akses_pic_nama", "value": "John Doe", "type": "text", "description": "Access PIC name (optional)" },
-                    { "key": "stage_akses_pic_telp", "value": "081234567890", "type": "text", "description": "Access PIC phone (optional)" },
-                    { "key": "notes", "value": "Access tower info ready", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Perizinan", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "erfin_ready",
+                      "type": "text",
+                      "description": "Target stage: erfin_ready"
+                    },
+                    {
+                      "key": "erfin_number",
+                      "value": "ERF-001",
+                      "type": "text"
+                    },
+                    {
+                      "key": "erfin_date",
+                      "value": "2026-04-08",
+                      "type": "text"
+                    },
+                    {
+                      "key": "erfin_ready_date",
+                      "value": "2026-04-09",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Update ke ERFIN READY",
+                      "type": "text",
+                      "description": "Optional notes"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "🔑 UPDATE AKSES PROCESS (Stage 05) - PUT formdata\n✅ REQUIRED: stage_akses_provider + stage_akses_kunci"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: stage_erfin_number, stage_erfin_date, stage_erfin_ready_date"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Access fields saved', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 06 - UPDATE AKSES READY - formdata",
+              "name": "Stage 05 - UPDATE PERMIT PROCESS",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "akses_ready", "type": "text", "description": "Target stage (required)" },
-                    { "key": "stage_akses_provider", "value": "STP", "type": "text", "description": "S5: Tower provider (optional - keep from S5)" },
-                    { "key": "stage_akses_kunci", "value": "SMARTLOCK", "type": "text", "description": "S5: Lock type (optional)" },
-                    { "key": "stage_impl_rencana_tgl", "value": "", "type": "text", "description": "S7: Impl date (optional)" },
-                    { "key": "notes", "value": "Material received - ready for implementation", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Lapangan", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "permit_process",
+                      "type": "text",
+                      "description": "Target stage: permit_process"
+                    },
+                    {
+                      "key": "permit_date",
+                      "value": "2026-04-10",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Update ke PERMIT PROCESS",
+                      "type": "text",
+                      "description": "Optional notes"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "📦 UPDATE AKSES READY (Stage 06) - PUT formdata\nNo required fields - transitional stage"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: stage_permit_date"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 07 - UPDATE IMPLEMENTASI - formdata",
+              "name": "Stage 06 - UPDATE PERMIT READY",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "file_evidence", "type": "file", "src": [], "description": "📸 Field work evidence/progress photos (optional)" },
-                    { "key": "stage", "value": "implementasi", "type": "text", "description": "Target stage (required)" },
-                    { "key": "stage_impl_rencana_tgl", "value": "2024-01-15", "type": "text", "description": "S7: Planned impl date (required for S7)" },
-                    { "key": "stage_impl_real_tgl", "value": "2024-01-14", "type": "text", "description": "S8: Actual start date (optional)" },
-                    { "key": "stage_impl_real_jam_mulai", "value": "08:00", "type": "text", "description": "S8: Start time HH:MM (optional)" },
-                    { "key": "stage_rfi_real_jam_selesai", "value": "", "type": "text", "description": "S9: RFI end time HH:MM (optional)" },
-                    { "key": "notes", "value": "Field work started - installation in progress", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Lapangan", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "permit_ready",
+                      "type": "text",
+                      "description": "Target stage: permit_ready"
+                    },
+                    {
+                      "key": "tpas_approved",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tp_approved",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "caf_approved",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "approval_chain",
+                      "value": "Dirut -> GM -> PM",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tgl_berlaku_permit_tpas",
+                      "value": "2026-04-12",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tgl_berakhir_permit_tpas",
+                      "value": "2027-04-12",
+                      "type": "text"
+                    },
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": ""
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Update ke PERMIT READY dengan kelengkapan",
+                      "type": "text"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "⚙️ UPDATE IMPLEMENTASI (Stage 07) - PUT formdata\nPhysical implementation and on-site work in progress"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: stage_tpas_approved, stage_tp_approved, stage_caf_approved, stage_approval_chain, stage_permit_berlaku, stage_permit_berakhir, file (Upload Dokumen TPAS)"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.stage).to.exist; });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 08 - UPDATE RFI DONE - formdata",
+              "name": "Stage 07 - UPDATE AKSES PROCESS",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "file_rfi_results", "type": "file", "src": [], "description": "📊 RFI test results/photos/PDF (optional)" },
-                    { "key": "stage", "value": "rfi_done", "type": "text", "description": "Target stage (required)" },
-                    { "key": "stage_rfi_real_jam_selesai", "value": "17:00", "type": "text", "description": "S9: RFI end time HH:MM (required for S8)" },
-                    { "key": "notes", "value": "RF testing completed - site ready for maintenance", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Teknis", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "akses_process",
+                      "type": "text",
+                      "description": "Target stage: akses_process"
+                    },
+                    {
+                      "key": "tower_provider",
+                      "value": "MITRATEL",
+                      "type": "text",
+                      "description": "MITRATEL, STP, PTI, DMT, Lainnya"
+                    },
+                    {
+                      "key": "jenis_kunci",
+                      "value": "PADLOCK",
+                      "type": "text",
+                      "description": "PADLOCK, SMARTLOCK, QUADLOCK"
+                    },
+                    {
+                      "key": "pic_akses_nama",
+                      "value": "Jerico",
+                      "type": "text"
+                    },
+                    {
+                      "key": "pic_akses_telp",
+                      "value": "081234567890",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Lanjut akses proses",
+                      "type": "text"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "📡 UPDATE RFI DONE (Stage 08) - PUT formdata\nRadio Frequency Inspection completed - site acceptance"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: tower_provider, jenis_kunci, pic_akses_nama, pic_akses_telp"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 09 - UPDATE RFS DONE - formdata",
+              "name": "Stage 08 - UPDATE AKSES READY",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "rfs_done", "type": "text", "description": "Target stage (required)" },
-                    { "key": "notes", "value": "Ready for service - site operational", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Operasi", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "akses_ready",
+                      "type": "text",
+                      "description": "Target stage: akses_ready"
+                    },
+                    {
+                      "key": "konfirmasi_akses",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "has_akses_gedung",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "gedung_nama",
+                      "value": "Gedung Telkom",
+                      "type": "text"
+                    },
+                    {
+                      "key": "gedung_pic_nama",
+                      "value": "Budi Satrio",
+                      "type": "text"
+                    },
+                    {
+                      "key": "gedung_pic_telp",
+                      "value": "081299334455",
+                      "type": "text"
+                    },
+                    {
+                      "key": "gedung_akses_status",
+                      "value": "Tersedia 24 Jam",
+                      "type": "text"
+                    },
+                    {
+                      "key": "files[]",
+                      "type": "file",
+                      "src": ""
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Sudah akses gedung dan konfirmasi",
+                      "type": "text"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "✅ UPDATE RFS DONE (Stage 09) - PUT formdata\nReady For Service stage - site is operational"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: konfirmasi_akses, bukti_akses (lewat file/files[]). Jika has_akses_gedung=true, wajib gedung_nama dll."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 10 - UPDATE DOKUMEN DONE - formdata",
+              "name": "Stage 09 - UPDATE IMPLEMENTASI",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "file_asbuilt", "type": "file", "src": [], "description": "📐 As-built drawings/technical documentation PDF (optional)" },
-                    { "key": "stage", "value": "dokumen_done", "type": "text", "description": "Target stage (required)" },
-                    { "key": "notes", "value": "As-built drawings and all documentation complete", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Tim Dokumen", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "implementasi",
+                      "type": "text",
+                      "description": "Target stage: implementasi"
+                    },
+                    {
+                      "key": "tgl_rencana_implementasi",
+                      "value": "2026-05-01",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tgl_aktual_mulai",
+                      "value": "2026-05-02",
+                      "type": "text"
+                    },
+                    {
+                      "key": "jam_checkin",
+                      "value": "08:30",
+                      "type": "text"
+                    },
+                    {
+                      "key": "notes",
+                      "value": "Tim sudah check-in di lokasi",
+                      "type": "text"
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "📋 UPDATE DOKUMEN DONE (Stage 10) - PUT formdata\nAll implementation documentation and as-built drawings complete"
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
+                "description": "✅ WAJIB: tgl_rencana_implementasi. \nOpsional: tgl_aktual_mulai, jam_checkin"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
-              "name": "Stage 11 - UPDATE BAST - formdata",
+              "name": "Stage 10 - UPDATE RFI SELESAI",
               "request": {
                 "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "stage", "value": "bast", "type": "text", "description": "Target stage (required)" },
-                    { "key": "notes", "value": "Handover document signed by both parties", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Admin PM", "type": "text", "description": "User making update (optional)" }
+                    {
+                      "key": "stage",
+                      "value": "rfi_done",
+                      "type": "text",
+                      "description": "Target stage: rfi_done"
+                    },
+                    {
+                      "key": "jam_checkout",
+                      "value": "17:30",
+                      "type": "text"
+                    },
+                    {
+                      "key": "konfirmasi_rfi",
+                      "value": "true",
+                      "type": "text"
+                    },
+                    {
+                      "key": "catatan_teknis",
+                      "value": "Semua antena telah diperiksa",
+                      "type": "text"
+                    },
+                    {
+                      "key": "files[]",
+                      "type": "file",
+                      "src": ""
+                    }
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "🖊️ UPDATE BAST (Stage 11) - PUT formdata\nHandover document signed - site handover complete"
-              },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
-              "response": []
-            },
-            {
-              "name": "Stage 12 - UPDATE INVOICE - formdata",
-              "request": {
-                "method": "PUT",
-                "header": [],
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    { "key": "stage", "value": "invoice", "type": "text", "description": "Target stage (required)" },
-                    { "key": "notes", "value": "Invoice submitted to finance - payment pending", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Admin Finance", "type": "text", "description": "User making update (optional)" }
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
                   ]
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "💰 UPDATE INVOICE (Stage 12) - PUT formdata\nInvoice submitted - awaiting payment"
+                "description": "✅ WAJIB: jam_checkout, konfirmasi_rfi=true. \nOpsional: catatan_teknis, foto CI/CO (files[])"
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
-              "response": []
-            },
-            {
-              "name": "Stage 13 - UPDATE COMPLETED - formdata",
-              "request": {
-                "method": "PUT",
-                "header": [],
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    { "key": "stage", "value": "completed", "type": "text", "description": "Target stage (required)" },
-                    { "key": "notes", "value": "All work completed - payment received", "type": "text", "description": "Change notes (optional)" },
-                    { "key": "changed_by", "value": "Admin Finance", "type": "text", "description": "User making update (optional)" }
-                  ]
-                },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
-                "description": "✨ UPDATE COMPLETED (Stage 13) - PUT formdata\nFinal stage - all work and administration complete"
-              },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Stage updated', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
               "name": "Stage INVALID - expect error",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"stage\": \"invalid_stage_test\",\n  \"changed_by\": \"Tester\"\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
-                "url": { "raw": "{{base_url}}/sites/{{site_id}}/stage", "host": ["{{base_url}}"], "path": ["sites", "{{site_id}}", "stage"] },
+                "url": {
+                  "raw": "{{base_url}}/sites/{{site_id}}/stage",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage"
+                  ]
+                },
                 "description": "Test validasi: stage tidak valid harus ditolak dengan success=false."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Invalid stage rejected', () => { const j = pm.response.json(); pm.expect(j.success).to.be.false; pm.expect(j.message).to.include('tidak valid'); });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Invalid stage rejected', () => { const j = pm.response.json(); pm.expect(j.success).to.be.false; pm.expect(j.message).to.include('tidak valid'); });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
@@ -1041,12 +1614,29 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/stage-logs",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "stage-logs"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "stage-logs"
+                  ]
                 },
                 "description": "Ambil riwayat perubahan stage site. Terurut dari terbaru ke terlama. Setelah menjalankan 13 stage di atas, minimal akan ada 13 log entries."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Data is array with entries', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data).to.be.an('array'); pm.expect(j.data.length).to.be.greaterThan(0); });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Data is array with entries', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data).to.be.an('array'); pm.expect(j.data.length).to.be.greaterThan(0); });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             },
             {
@@ -1056,12 +1646,29 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/valid-next-stages",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "valid-next-stages"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "valid-next-stages"
+                  ]
                 },
                 "description": "NEW ENDPOINT v2.3: Helper endpoint untuk UI flow — return list stage apa saja yang valid dipilih dari current stage. Sangat berguna untuk populate dropdown 'Select Next Stage' di frontend.\n\nResponse include current_stage, valid_next_stages array (berisi stage name + description),  dan required_field_descriptions untuk konteks field mana yang wajib diisi."
               },
-              "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Returns current_stage & valid_next_stages', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.current_stage).to.exist; pm.expect(j.data.valid_next_stages).to.be.an('array'); pm.expect(j.data.required_field_descriptions).to.be.an('object'); });"], "type": "text/javascript" } }],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                      "pm.test('Returns current_stage & valid_next_stages', () => { const j = pm.response.json(); pm.expect(j.success).to.be.true; pm.expect(j.data.current_stage).to.exist; pm.expect(j.data.valid_next_stages).to.be.an('array'); pm.expect(j.data.required_field_descriptions).to.be.an('object'); });"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "response": []
             }
           ]
@@ -1077,8 +1684,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/boq",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "boq"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "boq"
+                  ]
                 },
                 "description": "List semua BOQ item untuk satu site."
               },
@@ -1101,17 +1714,30 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"item_code\": \"MAT-001\",\n  \"description\": \"Kabel Fiber Optik SM 12C\",\n  \"quantity\": 100.0,\n  \"unit\": \"meter\",\n  \"type\": \"material\",\n  \"source\": \"Warehouse Jakarta\"\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/boq",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "boq"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "boq"
+                  ]
                 },
                 "description": "Tambah item BOQ ke site."
               },
@@ -1143,17 +1769,29 @@
               "request": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"description\": \"Kabel Fiber Optik SM 24C\",\n  \"quantity\": 150.0\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{base_url}}/site-boq/{{boq_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["site-boq", "{{boq_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-boq",
+                    "{{boq_id}}"
+                  ]
                 },
                 "description": "Update item BOQ. Semua field optional (partial update)."
               },
@@ -1166,8 +1804,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/site-boq/{{boq_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["site-boq", "{{boq_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-boq",
+                    "{{boq_id}}"
+                  ]
                 },
                 "description": "Hapus item BOQ."
               },
@@ -1186,8 +1829,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/skp",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "skp"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "skp"
+                  ]
                 },
                 "description": "List semua SKP untuk satu site, terurut terbaru dulu."
               },
@@ -1210,17 +1859,30 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"skp_number\": \"SKP/2026/001\",\n  \"tanggal\": \"2026-03-10\",\n  \"keterangan\": \"Pengambilan material batch 1\",\n  \"uploaded_by\": \"Budi Santoso\",\n  \"document_url\": null\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/skp",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "skp"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "skp"
+                  ]
                 },
                 "description": "Buat SKP baru. Status awal selalu 'Draft'. skp_number harus unik."
               },
@@ -1254,8 +1916,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/skp/{{skp_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["skp", "{{skp_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "skp",
+                    "{{skp_id}}"
+                  ]
                 },
                 "description": "Ambil detail satu SKP berdasarkan ID."
               },
@@ -1266,17 +1933,29 @@
               "request": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"status\": \"Submitted\",\n  \"document_url\": \"https://storage.example.com/skp-001.pdf\"\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{base_url}}/skp/{{skp_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["skp", "{{skp_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "skp",
+                    "{{skp_id}}"
+                  ]
                 },
                 "description": "Update SKP ke status Submitted dengan URL dokumen SKP."
               },
@@ -1287,17 +1966,29 @@
               "request": {
                 "method": "PUT",
                 "header": [
-                  { "key": "Content-Type", "value": "application/json" }
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"status\": \"Received\",\n  \"received_proof_url\": \"https://storage.example.com/bukti-terima-001.jpg\"\n}",
-                  "options": { "raw": { "language": "json" } }
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
                 "url": {
                   "raw": "{{base_url}}/skp/{{skp_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["skp", "{{skp_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "skp",
+                    "{{skp_id}}"
+                  ]
                 },
                 "description": "Update SKP ke status Received dengan bukti penerimaan material."
               },
@@ -1310,8 +2001,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/skp/{{skp_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["skp", "{{skp_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "skp",
+                    "{{skp_id}}"
+                  ]
                 },
                 "description": "Hapus SKP."
               },
@@ -1330,8 +2026,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/evidence",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "evidence"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "evidence"
+                  ]
                 },
                 "description": "List semua foto lapangan untuk satu site."
               },
@@ -1385,8 +2087,14 @@
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/evidence",
-                  "host": ["{{base_url}}"],
-                  "path": ["sites", "{{site_id}}", "evidence"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "sites",
+                    "{{site_id}}",
+                    "evidence"
+                  ]
                 },
                 "description": "Upload foto/dokumen lapangan sebagai multipart/form-data. File disimpan sebagai base64 data URL di database. Field wajib: file, progress_tag, uploaded_by. Field opsional: stage_context."
               },
@@ -1418,8 +2126,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/site-evidence/{{evidence_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["site-evidence", "{{evidence_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-evidence",
+                    "{{evidence_id}}"
+                  ]
                 },
                 "description": "Hapus foto lapangan."
               },
@@ -1432,8 +2145,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/site-evidence/{{evidence_id}}",
-                  "host": ["{{base_url}}"],
-                  "path": ["site-evidence", "{{evidence_id}}"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-evidence",
+                    "{{evidence_id}}"
+                  ]
                 },
                 "description": "Ambil metadata satu record evidence berdasarkan ID. Response berisi JSON dengan field: id, site_id, filename, original_name, file_url (data URL base64), mime_type, file_size, progress_tag, stage_context, uploaded_by, uploaded_at."
               },
@@ -1463,8 +2181,14 @@
                 "header": [],
                 "url": {
                   "raw": "{{base_url}}/site-evidence/{{evidence_id}}/preview",
-                  "host": ["{{base_url}}"],
-                  "path": ["site-evidence", "{{evidence_id}}", "preview"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "site-evidence",
+                    "{{evidence_id}}",
+                    "preview"
+                  ]
                 },
                 "description": "Ambil konten biner evidence untuk ditampilkan di browser. Server mendecode base64 data URL dan mengembalikan bytes mentah dengan Content-Type yang tepat (image/jpeg, application/pdf, dsb) + Content-Disposition: inline.\n\n**PDF:** gunakan sebagai src di <iframe> atau <embed>\n**Gambar:** gunakan sebagai src di <img>\n\nMIME type otomatis terdeteksi dari ekstensi file saat upload jika browser tidak mengirim Content-Type yang benar."
               },
@@ -1501,8 +2225,14 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/permit-docs",
-                      "host": ["{{base_url}}"],
-                      "path": ["sites", "{{site_id}}", "permit-docs"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "sites",
+                        "{{site_id}}",
+                        "permit-docs"
+                      ]
                     },
                     "description": "Ambil semua dokumen perizinan yang dimiliki oleh sebuah site. Diurutkan berdasarkan uploaded_at DESC."
                   },
@@ -1553,8 +2283,14 @@
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/permit-docs",
-                      "host": ["{{base_url}}"],
-                      "path": ["sites", "{{site_id}}", "permit-docs"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "sites",
+                        "{{site_id}}",
+                        "permit-docs"
+                      ]
                     },
                     "description": "Upload dokumen perizinan (TPAS/TP/CAF/lainnya) untuk site tertentu. File dikirim sebagai multipart/form-data. File disimpan sebagai base64 data URL di database. doc_type wajib salah satu dari: tpas, tp, caf, lainnya."
                   },
@@ -1588,8 +2324,13 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/permit-docs/{{permit_doc_id}}",
-                      "host": ["{{base_url}}"],
-                      "path": ["permit-docs", "{{permit_doc_id}}"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "permit-docs",
+                        "{{permit_doc_id}}"
+                      ]
                     },
                     "description": "Ambil metadata dokumen perizinan berdasarkan ID. Mengembalikan semua field kecuali konten biner (file_url berisi data URL base64 lengkap di DB, tidak dikembalikan di sini)."
                   },
@@ -1617,8 +2358,14 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/permit-docs/{{permit_doc_id}}/preview",
-                      "host": ["{{base_url}}"],
-                      "path": ["permit-docs", "{{permit_doc_id}}", "preview"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "permit-docs",
+                        "{{permit_doc_id}}",
+                        "preview"
+                      ]
                     },
                     "description": "Ambil konten biner dokumen perizinan untuk ditampilkan di browser. Server mendecode base64 data URL yang tersimpan di DB dan mengembalikan bytes mentah dengan header Content-Type yang sesuai (misal: image/jpeg, application/pdf). Gunakan URL ini sebagai src pada tag <img> atau <iframe> untuk preview langsung di frontend."
                   },
@@ -1645,8 +2392,13 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/permit-docs/{{permit_doc_id}}",
-                      "host": ["{{base_url}}"],
-                      "path": ["permit-docs", "{{permit_doc_id}}"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "permit-docs",
+                        "{{permit_doc_id}}"
+                      ]
                     },
                     "description": "Hapus dokumen perizinan berdasarkan ID. Operasi ini permanen dan tidak bisa dibatalkan."
                   },
@@ -1675,16 +2427,31 @@
                   "name": "Create Issue - Tahan Stage",
                   "request": {
                     "method": "POST",
-                    "header": [{ "key": "Content-Type", "value": "application/json" }],
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"stage_at_report\": \"implementasi\",\n  \"keterangan\": \"Material tidak sesuai spesifikasi kontrak, perlu penggantian\",\n  \"tindakan\": \"tahan\",\n  \"reported_by\": \"Budi Santoso\",\n  \"evidence_urls\": [\"https://cdn.example.com/foto-bukti.jpg\"]\n}",
-                      "options": { "raw": { "language": "json" } }
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
-                      "host": ["{{base_url}}"],
-                      "path": ["sites", "{{site_id}}", "issues"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "sites",
+                        "{{site_id}}",
+                        "issues"
+                      ]
                     },
                     "description": "Laporkan issue dan tahan di stage ini. Status otomatis 'open'."
                   },
@@ -1714,16 +2481,31 @@
                   "name": "Create Issue - Eskalasi ke Management",
                   "request": {
                     "method": "POST",
-                    "header": [{ "key": "Content-Type", "value": "application/json" }],
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"stage_at_report\": \"permit_process\",\n  \"keterangan\": \"Izin warga ditolak setelah 3 minggu negosiasi, perlu intervensi management\",\n  \"tindakan\": \"eskalasi\",\n  \"reported_by\": \"Andi Manajer\"\n}",
-                      "options": { "raw": { "language": "json" } }
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
-                      "host": ["{{base_url}}"],
-                      "path": ["sites", "{{site_id}}", "issues"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "sites",
+                        "{{site_id}}",
+                        "issues"
+                      ]
                     },
                     "description": "Eskalasi issue ke management. Status otomatis 'escalated'."
                   },
@@ -1750,16 +2532,31 @@
                   "name": "Create Issue - INVALID tindakan (expect error)",
                   "request": {
                     "method": "POST",
-                    "header": [{ "key": "Content-Type", "value": "application/json" }],
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"stage_at_report\": \"bast\",\n  \"keterangan\": \"Test invalid\",\n  \"tindakan\": \"invalid_action\"\n}",
-                      "options": { "raw": { "language": "json" } }
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
-                      "host": ["{{base_url}}"],
-                      "path": ["sites", "{{site_id}}", "issues"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "sites",
+                        "{{site_id}}",
+                        "issues"
+                      ]
                     },
                     "description": "Test validasi: tindakan selain 'tahan'/'eskalasi' harus ditolak dengan success=false."
                   },
@@ -1788,8 +2585,14 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
-                      "host": ["{{base_url}}"],
-                      "path": ["sites", "{{site_id}}", "issues"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "sites",
+                        "{{site_id}}",
+                        "issues"
+                      ]
                     },
                     "description": "List semua issue per site, diurut dari terbaru."
                   },
@@ -1818,8 +2621,13 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/site-issues/{{issue_id}}",
-                      "host": ["{{base_url}}"],
-                      "path": ["site-issues", "{{issue_id}}"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "site-issues",
+                        "{{issue_id}}"
+                      ]
                     },
                     "description": "Detail satu issue berdasarkan ID."
                   },
@@ -1846,16 +2654,31 @@
                   "name": "Resolve Issue",
                   "request": {
                     "method": "POST",
-                    "header": [{ "key": "Content-Type", "value": "application/json" }],
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"resolved_by\": \"Supervisor Tim\",\n  \"resolved_notes\": \"Material sudah diganti sesuai spesifikasi kontrak\"\n}",
-                      "options": { "raw": { "language": "json" } }
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
                     },
                     "url": {
                       "raw": "{{base_url}}/site-issues/{{issue_id}}/resolve",
-                      "host": ["{{base_url}}"],
-                      "path": ["site-issues", "{{issue_id}}", "resolve"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "site-issues",
+                        "{{issue_id}}",
+                        "resolve"
+                      ]
                     },
                     "description": "Tandai issue sebagai selesai. Status berubah menjadi 'resolved', resolved_at otomatis diisi."
                   },
@@ -1886,8 +2709,13 @@
                     "header": [],
                     "url": {
                       "raw": "{{base_url}}/site-issues/{{issue_id}}",
-                      "host": ["{{base_url}}"],
-                      "path": ["site-issues", "{{issue_id}}"]
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "site-issues",
+                        "{{issue_id}}"
+                      ]
                     },
                     "description": "Hapus issue."
                   },
@@ -2680,7 +3508,7 @@
       "name": "Termins",
       "item": [
         {
-          "name": "\ud83d\udcd6 READ ME FIRST - Workflow & Validation Rules",
+          "name": "📖 READ ME FIRST - Workflow & Validation Rules",
           "request": {
             "method": "GET",
             "header": [],
@@ -2693,12 +3521,12 @@
                 "termins"
               ]
             },
-            "description": "\ud83d\udd12 TERMIN BUSINESS RULES & VALIDATIONS\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\u2705 WORKFLOW:\n1. Draft \u2192 Buat termin (engineer)\n2. Submit \u2192 Kirim untuk review (engineer) \n3. Review \u2192 Cek oleh Admin Area/Field Head\n4. Approve \u2192 Setujui oleh Direktur\n5. Pay \u2192 Bayar oleh Keuangan\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\ud83d\udd12 VALIDASI (v1.3.1 - FLEXIBLE AMOUNT):\n\n1\ufe0f\u20e3 POLA PERCENTAGE TERKUNCI (Label/Struktur):\n   - Termin 1 HARUS 30%\n   - Termin 2 HARUS 50%\n   - Termin 3 HARUS 10%\n   - Termin 4 HARUS 10%\n   \u274c Tidak bisa pakai percentage lain!\n   \ud83d\udcdd Percentage adalah LABEL termin, bukan constraint jumlah\n\n2\ufe0f\u20e3 URUTAN SEQUENTIAL:\n   - Termin 2 hanya bisa dibuat SETELAH Termin 1 status \"approved\"\n   - Termin 3 hanya bisa dibuat SETELAH Termin 2 status \"approved\"\n   - Termin 4 hanya bisa dibuat SETELAH Termin 3 status \"approved\"\n   \u274c Tidak bisa skip atau paralel!\n\n3\ufe0f\u20e3 MAKSIMAL 70% DARI SITE BUDGET (Hard Limit):\n   - Total semua termin \u2264 70% \u00d7 site.maximal_budget\n   - Sistem hitung otomatis total kumulatif\n   \u274c Overpayment tidak mungkin!\n\n4\ufe0f\u20e3 JUMLAH FLEXIBLE (NEW!):\n   \u2705 Jumlah TIDAK wajib = percentage \u00d7 budget\n   \u2705 Anda bebas isi jumlah berapa saja asal total \u2264 70%\n   \u2705 Percentage tetap terkunci untuk struktur termin\n   \ud83d\udccc Contoh: Termin 2 (50%) bisa diisi 20jt, tidak harus 50jt\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\ud83d\udccb CONTOH SKENARIO VALID:\n\nSite budget: 100,000,000 (100 juta)\nMax payment: 70,000,000 (70% = 70 juta)\n\n\u2705 Termin 1 (30%): 25,000,000 \u2192 Approve\n\u2705 Termin 2 (50%): 30,000,000 \u2192 Total: 55jt \u2705\n\u2705 Termin 3 (10%): 10,000,000 \u2192 Total: 65jt \u2705\n\u2705 Termin 4 (10%):  5,000,000 \u2192 Total: 70jt \u2705 (exactly!)\n\n\ud83d\udca1 CATATAN: Jumlah flexible agar fit dalam 70% limit!\n   - T1 tidak harus 30jt (30%)\n   - T2 tidak harus 50jt (50%)\n   - Yang penting: percentage benar + total \u2264 70%\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\u26a0\ufe0f ERROR SCENARIOS (Test Cases Below):\n\n\u274c Wrong Percentage: Termin 1 dengan 40% \u2192 DITOLAK\n\u274c Skip Order: Termin 2 sebelum T1 approved \u2192 DITOLAK\n\u274c Exceed 70%: Total > 70% site budget \u2192 DITOLAK\n\u274c Invalid termin_ke: termin_ke = 5 \u2192 DITOLAK\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n\ud83d\udcdd TESTING FLOW:\n1. Buat site dengan maximal_budget yang cukup (min 100jt)\n2. Test termin dengan jumlah flexible dalam 70% limit\n3. Approve setiap termin sebelum buat termin berikutnya\n4. Test validation dengan error scenarios (\u274c requests)\n\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550"
+            "description": "🔒 TERMIN BUSINESS RULES & VALIDATIONS\n\n═══════════════════════════════════════════\n\n✅ WORKFLOW:\n1. Draft → Buat termin (engineer)\n2. Submit → Kirim untuk review (engineer) \n3. Review → Cek oleh Admin Area/Field Head\n4. Approve → Setujui oleh Direktur\n5. Pay → Bayar oleh Keuangan\n\n═══════════════════════════════════════════\n\n🔒 VALIDASI (v1.3.1 - FLEXIBLE AMOUNT):\n\n1️⃣ POLA PERCENTAGE TERKUNCI (Label/Struktur):\n   - Termin 1 HARUS 30%\n   - Termin 2 HARUS 50%\n   - Termin 3 HARUS 10%\n   - Termin 4 HARUS 10%\n   ❌ Tidak bisa pakai percentage lain!\n   📝 Percentage adalah LABEL termin, bukan constraint jumlah\n\n2️⃣ URUTAN SEQUENTIAL:\n   - Termin 2 hanya bisa dibuat SETELAH Termin 1 status \"approved\"\n   - Termin 3 hanya bisa dibuat SETELAH Termin 2 status \"approved\"\n   - Termin 4 hanya bisa dibuat SETELAH Termin 3 status \"approved\"\n   ❌ Tidak bisa skip atau paralel!\n\n3️⃣ MAKSIMAL 70% DARI SITE BUDGET (Hard Limit):\n   - Total semua termin ≤ 70% × site.maximal_budget\n   - Sistem hitung otomatis total kumulatif\n   ❌ Overpayment tidak mungkin!\n\n4️⃣ JUMLAH FLEXIBLE (NEW!):\n   ✅ Jumlah TIDAK wajib = percentage × budget\n   ✅ Anda bebas isi jumlah berapa saja asal total ≤ 70%\n   ✅ Percentage tetap terkunci untuk struktur termin\n   📌 Contoh: Termin 2 (50%) bisa diisi 20jt, tidak harus 50jt\n\n═══════════════════════════════════════════\n\n📋 CONTOH SKENARIO VALID:\n\nSite budget: 100,000,000 (100 juta)\nMax payment: 70,000,000 (70% = 70 juta)\n\n✅ Termin 1 (30%): 25,000,000 → Approve\n✅ Termin 2 (50%): 30,000,000 → Total: 55jt ✅\n✅ Termin 3 (10%): 10,000,000 → Total: 65jt ✅\n✅ Termin 4 (10%):  5,000,000 → Total: 70jt ✅ (exactly!)\n\n💡 CATATAN: Jumlah flexible agar fit dalam 70% limit!\n   - T1 tidak harus 30jt (30%)\n   - T2 tidak harus 50jt (50%)\n   - Yang penting: percentage benar + total ≤ 70%\n\n═══════════════════════════════════════════\n\n⚠️ ERROR SCENARIOS (Test Cases Below):\n\n❌ Wrong Percentage: Termin 1 dengan 40% → DITOLAK\n❌ Skip Order: Termin 2 sebelum T1 approved → DITOLAK\n❌ Exceed 70%: Total > 70% site budget → DITOLAK\n❌ Invalid termin_ke: termin_ke = 5 → DITOLAK\n\n═══════════════════════════════════════════\n\n📝 TESTING FLOW:\n1. Buat site dengan maximal_budget yang cukup (min 100jt)\n2. Test termin dengan jumlah flexible dalam 70% limit\n3. Approve setiap termin sebelum buat termin berikutnya\n4. Test validation dengan error scenarios (❌ requests)\n\n═══════════════════════════════════════════"
           },
           "response": []
         },
         {
-          "name": "\ud83c\udd95 Ajukan Termin (Multipart + Dokumen Pengajuan)",
+          "name": "🆕 Ajukan Termin (Multipart + Dokumen Pengajuan)",
           "request": {
             "method": "POST",
             "header": [],
@@ -2775,8 +3603,12 @@
             },
             "url": {
               "raw": "{{base_url}}/termins",
-              "host": ["{{base_url}}"],
-              "path": ["termins"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "termins"
+              ]
             },
             "description": "Ajukan termin menggunakan multipart/form-data dengan lampiran dokumen pengajuan (permit doc, inv proforma, dsb). Endpoint POST /termins mendukung KEDUANYA: JSON (tanpa file) dan multipart/form-data (dengan file dokumen_pengajuan)."
           },
@@ -2804,7 +3636,7 @@
           "response": []
         },
         {
-          "name": "\u2705 Create Termin 1 (VALID - 30%)",
+          "name": "✅ Create Termin 1 (VALID - 30%)",
           "request": {
             "method": "POST",
             "header": [
@@ -2830,7 +3662,7 @@
           "response": []
         },
         {
-          "name": "\u2705 Create Termin 2 (VALID - 50%)",
+          "name": "✅ Create Termin 2 (VALID - 50%)",
           "request": {
             "method": "POST",
             "header": [
@@ -2856,7 +3688,7 @@
           "response": []
         },
         {
-          "name": "\u2705 Create Termin 3 (VALID - 10%)",
+          "name": "✅ Create Termin 3 (VALID - 10%)",
           "request": {
             "method": "POST",
             "header": [
@@ -2882,7 +3714,7 @@
           "response": []
         },
         {
-          "name": "\u2705 Create Termin 4 (VALID - 10%)",
+          "name": "✅ Create Termin 4 (VALID - 10%)",
           "request": {
             "method": "POST",
             "header": [
@@ -2908,7 +3740,7 @@
           "response": []
         },
         {
-          "name": "\u274c TEST: Wrong Percentage Pattern",
+          "name": "❌ TEST: Wrong Percentage Pattern",
           "request": {
             "method": "POST",
             "header": [
@@ -2934,7 +3766,7 @@
           "response": []
         },
         {
-          "name": "\u274c TEST: Skip Sequential Order",
+          "name": "❌ TEST: Skip Sequential Order",
           "request": {
             "method": "POST",
             "header": [
@@ -2960,7 +3792,7 @@
           "response": []
         },
         {
-          "name": "\u274c TEST: Invalid termin_ke (5)",
+          "name": "❌ TEST: Invalid termin_ke (5)",
           "request": {
             "method": "POST",
             "header": [
@@ -2999,7 +3831,7 @@
                 "termins"
               ]
             },
-            "description": "\ud83d\udccb Get all termins with enriched data (v1.7.1)\n\n\u2705 **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n\ud83d\udcdd **RESPONSE EXAMPLE:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"termins:xxx\",\n      \"project_id\": \"projects:yyy\",\n      \"site_id\": {\n        \"site_name\": \"Site Jakarta Selatan\",\n        \"project_name\": \"Network Expansion Jakarta\"\n      },\n      \"termin_ke\": 1,\n      \"percentage\": 30,\n      \"status\": \"draft\",\n      ...\n    }\n  ]\n}\n```\n\n\ud83c\udfaf **Impact:** Frontend bisa langsung akses project_name tanpa query tambahan!"
+            "description": "📋 Get all termins with enriched data (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n📝 **RESPONSE EXAMPLE:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"termins:xxx\",\n      \"project_id\": \"projects:yyy\",\n      \"site_id\": {\n        \"site_name\": \"Site Jakarta Selatan\",\n        \"project_name\": \"Network Expansion Jakarta\"\n      },\n      \"termin_ke\": 1,\n      \"percentage\": 30,\n      \"status\": \"draft\",\n      ...\n    }\n  ]\n}\n```\n\n🎯 **Impact:** Frontend bisa langsung akses project_name tanpa query tambahan!"
           },
           "response": []
         },
@@ -3019,7 +3851,7 @@
                 "{{project_id_only}}"
               ]
             },
-            "description": "\ud83d\udccb Get all termins for specific project (v1.7.1)\n\n\u2705 **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n\ud83c\udfaf **Use Case:** Melihat semua termin dalam satu project dengan info lengkap site & project"
+            "description": "📋 Get all termins for specific project (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n🎯 **Use Case:** Melihat semua termin dalam satu project dengan info lengkap site & project"
           },
           "response": []
         },
@@ -3039,7 +3871,7 @@
                 "{{site_id_only}}"
               ]
             },
-            "description": "\ud83d\udccb Get all termins for specific site (v1.7.1)\n\n\u2705 **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n\ud83c\udfaf **Use Case:** Melihat semua termin (1-4) dalam satu site dengan info project parent"
+            "description": "📋 Get all termins for specific site (v1.7.1)\n\n✅ **RESPONSE ENHANCEMENT:**\n- Field `site_id` sekarang berisi object dengan:\n  - `site_name`: Nama site\n  - `project_name`: Nama project (NEW!)\n\n🎯 **Use Case:** Melihat semua termin (1-4) dalam satu site dengan info project parent"
           },
           "response": []
         },
@@ -3058,7 +3890,7 @@
                 "{{termin_id_only}}"
               ]
             },
-            "description": "\ud83d\udd0d Get single termin detail by ID (v1.7.1)\n\n\u2705 **RESPONSE:** Returns standard Termin object (tidak ada enrichment untuk single get)\n\n\ud83d\udcdd Note: Untuk mendapatkan site_name dan project_name, gunakan list endpoints."
+            "description": "🔍 Get single termin detail by ID (v1.7.1)\n\n✅ **RESPONSE:** Returns standard Termin object (tidak ada enrichment untuk single get)\n\n📝 Note: Untuk mendapatkan site_name dan project_name, gunakan list endpoints."
           },
           "response": []
         },
@@ -3244,7 +4076,7 @@
                 "download-bukti-pembayaran"
               ]
             },
-            "description": "\ud83d\udce5 **Download Bukti Pembayaran File**\n\nEndpoint untuk download file bukti pembayaran yang telah diupload.\n\n**Method:** GET\n\n**Response:**\n- File akan di-download langsung dengan nama file asli\n- Content-Type sesuai dengan mime type file (application/pdf, image/jpeg, dll)\n- Content-Disposition: attachment untuk trigger download\n\n**Cara Test di Postman:**\n1. Klik tombol **Send and Download** (klik dropdown di sebelah tombol Send)\n2. Pilih lokasi penyimpanan file\n3. File akan tersimpan dengan nama asli (e.g., \"kwintansi pak adnan.pdf\")\n\n**Error Responses:**\n- 404: Termin tidak ditemukan atau belum ada bukti pembayaran\n- 400: Invalid termin ID format\n- 500: Error saat decode/process file"
+            "description": "📥 **Download Bukti Pembayaran File**\n\nEndpoint untuk download file bukti pembayaran yang telah diupload.\n\n**Method:** GET\n\n**Response:**\n- File akan di-download langsung dengan nama file asli\n- Content-Type sesuai dengan mime type file (application/pdf, image/jpeg, dll)\n- Content-Disposition: attachment untuk trigger download\n\n**Cara Test di Postman:**\n1. Klik tombol **Send and Download** (klik dropdown di sebelah tombol Send)\n2. Pilih lokasi penyimpanan file\n3. File akan tersimpan dengan nama asli (e.g., \"kwintansi pak adnan.pdf\")\n\n**Error Responses:**\n- 404: Termin tidak ditemukan atau belum ada bukti pembayaran\n- 400: Invalid termin ID format\n- 500: Error saat decode/process file"
           },
           "response": []
         },
@@ -3356,7 +4188,7 @@
                 "{{leader_id_only}}"
               ]
             },
-            "description": "Get team detail by leader ID\n\n\u2705 **RESPONSE:** Returns team where the specified person is the leader\n\n\ud83c\udfaf **Use Case:** Cek team mana yang dipimpin oleh seorang leader tertentu\n\n\u26a0\ufe0f **Note:** Returns 404 if person is not a leader of any team"
+            "description": "Get team detail by leader ID\n\n✅ **RESPONSE:** Returns team where the specified person is the leader\n\n🎯 **Use Case:** Cek team mana yang dipimpin oleh seorang leader tertentu\n\n⚠️ **Note:** Returns 404 if person is not a leader of any team"
           },
           "response": []
         },
