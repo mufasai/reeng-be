@@ -1708,7 +1708,9 @@ pub async fn update_site_stage(
     })?;
 
     if req.stage == "permit_ready" {
-        let file_bytes = permit_doc_file_bytes.ok_or(StatusCode::BAD_REQUEST)?;
+        // Gunakan .as_ref() agar permit_doc_file_bytes tidak berpindah (moved),
+        // sehingga tetap bisa digunakan oleh blok non-permit_ready di bawah.
+        let file_bytes = permit_doc_file_bytes.as_ref().ok_or(StatusCode::BAD_REQUEST)?;
         let filename = permit_doc_filename
             .clone()
             .unwrap_or_else(|| format!("permit_tpas_{}.bin", Utc::now().timestamp()));
@@ -1745,7 +1747,7 @@ pub async fn update_site_stage(
                 .to_string()
             });
 
-        let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+        let base64_data = base64::engine::general_purpose::STANDARD.encode(file_bytes);
         let data_url = format!("data:{};base64,{}", mime_type, base64_data);
         let uploaded_by_value = permit_doc_uploaded_by
             .clone()
@@ -1780,41 +1782,156 @@ pub async fn update_site_stage(
             })?;
     }
 
-    if (req.stage == "akses_ready" || req.stage == "rfi_done" || req.stage == "implementasi") && !multiple_evidence_files.is_empty() {
-        // Upload each file to site_evidence
+    // ─── SIMPAN FILE YANG DIUPLOAD KE site_evidence / site_files ───────────────
+    // Berlaku untuk SEMUA stage (bukan hanya akses_ready/rfi_done/implementasi).
+    // Aturan routing berdasarkan MIME type:
+    //   image/*  → site_evidence  (foto bukti / progress)
+    //   lainnya  → site_files     (dokumen, PDF, dsb.)
+    //
+    // Bagian 1: Single 'file' field untuk stage selain permit_ready
+    if req.stage != "permit_ready" {
+        // Gunakan .as_ref() + clone() agar permit_doc_file_bytes tidak di-move,
+        // dan semua nilai yang di-bind ke SurrealDB adalah owned ('static).
+        if let Some(file_bytes) = permit_doc_file_bytes.as_ref() {
+            let filename = permit_doc_filename.clone().unwrap_or_else(|| "upload".to_string());
+            if !file_bytes.is_empty() {
+                let mime = permit_doc_content_type
+                    .clone()
+                    .filter(|ct| ct != "application/octet-stream" && !ct.is_empty())
+                    .unwrap_or_else(|| {
+                        let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+                        match ext.as_str() {
+                            "pdf"  => "application/pdf",
+                            "jpg" | "jpeg" => "image/jpeg",
+                            "png"  => "image/png",
+                            "gif"  => "image/gif",
+                            "webp" => "image/webp",
+                            "mp4"  => "video/mp4",
+                            "mov"  => "video/quicktime",
+                            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            "zip"  => "application/zip",
+                            _      => "application/octet-stream",
+                        }.to_string()
+                    });
+                let b64 = base64::engine::general_purpose::STANDARD.encode(file_bytes.as_slice());
+                let data_url = format!("data:{};base64,{}", mime, b64);
+                let uploader = permit_doc_uploaded_by
+                    .clone()
+                    .or_else(|| req.changed_by.clone())
+                    .unwrap_or_else(|| "system".to_string());
+                let fsize = file_bytes.len() as i64;
+
+                if mime.starts_with("image/") {
+                    // → site_evidence (foto)
+                    let q = "CREATE site_evidence SET \
+                        site_id = $site_id, \
+                        filename = $filename, \
+                        original_name = $filename, \
+                        file_url = $file_url, \
+                        mime_type = $mime_type, \
+                        file_size = $file_size, \
+                        progress_tag = $progress_tag, \
+                        stage_context = $stage_context, \
+                        uploaded_by = $uploaded_by, \
+                        uploaded_at = time::now()";
+                    let _ = state.db.query(q)
+                        .bind(("site_id", site_thing.clone()))
+                        .bind(("filename", filename.clone()))
+                        .bind(("file_url", data_url))
+                        .bind(("mime_type", mime.clone()))
+                        .bind(("file_size", fsize))
+                        .bind(("progress_tag", req.stage.clone()))
+                        .bind(("stage_context", format!("Foto Evidence – {}", req.stage)))
+                        .bind(("uploaded_by", uploader))
+                        .await
+                        .map_err(|e| eprintln!("⚠️  Failed to save single image to site_evidence: {}", e));
+                } else {
+                    // → site_files (dokumen)
+                    let q = "CREATE site_files SET \
+                        site_id = $site_id, \
+                        title = $title, \
+                        filename = $filename, \
+                        original_name = $filename, \
+                        file_data = $file_data, \
+                        key = $filename, \
+                        mime_type = $mime_type, \
+                        size = $size, \
+                        uploaded_at = time::now(), \
+                        created_at = time::now(), \
+                        updated_at = time::now()";
+                    let _ = state.db.query(q)
+                        .bind(("site_id", site_thing.clone()))
+                        .bind(("title", filename.clone()))
+                        .bind(("filename", filename.clone()))
+                        .bind(("file_data", data_url))
+                        .bind(("mime_type", mime.clone()))
+                        .bind(("size", fsize))
+                        .await
+                        .map_err(|e| eprintln!("⚠️  Failed to save single file to site_files: {}", e));
+                }
+            }
+        }
+    }
+
+    // Bagian 2: Multiple evidence files (evidence_files / files / files[] / bukti_akses)
+    // Berlaku untuk SEMUA stage – sebelumnya hanya akses_ready, rfi_done, implementasi
+    if !multiple_evidence_files.is_empty() {
         for (filename, mime_type, file_bytes) in multiple_evidence_files {
             use base64::Engine;
-            let base64_data = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
-            let data_url = format!("data:{};base64,{}", mime_type, base64_data);
+            let b64 = base64::engine::general_purpose::STANDARD.encode(&file_bytes);
+            let data_url = format!("data:{};base64,{}", mime_type, b64);
             let uploaded_by_value = req.changed_by.clone().unwrap_or_else(|| "system".to_string());
+            let fsize = file_bytes.len() as i64;
 
-            let create_evidence_query = "CREATE site_evidence SET \
-                site_id = $site_id, \
-                filename = $filename, \
-                original_name = $filename, \
-                file_url = $file_url, \
-                mime_type = $mime_type, \
-                file_size = $file_size, \
-                progress_tag = $progress_tag, \
-                stage_context = $stage_context, \
-                uploaded_by = $uploaded_by, \
-                uploaded_at = time::now()";
-
-            let _ = state
-                .db
-                .query(create_evidence_query)
-                .bind(("site_id", site_thing.clone()))
-                .bind(("filename", filename))
-                .bind(("file_url", data_url))
-                .bind(("mime_type", mime_type))
-                .bind(("file_size", file_bytes.len() as i64))
-                .bind(("progress_tag", req.stage.clone()))
-                .bind(("stage_context", "Update Bukti Akses".to_string()))
-                .bind(("uploaded_by", uploaded_by_value))
-                .await
-                .map_err(|e| {
-                    eprintln!("Omitted evidence upload error: {}", e);
-                });
+            if mime_type.starts_with("image/") {
+                // Image → site_evidence
+                let create_evidence_query = "CREATE site_evidence SET \
+                    site_id = $site_id, \
+                    filename = $filename, \
+                    original_name = $filename, \
+                    file_url = $file_url, \
+                    mime_type = $mime_type, \
+                    file_size = $file_size, \
+                    progress_tag = $progress_tag, \
+                    stage_context = $stage_context, \
+                    uploaded_by = $uploaded_by, \
+                    uploaded_at = time::now()";
+                let _ = state.db.query(create_evidence_query)
+                    .bind(("site_id", site_thing.clone()))
+                    .bind(("filename", filename.clone()))
+                    .bind(("file_url", data_url))
+                    .bind(("mime_type", mime_type.clone()))
+                    .bind(("file_size", fsize))
+                    .bind(("progress_tag", req.stage.clone()))
+                    .bind(("stage_context", format!("Foto Evidence – {}", req.stage)))
+                    .bind(("uploaded_by", uploaded_by_value))
+                    .await
+                    .map_err(|e| eprintln!("⚠️  Evidence image upload error: {}", e));
+            } else {
+                // Non-image → site_files
+                let create_file_query = "CREATE site_files SET \
+                    site_id = $site_id, \
+                    title = $title, \
+                    filename = $filename, \
+                    original_name = $filename, \
+                    file_data = $file_data, \
+                    key = $filename, \
+                    mime_type = $mime_type, \
+                    size = $size, \
+                    uploaded_at = time::now(), \
+                    created_at = time::now(), \
+                    updated_at = time::now()";
+                let _ = state.db.query(create_file_query)
+                    .bind(("site_id", site_thing.clone()))
+                    .bind(("title", filename.clone()))
+                    .bind(("filename", filename.clone()))
+                    .bind(("file_data", data_url))
+                    .bind(("mime_type", mime_type.clone()))
+                    .bind(("size", fsize))
+                    .await
+                    .map_err(|e| eprintln!("⚠️  Site file upload error: {}", e));
+            }
         }
     }
 
