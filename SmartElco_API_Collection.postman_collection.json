@@ -697,7 +697,7 @@
             {
               "name": "Stage 01 - assigned (Reset/Awal) — Comprehensive Multi-Step",
               "request": {
-                "method": "POST",
+                "method": "PUT",
                 "header": [],
                 "body": {
                   "mode": "formdata",
@@ -710,7 +710,7 @@
                     },
                     {
                       "key": "notes",
-                      "value": "Full workflow setup from imported to completed",
+                      "value": "Update stage dari imported ke assigned",
                       "type": "text",
                       "description": "Change notes (optional)"
                     },
