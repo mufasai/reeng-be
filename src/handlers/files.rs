@@ -8,8 +8,9 @@ use axum::{
 use std::sync::Arc;
 use surrealdb::sql::Thing;
 use base64::Engine;
-use crate::models::{ApiResponse, ProjectFile, SiteFile, CreateProjectFileRequest, CreateSiteFileRequest};
+use crate::models::{ApiResponse, ProjectFile, SiteFile, SiteEvidence, CreateProjectFileRequest, CreateSiteFileRequest};
 use crate::state::AppState;
+use crate::common::parse_thing_id;
 
 // ==================== PROJECT FILE HANDLERS ====================
 
@@ -291,25 +292,43 @@ pub async fn upload_site_file_multipart(
     let mut file_content_type: Option<String> = None;
     let mut file_name: Option<String> = None;
 
-    while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        eprintln!("Multipart parsing error: {}", e);
+        StatusCode::BAD_REQUEST
+    })? {
         let name = field.name().unwrap_or("").to_string();
+        eprintln!("Processing field: {}", name);
         
         match name.as_str() {
             "file" => {
                 file_name = field.file_name().map(|s| s.to_string());
                 file_content_type = field.content_type().map(|s| s.to_string());
-                let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                let bytes = field.bytes().await.map_err(|e| {
+                    eprintln!("Error reading field bytes: {}", e);
+                    StatusCode::BAD_REQUEST
+                })?;
                 file_data = Some(bytes.to_vec());
+                eprintln!("File field detected: {}, size: {} bytes", file_name.as_deref().unwrap_or("unknown"), bytes.len());
             }
             "title" => {
-                let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-                title = Some(text);
+                let text = field.text().await.map_err(|e| {
+                    eprintln!("Error reading title text: {}", e);
+                    StatusCode::BAD_REQUEST
+                })?;
+                title = Some(text.clone());
+                eprintln!("Title field detected: {}", text);
             }
             "category" => {
-                let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
-                category = Some(text);
+                let text = field.text().await.map_err(|e| {
+                    eprintln!("Error reading category text: {}", e);
+                    StatusCode::BAD_REQUEST
+                })?;
+                category = Some(text.clone());
+                eprintln!("Category field detected: {}", text);
             }
-            _ => {}
+            _ => {
+                eprintln!("Unknown field detected: {}", name);
+            }
         }
     }
 
@@ -405,8 +424,8 @@ pub async fn download_project_file(
             );
             headers.insert(
                 header::CONTENT_DISPOSITION,
-                HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-                    .unwrap_or(HeaderValue::from_static("attachment")),
+                HeaderValue::from_str(&format!("inline; filename=\"{}\"", filename))
+                    .unwrap_or(HeaderValue::from_static("inline")),
             );
             headers.insert(
                 header::CONTENT_LENGTH,
@@ -466,8 +485,8 @@ pub async fn download_site_file(
             );
             headers.insert(
                 header::CONTENT_DISPOSITION,
-                HeaderValue::from_str(&format!("attachment; filename=\"{}\"", filename))
-                    .unwrap_or(HeaderValue::from_static("attachment")),
+                HeaderValue::from_str(&format!("inline; filename=\"{}\"", filename))
+                    .unwrap_or(HeaderValue::from_static("inline")),
             );
             headers.insert(
                 header::CONTENT_LENGTH,
@@ -484,3 +503,70 @@ pub async fn download_site_file(
         None => Err(StatusCode::NOT_FOUND),
     }
 }
+
+pub async fn download_site_evidence(
+    State(state): State<Arc<AppState>>,
+    Path(evidence_id): Path<String>,
+) -> Result<Response<Body>, StatusCode> {
+    let thing = parse_thing_id(&evidence_id, "site_evidence").map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let mut response = state.db.query("SELECT * FROM site_evidence WHERE id = $id")
+        .bind(("id", thing))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error selecting site evidence: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let evidence: Option<SiteEvidence> = response.take(0)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    match evidence {
+        Some(evidence) => {
+            // Use file_data if available, otherwise fallback to url (previously file_url)
+            let data_url = evidence.file_data
+                .or(evidence.url)
+                .ok_or(StatusCode::NOT_FOUND)?;
+            
+            let filename = evidence.filename;
+            let mime_type = evidence.mime_type.unwrap_or_else(|| "image/jpeg".to_string());
+
+            // Parse data URL (format: data:image/jpeg;base64,...)
+            let parts: Vec<&str> = data_url.split(',').collect();
+            if parts.len() != 2 {
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+
+            let base64_data = parts[1];
+            let file_bytes = base64::engine::general_purpose::STANDARD
+                .decode(base64_data)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            // Build response with headers
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_str(&mime_type)
+                    .unwrap_or(HeaderValue::from_static("image/jpeg")),
+            );
+            headers.insert(
+                header::CONTENT_DISPOSITION,
+                HeaderValue::from_str(&format!("inline; filename=\"{}\"", filename))
+                    .unwrap_or(HeaderValue::from_static("inline")),
+            );
+            headers.insert(
+                header::CONTENT_LENGTH,
+                HeaderValue::from_str(&file_bytes.len().to_string()).unwrap(),
+            );
+
+            let body = Body::from(file_bytes);
+            let mut response = Response::new(body);
+            *response.headers_mut() = headers;
+            *response.status_mut() = StatusCode::OK;
+
+            Ok(response)
+        }
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
