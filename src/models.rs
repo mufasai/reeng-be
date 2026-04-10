@@ -1145,8 +1145,8 @@ pub struct SiteFile {
     pub size: i64,
     pub disk: Option<String>,
     pub visibility: Option<String>,
-    pub uploaded_at: Option<String>,
-    pub uploaded_by: Option<i64>,
+    pub uploaded_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub uploaded_by: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]

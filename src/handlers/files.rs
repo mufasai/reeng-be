@@ -153,14 +153,22 @@ pub async fn list_site_files(
     State(state): State<Arc<AppState>>,
     Path(site_id): Path<String>,
 ) -> Result<Json<ApiResponse<Vec<SiteFile>>>, StatusCode> {
-    let query = "SELECT * FROM site_files WHERE site_id = type::thing('sites', $id) ORDER BY uploaded_at DESC";
+    let site_thing = crate::common::parse_thing_id(&site_id, "sites")?;
+
+    let query = "SELECT * FROM site_files WHERE site_id = $site_id ORDER BY uploaded_at DESC";
 
     let mut result = state.db.query(query)
-        .bind(("id", site_id))
+        .bind(("site_id", site_thing))
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("Database error listing site files: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
-    let files: Vec<SiteFile> = result.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let files: Vec<SiteFile> = result.take(0).map_err(|e| {
+        eprintln!("Parse error listing site files: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     Ok(Json(ApiResponse {
         success: true,

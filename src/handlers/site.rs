@@ -357,8 +357,10 @@ pub async fn list_sites_by_category(
 
 // Helper function to parse "table:id" string into Thing
 fn parse_thing_id(id_str: &str) -> Result<Thing, StatusCode> {
-    // Use from_string to parse Thing from "table:id" format
-    Thing::try_from(id_str).map_err(|_| {
+    // Menangani format "sites:id" atau hanya "id"
+    let table = "sites";
+    let clean_id = crate::common::strip_table_prefix(id_str, table);
+    Thing::try_from((table, clean_id)).map_err(|_| {
         eprintln!("Failed to parse Thing from '{}'", id_str);
         StatusCode::BAD_REQUEST
     })
@@ -1857,6 +1859,7 @@ pub async fn update_site_stage(
                         key = $filename, \
                         mime_type = $mime_type, \
                         size = $size, \
+                        uploaded_by = $uploaded_by, \
                         uploaded_at = time::now(), \
                         created_at = time::now(), \
                         updated_at = time::now()";
@@ -1867,6 +1870,7 @@ pub async fn update_site_stage(
                         .bind(("file_data", data_url))
                         .bind(("mime_type", mime.clone()))
                         .bind(("size", fsize))
+                        .bind(("uploaded_by", uploader))
                         .await
                         .map_err(|e| eprintln!("⚠️  Failed to save single file to site_files: {}", e));
                 }
@@ -1919,6 +1923,7 @@ pub async fn update_site_stage(
                     key = $filename, \
                     mime_type = $mime_type, \
                     size = $size, \
+                    uploaded_by = $uploaded_by, \
                     uploaded_at = time::now(), \
                     created_at = time::now(), \
                     updated_at = time::now()";
@@ -1929,6 +1934,7 @@ pub async fn update_site_stage(
                     .bind(("file_data", data_url))
                     .bind(("mime_type", mime_type.clone()))
                     .bind(("size", fsize))
+                    .bind(("uploaded_by", uploaded_by_value))
                     .await
                     .map_err(|e| eprintln!("⚠️  Site file upload error: {}", e));
             }
