@@ -1131,6 +1131,7 @@ pub async fn update_site_stage(
         let mut erfin_number_opt: Option<String> = None;
         let mut erfin_date_opt: Option<String> = None;
         let mut erfin_ready_date_opt: Option<String> = None;
+        let mut permit_approver_name_opt: Option<String> = None;
 
         while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
             let name = field.name().unwrap_or("").to_string();
@@ -1332,6 +1333,10 @@ pub async fn update_site_stage(
                     let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
                     konfirmasi_rfi_opt = parse_bool_loose(&value);
                 }
+                "permit_approver_name" => {
+                    let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                    if !value.trim().is_empty() { permit_approver_name_opt = Some(value); }
+                }
                 "catatan_teknis" => {
                     let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
                     if !value.trim().is_empty() {
@@ -1383,6 +1388,7 @@ pub async fn update_site_stage(
             tgl_berakhir_permit_tpas: tgl_berakhir_permit_tpas_opt,
             approval_chain: None,
             dokumen_tpas_url: None,
+            permit_approver_name: permit_approver_name_opt,
             tower_provider: tower_provider_opt,
             jenis_kunci: jenis_kunci_opt,
             pic_akses_nama: pic_akses_nama_opt,

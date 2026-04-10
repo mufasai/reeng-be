@@ -81,6 +81,7 @@ pub async fn update_site_stage(
         stage_rfs_catatan: None,
         stage_bast_dok_confirm: None,
         stage_bast_final_confirm: None,
+        stage_permit_approver_name: None,
     };
 
     // Parse multipart fields
@@ -135,6 +136,9 @@ pub async fn update_site_stage(
             },
             "stage_approval_chain" | "approval_chain" => {
                 multipart_data.stage_approval_chain = field.text().await.ok();
+            },
+            "stage_permit_approver_name" | "permit_approver_name" => {
+                multipart_data.stage_permit_approver_name = field.text().await.ok();
             },
             // Akses fields
             "stage_akses_provider" | "tower_provider" => {
@@ -540,6 +544,9 @@ fn add_update_fields(
             if let Some(date) = &req.tgl_berakhir_permit_tpas {
                 query.push_str(&format!(", tgl_berakhir_permit_tpas = '{}'", escape_sql_string(date)));
             }
+            if let Some(approver) = &req.permit_approver_name {
+                query.push_str(&format!(", permit_approved_by = '{}', permit_approved_at = time::now()", escape_sql_string(approver)));
+            }
         }
 
         ("permit_ready", "akses_process") => {
@@ -738,6 +745,7 @@ fn map_multipart_to_request(mp: &UpdateSiteStageMultipart) -> UpdateSiteStageReq
         tgl_berakhir_permit_tpas: mp.stage_permit_berakhir.clone(),
         approval_chain: mp.stage_approval_chain.clone(),
         dokumen_tpas_url: mp.file.as_ref().map(|_| "uploaded".to_string()),
+        permit_approver_name: mp.stage_permit_approver_name.clone(),
         tower_provider: mp.stage_akses_provider.as_deref().and_then(|s| match s.to_uppercase().as_str() {
             "MITRATEL" => Some(crate::models::TowerProvider::Mitratel),
             "STP" => Some(crate::models::TowerProvider::Stp),

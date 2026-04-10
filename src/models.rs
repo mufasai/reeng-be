@@ -598,6 +598,8 @@ pub struct Site {
     pub tgl_berakhir_permit_tpas: Option<String>,
     pub dokumen_tpas_url: Option<String>,
     pub approval_chain: Option<String>,
+    pub permit_approved_by: Option<String>,
+    pub permit_approved_at: Option<chrono::DateTime<chrono::Utc>>,
     // Akses process stage data (diisi saat transisi → akses_process)
     pub tower_provider: Option<TowerProvider>,     // MITRATEL | STP | PTI | DMT | Lainnya
     pub jenis_kunci: Option<JenisKunci>,        // PADLOCK | SMARTLOCK | QUADLOCK
@@ -721,6 +723,7 @@ pub struct UpdateSiteStageRequest {
     pub tgl_berakhir_permit_tpas: Option<String>, // Tanggal berakhir permit
     pub approval_chain: Option<String>,
     pub dokumen_tpas_url: Option<String>,
+    pub permit_approver_name: Option<String>,
     
     // ============ PERMIT_READY → AKSES_PROCESS ============
     pub tower_provider: Option<TowerProvider>,  // Pilihan tower provider (wajib)
@@ -824,6 +827,7 @@ pub struct UpdateSiteStageMultipart {
     pub stage_rfs_catatan: Option<String>,
     pub stage_bast_dok_confirm: Option<bool>,
     pub stage_bast_final_confirm: Option<bool>,
+    pub stage_permit_approver_name: Option<String>,
 }
 
 // ==================== TEAM MODELS ====================
@@ -1267,6 +1271,7 @@ pub struct ReviewTerminRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApproveTerminRequest {
     pub approver_name: String,
+    pub approver_role: String,
     pub catatan_approval: Option<String>,
     pub approve: bool, // true = approve, false = reject
 }

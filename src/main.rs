@@ -15,7 +15,7 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams, bulk_import};
+use handlers::{auth, project, site, site_stages, people, costs, materials, regions, files, termins, teams, bulk_import};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -78,8 +78,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:site_id/team-structure/:member_id", put(site::update_site_team_member))
         .route("/api/sites/:site_id/team-structure/:member_id", delete(site::remove_site_team_member))
         // Site Stage routes
-        .route("/api/sites/:id/stage", post(site::update_site_stage))
-        .route("/api/sites/:id/stage", put(site::update_site_stage))
+        .route("/api/sites/:id/stage", post(site_stages::update_site_stage))
+        .route("/api/sites/:id/stage", put(site_stages::update_site_stage))
         .route("/api/sites/:id/stage-logs", get(site::get_site_stage_logs))
         // Site BOQ routes
         .route("/api/sites/:site_id/boq", get(site::list_site_boq))
