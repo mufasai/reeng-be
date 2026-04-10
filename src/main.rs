@@ -7,7 +7,7 @@ mod permissions;
 mod services;
 
 use axum::{
-    extract::Json,
+    extract::{Json, DefaultBodyLimit},
     http::Method,
     routing::{delete, get, post, put},
     Router,
@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configure CORS
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::PATCH, Method::OPTIONS])
         .allow_headers(Any);
 
     // Build router
@@ -96,7 +96,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:site_id/evidence", get(site::list_site_evidence))
         .route("/api/sites/:site_id/evidence", post(site::create_site_evidence))
         .route("/api/site-evidence/:evidence_id", get(site::get_site_evidence_by_id).delete(site::delete_site_evidence))
-        .route("/api/site-evidence/:evidence_id/preview", get(site::get_site_evidence_preview))
+        .route("/api/site-evidence/:evidence_id/preview", get(files::download_site_evidence))
+        .route("/api/site-evidence/:evidence_id/download", get(files::download_site_evidence))
         // Site Permit Document routes
         .route("/api/sites/:site_id/permit-docs", get(site::list_site_permit_docs))
         .route("/api/sites/:site_id/permit-docs", post(site::create_site_permit_doc))
@@ -153,6 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:site_id/upload", post(files::upload_site_file_multipart))
         .route("/api/project-files/:file_id/download", get(files::download_project_file))
         .route("/api/site-files/:file_id/download", get(files::download_site_file))
+
         // Termin routes
         .route("/api/termins", post(termins::create_termin))
         .route("/api/termins", get(termins::list_termins))
@@ -173,7 +175,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/termins/:termin_id/upload", post(termins::upload_termin_file_multipart))
         .route("/api/termin-files/:file_id/download", get(termins::download_termin_file))
         .with_state(state)
-        .layer(cors);
+        .layer(cors)
+        .layer(DefaultBodyLimit::max(20 * 1024 * 1024));
 
     // Start server
     let addr = "0.0.0.0:3001";

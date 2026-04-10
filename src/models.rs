@@ -1563,9 +1563,13 @@ pub struct SiteEvidence {
     pub site_id: Option<Thing>,
     pub filename: String,
     pub original_name: Option<String>,
-    pub file_url: Option<String>,
+    #[serde(skip_serializing)]  // Hide base64 string from response
+    pub file_data: Option<String>,  // Base64 data URL
+    #[serde(alias = "file_url")] // Support old database records
+    pub url: Option<String>,
     pub mime_type: Option<String>,
-    pub file_size: Option<i64>,
+    #[serde(alias = "file_size")] // Support old database records
+    pub size: Option<i64>,
     pub progress_tag: String,
     pub stage_context: Option<String>,
     pub uploaded_by: String,

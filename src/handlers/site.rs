@@ -1762,7 +1762,7 @@ pub async fn update_site_stage(
             original_name = $filename, \
             file_url = $file_url, \
             mime_type = $mime_type, \
-            file_size = $file_size, \
+            size = $size, \
             doc_type = $doc_type, \
             uploaded_by = $uploaded_by, \
             uploaded_at = time::now()";
@@ -1774,7 +1774,7 @@ pub async fn update_site_stage(
             .bind(("filename", filename))
             .bind(("file_url", data_url))
             .bind(("mime_type", mime_type))
-            .bind(("file_size", file_bytes.len() as i64))
+            .bind(("size", file_bytes.len() as i64))
             .bind(("doc_type", doc_type_str))
             .bind(("uploaded_by", uploaded_by_value))
             .await
@@ -1830,9 +1830,10 @@ pub async fn update_site_stage(
                         site_id = $site_id, \
                         filename = $filename, \
                         original_name = $filename, \
-                        file_url = $file_url, \
+                        url = $url, \
+                        file_data = $file_data, \
                         mime_type = $mime_type, \
-                        file_size = $file_size, \
+                        size = $size, \
                         progress_tag = $progress_tag, \
                         stage_context = $stage_context, \
                         uploaded_by = $uploaded_by, \
@@ -1840,9 +1841,10 @@ pub async fn update_site_stage(
                     let _ = state.db.query(q)
                         .bind(("site_id", site_thing.clone()))
                         .bind(("filename", filename.clone()))
-                        .bind(("file_url", data_url))
+                        .bind(("url", data_url.clone()))
+                        .bind(("file_data", data_url))
                         .bind(("mime_type", mime.clone()))
-                        .bind(("file_size", fsize))
+                        .bind(("size", fsize))
                         .bind(("progress_tag", req.stage.clone()))
                         .bind(("stage_context", format!("Foto Evidence – {}", req.stage)))
                         .bind(("uploaded_by", uploader))
@@ -1856,9 +1858,12 @@ pub async fn update_site_stage(
                         filename = $filename, \
                         original_name = $filename, \
                         file_data = $file_data, \
+                        bucket = 'default', \
                         key = $filename, \
                         mime_type = $mime_type, \
                         size = $size, \
+                        disk = 'local', \
+                        visibility = 'public', \
                         uploaded_by = $uploaded_by, \
                         uploaded_at = time::now(), \
                         created_at = time::now(), \
@@ -1894,9 +1899,10 @@ pub async fn update_site_stage(
                     site_id = $site_id, \
                     filename = $filename, \
                     original_name = $filename, \
-                    file_url = $file_url, \
+                    url = $url, \
+                    file_data = $file_data, \
                     mime_type = $mime_type, \
-                    file_size = $file_size, \
+                    size = $size, \
                     progress_tag = $progress_tag, \
                     stage_context = $stage_context, \
                     uploaded_by = $uploaded_by, \
@@ -1904,9 +1910,10 @@ pub async fn update_site_stage(
                 let _ = state.db.query(create_evidence_query)
                     .bind(("site_id", site_thing.clone()))
                     .bind(("filename", filename.clone()))
-                    .bind(("file_url", data_url))
+                    .bind(("url", data_url.clone()))
+                    .bind(("file_data", data_url))
                     .bind(("mime_type", mime_type.clone()))
-                    .bind(("file_size", fsize))
+                    .bind(("size", fsize))
                     .bind(("progress_tag", req.stage.clone()))
                     .bind(("stage_context", format!("Foto Evidence – {}", req.stage)))
                     .bind(("uploaded_by", uploaded_by_value))
@@ -1920,9 +1927,12 @@ pub async fn update_site_stage(
                     filename = $filename, \
                     original_name = $filename, \
                     file_data = $file_data, \
+                    bucket = 'default', \
                     key = $filename, \
                     mime_type = $mime_type, \
                     size = $size, \
+                    disk = 'local', \
+                    visibility = 'public', \
                     uploaded_by = $uploaded_by, \
                     uploaded_at = time::now(), \
                     created_at = time::now(), \
@@ -2461,7 +2471,7 @@ pub async fn create_site_evidence(
         original_name = $filename, \
         file_url = $file_url, \
         mime_type = $mime_type, \
-        file_size = $file_size, \
+        size = $size, \
         progress_tag = $progress_tag, \
         stage_context = $stage_context, \
         uploaded_by = $uploaded_by, \
@@ -2474,7 +2484,7 @@ pub async fn create_site_evidence(
         .bind(("filename", filename))
         .bind(("file_url", data_url))
         .bind(("mime_type", mime_type))
-        .bind(("file_size", file_size))
+        .bind(("size", file_size))
         .bind(("progress_tag", progress_tag_str))
         .bind(("stage_context", stage_context))
         .bind(("uploaded_by", uploaded_by_str))
@@ -2583,7 +2593,7 @@ pub async fn get_site_evidence_preview(
 
     let evidence = items.into_iter().next().ok_or(StatusCode::NOT_FOUND)?;
 
-    let data_url = evidence.file_url.ok_or_else(|| {
+    let data_url = evidence.url.ok_or_else(|| {
         eprintln!("Evidence has no file_url");
         StatusCode::NOT_FOUND
     })?;
