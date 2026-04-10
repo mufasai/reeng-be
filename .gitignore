@@ -6,6 +6,8 @@ Cargo.lock
 
 # Environment
 .env
+.env.local
+.env.production
 
 # IDE
 .vscode/
@@ -22,3 +24,13 @@ Thumbs.db
 # SurrealDB
 surreal.db/
 *.db/
+
+# Company-specific files
+Jenkinsfile
+*postman_collection.json
+DOCUMENTATION_*.md
+jenkins_error.log
+
+# Sensitive docs (uncomment if needed)
+# API_DOCUMENTATION.md
+# README.md
