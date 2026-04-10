@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configure CORS
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods(vec![Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::PATCH, Method::OPTIONS])
+        .allow_methods(Any)
         .allow_headers(Any);
 
     // Build router
