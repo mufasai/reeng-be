@@ -35,6 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment
     dotenv::dotenv().ok();
 
+    println!("🚀 Starting application...");
+    println!("SERVER_PORT: {:?}", std::env::var("SERVER_PORT"));
+    println!("SURREAL_URL: {:?}", std::env::var("SURREAL_URL"));
+
     // Create shared state with database connection
     let state = Arc::new(AppState::new().await?);
 
