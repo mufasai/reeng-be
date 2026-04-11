@@ -1,36 +1,41 @@
 # =========================
-# Stage 1: Cache dependencies
+# Build stage
 # =========================
-FROM rust:1.90-alpine3.20 AS deps
+FROM rust:1.80-slim-bookworm AS builder
 
-RUN apk add --no-cache build-base musl-dev pkgconf && \
-    rustup target add x86_64-unknown-linux-musl
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Cache dependencies dulu
 COPY Cargo.toml ./
-RUN mkdir -p src/bin && echo 'fn main() { println!("prebuild binary"); }' > src/bin/main.rs
-RUN cargo build --release --target x86_64-unknown-linux-musl
-RUN rm -rf src
+RUN mkdir -p src/bin && \
+    echo 'fn main() {}' > src/bin/main.rs && \
+    cargo build --release && \
+    rm -rf src
 
-# =========================
-# Stage 2: Build app
-# =========================
-FROM deps AS builder
-
+# Build aplikasi sebenarnya
 COPY src ./src
-RUN cargo build --release --target x86_64-unknown-linux-musl -p reengineering-tool-be
+RUN touch src/bin/main.rs && cargo build --release -p reengineering-tool-be
 
 # =========================
-# Stage 3: Runtime
+# Runtime stage
 # =========================
-FROM alpine:3.20
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache ca-certificates
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/reengineering-tool-be /app/reengineering-tool-be
+COPY --from=builder /app/target/release/reengineering-tool-be /app/reengineering-tool-be
 
 EXPOSE 8080
 
