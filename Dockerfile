@@ -13,15 +13,15 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Cache dependencies dulu
-COPY Cargo.toml ./
-RUN mkdir -p src/bin && \
-    echo 'fn main() {}' > src/bin/main.rs && \
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir -p src && \
+    echo 'fn main() {}' > src/main.rs && \
     cargo build --release && \
     rm -rf src
 
 # Build aplikasi sebenarnya
 COPY src ./src
-RUN touch src/bin/main.rs && cargo build --release -p reengineering-tool-be
+RUN cargo build --release -p reengineering-tool-be
 
 # =========================
 # Runtime stage
