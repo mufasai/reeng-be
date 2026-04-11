@@ -31,11 +31,16 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3 \
+    file \
+    binutils \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY --from=builder /app/target/release/reengineering-tool-be /app/reengineering-tool-be
+
+# Debug: cek binary compatibility
+RUN file /app/reengineering-tool-be && ldd /app/reengineering-tool-be || true
 
 EXPOSE 8080
 
