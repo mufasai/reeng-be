@@ -259,7 +259,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - admin");
     println!("   - direktur");
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    let port = std::env::var("SERVER_PORT").unwrap_or("3001".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await?;
 
     Ok(())
