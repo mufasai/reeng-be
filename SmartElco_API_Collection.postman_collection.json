@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 7 APRIL v2.5",
-    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 7 APRIL 2026 (v2.5):\n- NEW: POST /people/upload — Bulk import people dari file Excel dengan auto-detection kolom\n- NEW: POST /sites/{site_id}/team-structure — Auto-update stage dari \"imported\" → \"assigned\" ketika tim ditambahkan\n- NEW: GET /sites/type — Filter site berdasarkan jenis pekerjaan (query parameter)\n- NEW: GET /sites/category/{category} — Filter site berdasarkan kategori (BLACK SITE, COMBAT, FILTER, L2H, REFINEN)\n- Enhanced: People import dengan handling date conversion Excel serial format\n- Enhanced: Auto stage transition complete dengan timestamp logging\n- Field validation untuk duplicate detection pada site creation\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
+    "name": "SmartElco API Collection - UPDATE 13 APRIL v2.6.1",
+    "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 13 APRIL 2026 (v2.6.1):\n- Refactor: days_in_stage diubah menjadi last_update (DateTime String) pada semua site responses\n- NEW: Site Evidence support field 'keterangan' (deskripsi foto)\n- NEW: Proteksi otomatis terhadap upload file Excel (BOQ) yang sama (File Hashing)\n- Enhanced: Metadata stage di dashboard menampilkan waktu eksak perubahan terakhir\n\nUPDATE 7 APRIL 2026 (v2.5):\n- NEW: POST /people/upload — Bulk import people dari file Excel dengan auto-detection kolom\n- NEW: POST /sites/{site_id}/team-structure — Auto-update stage dari \"imported\" → \"assigned\" ketika tim ditambahkan\n- NEW: GET /sites/type — Filter site berdasarkan jenis pekerjaan (query parameter)\n- NEW: GET /sites/category/{category} — Filter site berdasarkan kategori (BLACK SITE, COMBAT, FILTER, L2H, REFINEN)\n- Enhanced: People import dengan handling date conversion Excel serial format\n- Enhanced: Auto stage transition complete dengan timestamp logging\n- Field validation untuk duplicate detection pada site creation\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: last_update, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -193,7 +193,7 @@
       ]
     },
     {
-      "name": "Projects",
+      "name": "Projects 13 APRIL",
       "item": [
         {
           "name": "Create Project",
@@ -354,7 +354,7 @@
           "response": []
         },
         {
-          "name": "Bulk Import from Excel",
+          "name": "Bulk Import from Excel - 13 APRIL",
           "request": {
             "method": "POST",
             "header": [],
@@ -365,7 +365,13 @@
                   "key": "file",
                   "type": "file",
                   "src": "/path/to/OSP Project Report_Update-20260215-PEKALONGAN.xlsx",
-                  "description": "Excel file with format: Sheet 3 'Active Project Details'"
+                  "description": "Excel file dengan format: Sheet 3 'Active Project Details'"
+                },
+                {
+                  "key": "project_type",
+                  "value": "",
+                  "type": "text",
+                  "description": "(Optional) Override project type untuk semua site dalam import ini. Nilai valid: COMBAT, FILTER, L2H, BLACK SITE, REFINEN, BEBAN OPERASIONAL, OSP. Jika kosong, akan auto-detect dari nama file."
                 }
               ]
             },
@@ -379,17 +385,43 @@
                 "import-excel"
               ]
             },
-            "description": "Bulk import Project and Sites from Excel file.\n\n**Excel Format:**\n- **Sheet:** \"Active Project Details\" (Sheet 3)\n- **Row 2:** Total values (BOQ AKTUAL in column I, TOTAL NILAI PO in column M)\n- **Row 5:** Headers (NO, TIPE PROJECT, AREA, etc.)\n- **Row 6+:** Site data (up to 100+ rows)\n\n**Filename Examples:** \n- `EPROC20251209002_Smartelco_BoQ_Assignment_Filter_Batch_2_Jabo.xlsx`\n- `EPROC20260206001_SST_BOQ_IRR_Filter_Batch_5_and_4_R12_Eastern_Jakarta.xlsx`\n- `OSP Project Report_Update-20260215-PEKALONGAN.xlsx`\n\n**Column Mapping:**\n- B: TIPE PROJECT → project type & name (FILTER, COMBAT, L2H, etc.)\n- L: NAMA LOP [SITE] → site_name\n- D: WTIEL → lokasi\n- K: NAMA PO → pekerjaan\n- J: NOMOR PO → nomor_kontrak\n- G: TANGGAL WO → start\n- M: NILAI PO → maximal_budget\n- H: BOQ KONTRAK → cost_estimated\n- B+N+P: Combined → site_info\n\n**Auto-generated:**\n- **Project name:** '{TIPE} Project {LOKASI}' (e.g., 'FILTER Project Jakarta')\n- **Project type:** Parsed from Column B Row 6 (TIPE PROJECT)\n- **Project date:** Extracted from filename (YYYYMMDD format)\n- **Project lokasi:** Extracted from last part of filename\n- **Project budget:** From Row 2 totals (Column I & M)"
+            "description": "Import project dan sites dari file Excel (Update 13 April 2026).\n\n**1. Sistem Ekstraksi Data (Site ID Based):**\nSistem secara otomatis mengekstrak data dari kolom berikut:\n- **Kolom C** -> `site_id` (ID Site)\n- **Kolom E** -> `sector` (Sektor)\n- **Kolom F** -> `cluster` (Cluster)\n\n**2. Sistem Pencegahan Duplikasi (Hashing):**\n- Menggunakan **Content Hashing** untuk identitas file yang unik.\n- Mencegah pengunggahan ulang file yang kontennya identik (400 Bad Request).\n\n**Cara Penggunaan:**\n- Gunakan format 'Active Project Details' pada Sheet ke-3.\n- Field `project_type` di form-data bersifat opsional untuk override deteksi otomatis."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Projects by Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects/type?type=FILTER",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "type"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "FILTER"
+                }
+              ]
+            },
+            "description": "Filter proyek berdasarkan tipe (FILTER, COMBAT, dll)."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Sites",
+      "name": "Sites - 13 APRIL ",
       "item": [
         {
-          "name": "Create Site",
+          "name": "Create Site - 13 APRIL",
           "request": {
             "method": "POST",
             "header": [
@@ -400,7 +432,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"team_members\": []\n}"
+              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"project_type\": \"COMBAT\",\n  \"team_members\": [],\n  \"site_id\": \"BKS999\",\n  \"sector\": \"1\",\n  \"cluster\": \"BEKASI\",\n  \"region\": \"R03\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/sites",
@@ -410,7 +442,8 @@
               "path": [
                 "sites"
               ]
-            }
+            },
+            "description": "Buat site baru secara manual.\n\n**Field `project_type` (optional):**\nNilai yang valid:\n- `COMBAT`\n- `FILTER`\n- `L2H`\n- `BLACK SITE`\n- `REFINEN`\n- `BEBAN OPERASIONAL`\n- `OSP`\n\nJika tidak diisi, sistem akan fallback ke tipe dari parent project."
           },
           "response": []
         },
@@ -446,7 +479,7 @@
                 "{{site_id}}"
               ]
             },
-            "description": "Ambil detail satu site berdasarkan ID. Gunakan format sites:xxx untuk site_id.\n\nResponse include metrik hari:\n- days_in_stage\n- permit_days_total\n- permit_days_elapsed\n- permit_days_remaining"
+            "description": "Ambil detail satu site berdasarkan ID. Gunakan format sites:xxx untuk site_id.\n\nResponse include metrik pembaruan:\n- last_update (DateTime changes)\n- permit_days_total\n- permit_days_elapsed\n- permit_days_remaining"
           },
           "event": [
             {
@@ -460,7 +493,7 @@
                   "  pm.expect(j.data).to.be.an('object');",
                   "  pm.expect(j.data.id).to.exist;",
                   "  pm.expect(j.data.site_name).to.exist;",
-                  "  pm.expect(j.data.days_in_stage).to.be.a('number');",
+                  "  pm.expect(j.data.last_update).to.be.a('string');",
                   "  if (j.data.tgl_berakhir_permit_tpas) {",
                   "    pm.expect(j.data.permit_days_total).to.be.a('number');",
                   "    pm.expect(j.data.permit_days_elapsed).to.be.a('number');",
@@ -494,7 +527,7 @@
           "response": []
         },
         {
-          "name": "Update Site",
+          "name": "Update Site - 13 APRIL",
           "request": {
             "method": "PUT",
             "header": [
@@ -505,7 +538,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\"\n}"
+              "raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\",\n  \"project_type\": \"FILTER\",\n  \"site_id\": \"JKT888\",\n  \"sector\": \"2\",\n  \"cluster\": \"Menteng\",\n  \"region\": \"R12\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/sites/{{site_id}}",
@@ -516,7 +549,8 @@
                 "sites",
                 "{{site_id}}"
               ]
-            }
+            },
+            "description": "Update data site. Semua field bersifat optional (partial update).\n\n**Field `project_type` (optional):**\nNilai yang valid: `COMBAT`, `FILTER`, `L2H`, `BLACK SITE`, `REFINEN`, `BEBAN OPERASIONAL`, `OSP`"
           },
           "response": []
         },
@@ -539,7 +573,7 @@
           "response": []
         },
         {
-          "name": "Filter Sites by Type",
+          "name": "Filter Sites by Type - 13 APRIL",
           "request": {
             "method": "GET",
             "header": [],
@@ -560,7 +594,7 @@
                 }
               ]
             },
-            "description": "Filter dan tampilkan semua sites berdasarkan jenis pekerjaan. Search dilakukan pada field site_info dan pekerjaan (case-insensitive). Contoh query: /sites/type?type=fiber"
+            "description": "Filter dan tampilkan semua sites berdasarkan project_type atau jenis pekerjaan.\n\n**Cara kerja pencarian (case-insensitive):**\n1. Mengecek field `project_type` di site (COMBAT, FILTER, L2H, dll)\n2. Mengecek field `site_info`\n3. Mengecek field `pekerjaan`\n\n**Contoh query:**\n- `/sites/type?type=combat` → Sites dengan project_type COMBAT\n- `/sites/type?type=filter` → Sites dengan project_type FILTER\n- `/sites/type?type=l2h` → Sites dengan project_type L2H\n- `/sites/type?type=fiber` → Sites dengan 'fiber' di pekerjaan/site_info\n\n**Fallback legacy:** Jika site lama tidak memiliki `project_type`, sistem akan otomatis mengambil dari tipe parent project.\n\n**Update 13 April:** Sekarang juga mendukung pencarian berdasarkan site_id, sector, cluster, dan region."
           },
           "response": []
         },
@@ -691,8 +725,8 @@
           ]
         },
         {
-          "name": "Site Stage - UPDATE 8 APRIL v2.6 (16 Stages Flow)",
-          "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nUPDATE v2.3 (31 MARET 2026):\n- 40+ dynamic fields across 8 categories: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST\n- Per-stage field validation: required fields divalidasi ketat sesuai stage\n- New helper endpoint: GET /sites/:id/valid-next-stages\n- SQL injection prevention on all string fields\n- Comprehensive error messages dalam Indonesian\n\nResponse include hitungan hari + metrik permit: days_in_stage, permit_days_total, permit_days_elapsed, permit_days_remaining\n+ semua field yang baru disimpan untuk UI visual feedback.",
+          "name": "Site Stage - UPDATE 13 APRIL v2.6 (16 Stages Flow)",
+          "description": "Manage stage/progress site. 13 valid stages berurutan: imported → assigned → permit_process → permit_ready → akses_process → akses_ready → implementasi → rfi_done → rfs_done → dokumen_done → bast → invoice → completed. Jalankan semua request secara berurutan untuk test full flow.\n\nUPDATE 13 APRIL 2026 (v2.6.1):\n- Perubahan Logic: `days_in_stage` (angka) diganti menjadi `last_update` (DateTime string).\n- Integrasi Field Evidence: Support field `keterangan` dan status opsional `progress_tag`.\n- Import Integrity: Proteksi duplikasi file via hashing dan ekstraksi otomatis Site ID (Kolom C, E, F).\n\nUPDATE v2.3 (31 MARET 2026):\n- 40+ dynamic fields across 8 categories: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation: required fields divalidasi ketat sesuai stage\n- New helper endpoint: GET /sites/:id/valid-next-stages\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nResponse include metrik pembaruan + metrik permit: last_update, permit_days_total, permit_days_elapsed, permit_days_remaining\n+ semua field yang baru disimpan untuk UI visual feedback.",
           "item": [
             {
               "name": "Stage 01 - assigned (Reset/Awal) — Comprehensive Multi-Step",
@@ -725,6 +759,12 @@
                       "value": "",
                       "type": "text",
                       "description": "S3: Permit creation date YYYY-MM-DD (null)"
+                    },
+                    {
+                      "key": "stage_permit_approver_name",
+                      "value": "Pak Direktur",
+                      "type": "text",
+                      "description": "S4: Name of person who approved the permit (null)"
                     },
                     {
                       "key": "stage_tpas_approved",
@@ -2067,9 +2107,9 @@
                     },
                     {
                       "key": "progress_tag",
-                      "value": "implementasi",
+                      "value": "",
                       "type": "text",
-                      "description": "Tag progress: survei | implementasi | commissioning | serah_terima"
+                      "description": "(Optional) Tag progres. Boleh dikosongkan (Not Visible di UI)."
                     },
                     {
                       "key": "stage_context",
@@ -2082,6 +2122,12 @@
                       "value": "Budi Santoso",
                       "type": "text",
                       "description": "Nama atau ID uploader (wajib)"
+                    },
+                    {
+                      "key": "keterangan",
+                      "value": "Pemasangan tiang ODC area Menteng",
+                      "type": "text",
+                      "description": "Deskripsi foto lapangan"
                     }
                   ]
                 },
@@ -2096,7 +2142,7 @@
                     "evidence"
                   ]
                 },
-                "description": "Upload foto/dokumen lapangan sebagai multipart/form-data. File disimpan sebagai base64 data URL di database. Field wajib: file, progress_tag, uploaded_by. Field opsional: stage_context."
+            "description": "Upload foto/evidence lapangan (Update 13 April 2026).\n\n**1. Integrasi Field Evidence:**\n- **Field progress_tag**: Sekarang bersifat **Opsional** (Sembunyikan di UI).\n- **Field keterangan (NEW)**: Memberikan deskripsi atau konteks pada foto (WAJIB).\n\n**Body Parameters (multipart/form-data):**\n- `file`: File foto (.jpg, .png)\n- `keterangan`: Deskripsi foto\n- `uploaded_by`: Nama pengunggah\n- `progress_tag`: (Opsional)\n\n**Note**: Tabelgaleri evidence di dashboard harus menampilkan kolom 'Keterangan' alih-alih Tag Progres."
               },
               "event": [
                 {
@@ -2736,6 +2782,26 @@
               ]
             }
           ]
+        },
+        {
+          "name": "Get Sidebar Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats/sidebar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "sidebar"
+              ]
+            },
+            "description": "Ambil jumlah site per kategori untuk sidebar (Combat, Filter, dll)."
+          },
+          "response": []
         }
       ]
     },
@@ -3989,7 +4055,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
+              "raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"approver_role\": \"direktur\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/termins/{{termin_id_only}}/approve",

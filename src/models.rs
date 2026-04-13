@@ -212,6 +212,20 @@ pub enum ProjectType {
     Osp,
 }
 
+impl ProjectType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ProjectType::Combat => "COMBAT",
+            ProjectType::L2h => "L2H",
+            ProjectType::BlackSite => "BLACK SITE",
+            ProjectType::Refinen => "REFINEN",
+            ProjectType::Filter => "FILTER",
+            ProjectType::BebanOperasional => "BEBAN OPERASIONAL",
+            ProjectType::Osp => "OSP",
+        }
+    }
+}
+
 impl Serialize for ProjectType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -573,11 +587,16 @@ pub struct Site {
     pub pemberi_tugas: String,
     pub penerima_tugas: String,
     pub site_document: Option<String>,
+    pub project_type: Option<ProjectType>,
+    pub site_id: Option<String>,
+    pub sector: Option<String>,
+    pub cluster: Option<String>,
+    pub region: Option<String>,
     // Stage tracking
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub days_in_stage: Option<i64>,
+    pub last_update: Option<String>,
     pub stage_notes: Option<String>,
     pub permit_date: Option<String>,        // Tanggal buat permit (diisi saat masuk permit_process)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -598,6 +617,8 @@ pub struct Site {
     pub tgl_berakhir_permit_tpas: Option<String>,
     pub dokumen_tpas_url: Option<String>,
     pub approval_chain: Option<String>,
+    pub permit_approved_by: Option<String>,
+    pub permit_approved_at: Option<chrono::DateTime<chrono::Utc>>,
     // Akses process stage data (diisi saat transisi → akses_process)
     pub tower_provider: Option<TowerProvider>,     // MITRATEL | STP | PTI | DMT | Lainnya
     pub jenis_kunci: Option<JenisKunci>,        // PADLOCK | SMARTLOCK | QUADLOCK
@@ -641,6 +662,18 @@ pub struct Site {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SidebarStats {
+    pub total_sites: i64,
+    pub combat: i64,
+    pub filter: i64,
+    pub l2h: i64,
+    pub black_site: i64,
+    pub refinen: i64,
+    pub beban_operasional: i64,
+    pub osp: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSiteRequest {
     pub project_id: String,  // Will be converted to Thing
     pub site_name: String,
@@ -659,6 +692,11 @@ pub struct CreateSiteRequest {
     pub site_document: Option<String>,
     pub team_members: Option<Vec<String>>,  // Array of people IDs for the team
     pub stage: Option<String>,
+    pub project_type: Option<ProjectType>,
+    pub site_id: Option<String>,
+    pub sector: Option<String>,
+    pub cluster: Option<String>,
+    pub region: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -684,6 +722,11 @@ pub struct UpdateSiteRequest {
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
+    pub project_type: Option<ProjectType>,
+    pub site_id: Option<String>,
+    pub sector: Option<String>,
+    pub cluster: Option<String>,
+    pub region: Option<String>,
 }
 
 // ==================== STAGE LOG MODELS ====================
@@ -721,6 +764,7 @@ pub struct UpdateSiteStageRequest {
     pub tgl_berakhir_permit_tpas: Option<String>, // Tanggal berakhir permit
     pub approval_chain: Option<String>,
     pub dokumen_tpas_url: Option<String>,
+    pub permit_approver_name: Option<String>,
     
     // ============ PERMIT_READY → AKSES_PROCESS ============
     pub tower_provider: Option<TowerProvider>,  // Pilihan tower provider (wajib)
@@ -824,6 +868,7 @@ pub struct UpdateSiteStageMultipart {
     pub stage_rfs_catatan: Option<String>,
     pub stage_bast_dok_confirm: Option<bool>,
     pub stage_bast_final_confirm: Option<bool>,
+    pub stage_permit_approver_name: Option<String>,
 }
 
 // ==================== TEAM MODELS ====================
@@ -1267,6 +1312,7 @@ pub struct ReviewTerminRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApproveTerminRequest {
     pub approver_name: String,
+    pub approver_role: String,
     pub catatan_approval: Option<String>,
     pub approve: bool, // true = approve, false = reject
 }
@@ -1570,7 +1616,11 @@ pub struct SiteEvidence {
     pub mime_type: Option<String>,
     #[serde(alias = "file_size")] // Support old database records
     pub size: Option<i64>,
-    pub progress_tag: String,
+    #[serde(default)]
+    pub progress_tag: Option<String>,
+    #[serde(default)]
+    pub keterangan: Option<String>,
+    #[serde(default)]
     pub stage_context: Option<String>,
     pub uploaded_by: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1584,7 +1634,11 @@ pub struct CreateSiteEvidenceRequest {
     pub file_url: Option<String>,
     pub mime_type: Option<String>,
     pub file_size: Option<i64>,
-    pub progress_tag: String,
+    #[serde(default)]
+    pub progress_tag: Option<String>,
+    #[serde(default)]
+    pub keterangan: Option<String>,
+    #[serde(default)]
     pub stage_context: Option<String>,
     pub uploaded_by: String,
 }
@@ -1676,4 +1730,16 @@ pub struct TerminDirectorSummaryResponse {
     pub is_stage_compliant: bool,
     pub total_material_items: i64,
     pub materials: Vec<Material>,
+}
+
+// ==================== IMPORT HISTORY ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportHistory {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<Thing>,
+    pub filename: String,
+    pub file_hash: String,
+    pub project_id: Option<Thing>,
+    pub imported_at: Option<String>,
 }

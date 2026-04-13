@@ -29,7 +29,7 @@ pub const STAGE_ORDER: &[&str] = &[
 pub const MILESTONE_STAGES: &[&str] = &["assigned", "permit_ready", "akses_ready", "implementasi", "completed"];
 
 /// Stages untuk project type tertentu
-pub fn get_allowed_stages_for_project_type(project_type: &str) -> Vec<&str> {
+pub fn get_allowed_stages_for_project_type(_project_type: &str) -> Vec<&str> {
     STAGE_ORDER.to_vec()
 }
 
@@ -169,7 +169,7 @@ pub struct StageRequirements {
 pub fn get_stage_requirements(
     from_stage: &str,
     to_stage: &str,
-    project_type: &str,
+    _project_type: &str,
 ) -> Option<StageRequirements> {
     match (from_stage, to_stage) {
         // IMPORTED → ASSIGNED

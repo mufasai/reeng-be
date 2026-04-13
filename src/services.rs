@@ -72,7 +72,7 @@ impl StageTransitionService {
         };
 
         StageMetadata {
-            days_in_stage,
+            last_update: Some(stage_updated_at.to_string()),
             permit_metrics,
         }
     }
@@ -194,7 +194,7 @@ impl TerminService {
 /// Stage metadata untuk dashboard metrics (future use)
 #[allow(dead_code)]
 pub struct StageMetadata {
-    pub days_in_stage: Option<i64>,
+    pub last_update: Option<String>,
     pub permit_metrics: Option<PermitMetrics>,
 }
 

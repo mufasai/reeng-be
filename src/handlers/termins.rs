@@ -818,6 +818,16 @@ pub async fn approve_termin(
     let thing = Thing::try_from(("termins", termin_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
+    // Check if user has permission to approve
+    let allowed_roles = vec!["admin", "direktur"];
+    if !allowed_roles.contains(&req.approver_role.to_lowercase().as_str()) {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some("Hanya Admin atau Direktur yang dapat menyetujui termin (Only Admin or Director can approve)".to_string()),
+        }));
+    }
+
     let new_status = if req.approve { "approved" } else { "draft" };
 
     let query = r#"

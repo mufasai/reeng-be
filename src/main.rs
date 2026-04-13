@@ -35,6 +35,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment
     dotenv::dotenv().ok();
 
+    println!("🚀 Starting application...");
+    println!("SERVER_PORT: {:?}", std::env::var("SERVER_PORT"));
+    println!("SURREAL_URL: {:?}", std::env::var("SURREAL_URL"));
+
     // Create shared state with database connection
     let state = Arc::new(AppState::new().await?);
 
@@ -259,7 +263,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - admin");
     println!("   - direktur");
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let port = std::env::var("SERVER_PORT").unwrap_or("3001".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await?;
 
     Ok(())
