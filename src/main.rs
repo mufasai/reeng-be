@@ -57,6 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Project routes
         .route("/api/projects", post(project::create_project))
         .route("/api/projects", get(project::list_projects))
+        .route("/api/projects/type", get(project::list_projects_by_type))
         .route("/api/projects/:id", get(project::get_project))
         .route("/api/projects/:id", put(project::update_project))
         .route("/api/projects/:id", delete(project::delete_project))
@@ -71,6 +72,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:id", get(site::get_site_by_id))
         .route("/api/sites/:id", put(site::update_site))
         .route("/api/sites/:id", delete(site::delete_site))
+        // Stats routes
+        .route("/api/stats/sidebar", get(site::get_sidebar_stats))
         // Site Tim Struktur routes
         .route("/api/sites/:site_id/team-structure", get(site::get_site_team_structure))
         .route("/api/sites/:site_id/team-structure", post(site::add_site_team_member))

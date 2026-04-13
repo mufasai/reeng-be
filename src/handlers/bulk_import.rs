@@ -578,6 +578,16 @@ async fn parse_old_format(
         } else {
             nomor_kontrak
         };
+
+        // Extract new fields for "site id based" view
+        // C: SITE_ID
+        let site_id = get_cell_string(row, 2);
+        // E: SECTOR
+        let sector = get_cell_string(row, 4);
+        // F: CLUSTER
+        let cluster = get_cell_string(row, 5);
+        // Q: REGION (Assuming Column Q based on common formats, or fallback to empty)
+        let region = get_cell_string(row, 16);
         
         // G: TANGGAL WO - start
         let start = parse_date_field(row, 6);
@@ -620,6 +630,10 @@ async fn parse_old_format(
             penerima_tugas = $penerima_tugas,
             site_document = $site_document,
             project_type = $project_type,
+            site_id = $site_id,
+            sector = $sector,
+            cluster = $cluster,
+            region = $region,
             created_at = time::now(),
             updated_at = time::now()";
         
@@ -640,6 +654,10 @@ async fn parse_old_format(
             .bind(("penerima_tugas", penerima_tugas))
             .bind(("site_document", None::<String>))
             .bind(("project_type", Some(project_type.clone())))
+            .bind(("site_id", site_id))
+            .bind(("sector", sector))
+            .bind(("cluster", cluster))
+            .bind(("region", region))
             .await
         {
             Ok(mut response) => {

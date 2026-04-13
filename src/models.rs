@@ -588,6 +588,10 @@ pub struct Site {
     pub penerima_tugas: String,
     pub site_document: Option<String>,
     pub project_type: Option<ProjectType>,
+    pub site_id: Option<String>,
+    pub sector: Option<String>,
+    pub cluster: Option<String>,
+    pub region: Option<String>,
     // Stage tracking
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
@@ -658,6 +662,18 @@ pub struct Site {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SidebarStats {
+    pub total_sites: i64,
+    pub combat: i64,
+    pub filter: i64,
+    pub l2h: i64,
+    pub black_site: i64,
+    pub refinen: i64,
+    pub beban_operasional: i64,
+    pub osp: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSiteRequest {
     pub project_id: String,  // Will be converted to Thing
     pub site_name: String,
@@ -677,6 +693,10 @@ pub struct CreateSiteRequest {
     pub team_members: Option<Vec<String>>,  // Array of people IDs for the team
     pub stage: Option<String>,
     pub project_type: Option<ProjectType>,
+    pub site_id: Option<String>,
+    pub sector: Option<String>,
+    pub cluster: Option<String>,
+    pub region: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -703,6 +723,10 @@ pub struct UpdateSiteRequest {
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
     pub project_type: Option<ProjectType>,
+    pub site_id: Option<String>,
+    pub sector: Option<String>,
+    pub cluster: Option<String>,
+    pub region: Option<String>,
 }
 
 // ==================== STAGE LOG MODELS ====================

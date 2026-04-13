@@ -16,6 +16,7 @@ use crate::models::{
     SitePermitDoc,
     SiteEvidence,
     SiteIssue, CreateSiteIssueRequest, ResolveSiteIssueRequest,
+    SidebarStats,
 };
 use crate::state::AppState;
 
@@ -35,7 +36,29 @@ pub async fn create_site(
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Build query to create site with proper record references
-    let query = "CREATE sites SET project_id = $project_id, site_name = $site_name, site_info = $site_info, pekerjaan = $pekerjaan, lokasi = $lokasi, latitude = $latitude, longitude = $longitude, nomor_kontrak = $nomor_kontrak, start = $start, end = $end, maximal_budget = $maximal_budget, cost_estimated = $cost_estimated, pemberi_tugas = $pemberi_tugas, penerima_tugas = $penerima_tugas, site_document = $site_document, project_type = $project_type, created_at = time::now(), updated_at = time::now()";
+    let query = "CREATE sites SET 
+        project_id = $project_id, 
+        site_name = $site_name, 
+        site_info = $site_info, 
+        pekerjaan = $pekerjaan, 
+        lokasi = $lokasi, 
+        latitude = $latitude, 
+        longitude = $longitude, 
+        nomor_kontrak = $nomor_kontrak, 
+        start = $start, 
+        end = $end, 
+        maximal_budget = $maximal_budget, 
+        cost_estimated = $cost_estimated, 
+        pemberi_tugas = $pemberi_tugas, 
+        penerima_tugas = $penerima_tugas, 
+        site_document = $site_document, 
+        project_type = $project_type,
+        site_id = $site_id,
+        sector = $sector,
+        cluster = $cluster,
+        region = $region,
+        created_at = time::now(), 
+        updated_at = time::now()";
 
     let mut response = state
         .db
@@ -56,6 +79,10 @@ pub async fn create_site(
         .bind(("penerima_tugas", req.penerima_tugas.clone()))
         .bind(("site_document", req.site_document.clone()))
         .bind(("project_type", req.project_type.clone()))
+        .bind(("site_id", req.site_id.clone()))
+        .bind(("sector", req.sector.clone()))
+        .bind(("cluster", req.cluster.clone()))
+        .bind(("region", req.region.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error creating site: {}", e);
@@ -287,10 +314,18 @@ pub async fn list_sites_by_type(
         let site_info = site.site_info.as_str().to_lowercase();
         let pekerjaan = site.pekerjaan.as_str().to_lowercase();
         let project_type = site.project_type.as_ref().map(|t| format!("{:?}", t).to_lowercase()).unwrap_or_default();
+        let site_id = site.site_id.as_ref().map(|s| s.to_lowercase()).unwrap_or_default();
+        let sector = site.sector.as_ref().map(|s| s.to_lowercase()).unwrap_or_default();
+        let cluster = site.cluster.as_ref().map(|s| s.to_lowercase()).unwrap_or_default();
+        let region = site.region.as_ref().map(|s| s.to_lowercase()).unwrap_or_default();
         
         site_info.contains(&type_filter) || 
         pekerjaan.contains(&type_filter) ||
-        project_type.contains(&type_filter)
+        project_type.contains(&type_filter) ||
+        site_id.contains(&type_filter) ||
+        sector.contains(&type_filter) ||
+        cluster.contains(&type_filter) ||
+        region.contains(&type_filter)
     });
 
     enrich_sites_timing_fields(&mut sites);
@@ -356,6 +391,49 @@ pub async fn list_sites_by_category(
     Ok(Json(ApiResponse {
         success: true,
         data: Some(sites),
+        message: None,
+    }))
+}
+
+/// GET /api/stats/sidebar
+/// Get counts for sidebar categories
+pub async fn get_sidebar_stats(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+) -> Result<Json<ApiResponse<SidebarStats>>, StatusCode> {
+    // We use a query that handles the legacy fallback logic for project type
+    let query = r#"
+        {
+            let $sites = SELECT project_type, project_id.tipe AS legacy_type FROM sites;
+            RETURN {
+                total_sites: count($sites),
+                combat: count($sites[WHERE project_type = 'COMBAT' OR (project_type = NONE AND legacy_type = 'COMBAT')]),
+                filter: count($sites[WHERE project_type = 'FILTER' OR (project_type = NONE AND legacy_type = 'FILTER')]),
+                l2h: count($sites[WHERE project_type = 'L2H' OR (project_type = NONE AND legacy_type = 'L2H')]),
+                black_site: count($sites[WHERE project_type = 'BLACK SITE' OR (project_type = NONE AND legacy_type = 'BLACK SITE')]),
+                refinen: count($sites[WHERE project_type = 'REFINEN' OR (project_type = NONE AND legacy_type = 'REFINEN')]),
+                beban_operasional: count($sites[WHERE project_type = 'BEBAN OPERASIONAL' OR (project_type = NONE AND legacy_type = 'BEBAN OPERASIONAL')]),
+                osp: count($sites[WHERE project_type = 'OSP' OR (project_type = NONE AND legacy_type = 'OSP')])
+            };
+        }
+    "#;
+
+    let mut response = state
+        .db
+        .query(query)
+        .await
+        .map_err(|e| {
+            eprintln!("Database error in stats: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let stats: Option<SidebarStats> = response.take(0).map_err(|e| {
+        eprintln!("Parse error in stats: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: stats,
         message: None,
     }))
 }
@@ -517,6 +595,18 @@ pub async fn update_site(
     if req.project_type.is_some() {
         update_parts.push("project_type = $project_type".to_string());
     }
+    if req.site_id.is_some() {
+        update_parts.push("site_id = $site_id".to_string());
+    }
+    if req.sector.is_some() {
+        update_parts.push("sector = $sector".to_string());
+    }
+    if req.cluster.is_some() {
+        update_parts.push("cluster = $cluster".to_string());
+    }
+    if req.region.is_some() {
+        update_parts.push("region = $region".to_string());
+    }
 
     let update_query = format!(
         "UPDATE type::thing($site_id) SET {}",
@@ -576,6 +666,18 @@ pub async fn update_site(
     }
     if let Some(project_type) = req.project_type {
         query_builder = query_builder.bind(("project_type", project_type));
+    }
+    if let Some(site_id) = req.site_id {
+        query_builder = query_builder.bind(("site_id", site_id));
+    }
+    if let Some(sector) = req.sector {
+        query_builder = query_builder.bind(("sector", sector));
+    }
+    if let Some(cluster) = req.cluster {
+        query_builder = query_builder.bind(("cluster", cluster));
+    }
+    if let Some(region) = req.region {
+        query_builder = query_builder.bind(("region", region));
     }
 
     let mut response = query_builder.await.map_err(|e| {
