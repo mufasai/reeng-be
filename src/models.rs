@@ -596,7 +596,7 @@ pub struct Site {
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub days_in_stage: Option<i64>,
+    pub last_update: Option<String>,
     pub stage_notes: Option<String>,
     pub permit_date: Option<String>,        // Tanggal buat permit (diisi saat masuk permit_process)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1730,4 +1730,16 @@ pub struct TerminDirectorSummaryResponse {
     pub is_stage_compliant: bool,
     pub total_material_items: i64,
     pub materials: Vec<Material>,
+}
+
+// ==================== IMPORT HISTORY ====================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportHistory {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<Thing>,
+    pub filename: String,
+    pub file_hash: String,
+    pub project_id: Option<Thing>,
+    pub imported_at: Option<String>,
 }

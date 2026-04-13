@@ -482,10 +482,10 @@ fn enrich_site_timing_fields(site: &mut Site) {
     let now = Utc::now();
 
     if let Some(stage_updated_at) = site.stage_updated_at.as_deref() {
-        if let Some(stage_started_at) = parse_datetime_to_utc(stage_updated_at)
+        if let Some(_) = parse_datetime_to_utc(stage_updated_at)
             .or_else(|| parse_date_to_utc_start(stage_updated_at))
         {
-            site.days_in_stage = Some(non_negative_days_between(stage_started_at, now));
+            site.last_update = Some(stage_updated_at.to_string());
         }
     }
 

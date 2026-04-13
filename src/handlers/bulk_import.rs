@@ -7,13 +7,22 @@ use calamine::{Reader, Xlsx, open_workbook_from_rs, Data};
 use std::sync::Arc;
 use std::io::Cursor;
 use chrono::NaiveDate;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use surrealdb::sql::Thing;
 
 use crate::models::{
     ApiResponse, Project, Site, ProjectType,
-    BulkImportExcelResponse, ImportError, ImportSummary,
+    BulkImportExcelResponse, ImportError, ImportSummary, ImportHistory,
 };
 use crate::state::AppState;
+
+// Helper to calculate file hash for duplicate detection
+fn calculate_file_hash(bytes: &[u8]) -> String {
+    let mut hasher = DefaultHasher::new();
+    bytes.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
 
 // Helper function to strip table prefix
 fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
@@ -130,7 +139,26 @@ pub async fn bulk_import_from_excel(
     let file_bytes = file_data.ok_or(StatusCode::BAD_REQUEST)?;
     let file_name = filename.unwrap_or_else(|| "unknown.xlsx".to_string());
     
-    // Step 2: Parse filename to extract project info
+    // Step 2: Duplicate check using file hash
+    let file_hash = calculate_file_hash(&file_bytes);
+    
+    let existing_log: Option<ImportHistory> = state.db
+        .select(("import_history", &file_hash))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error checking import history: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    
+    if existing_log.is_some() {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!("Gagal: File '{}' sudah pernah diimport sebelumnya.", file_name)),
+        }));
+    }
+
+    // Step 3: Parse filename to extract project info
     let file_name_clean = file_name.replace(".xlsx", "").replace(".XLSX", "");
     let parts: Vec<&str> = file_name_clean.split('_').collect();
     
@@ -179,10 +207,10 @@ pub async fn bulk_import_from_excel(
     
     if is_eproc_format {
         // EPROC Format: Single sheet, Row 2 = headers, Row 3+ = data
-        parse_eproc_format(state, workbook, file_name, project_lokasi, project_date, project_type_hint).await
+        parse_eproc_format(state, workbook, file_name, file_hash, project_lokasi, project_date, project_type_hint).await
     } else if sheet_names.len() >= 3 {
         // Old Format: Multi-sheet, Sheet 3 "Active Project Details"
-        parse_old_format(state, workbook, sheet_names, file_name, project_lokasi, project_date, project_type_hint).await
+        parse_old_format(state, workbook, sheet_names, file_name, file_hash, project_lokasi, project_date, project_type_hint).await
     } else {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -193,6 +221,7 @@ async fn parse_eproc_format(
     state: Arc<AppState>,
     mut workbook: Xlsx<Cursor<Vec<u8>>>,
     file_name: String,
+    file_hash: String,
     project_lokasi: String,
     project_date: String,
     project_type_hint: &str,
@@ -442,6 +471,21 @@ async fn parse_eproc_format(
         summary,
     };
     
+    // Record import in history to prevent duplicates
+    let history_query = "CREATE import_history CONTENT {
+        id: type::thing('import_history', $hash),
+        filename: $filename,
+        file_hash: $hash,
+        project_id: type::thing($project_id),
+        imported_at: time::now()
+    }";
+    
+    let _ = state.db.query(history_query)
+        .bind(("hash", file_hash))
+        .bind(("filename", file_name))
+        .bind(("project_id", project_id_str.clone()))
+        .await;
+    
     Ok(Json(ApiResponse {
         success: true,
         data: Some(response),
@@ -455,6 +499,7 @@ async fn parse_old_format(
     mut workbook: Xlsx<Cursor<Vec<u8>>>,
     sheet_names: Vec<String>,
     file_name: String,
+    file_hash: String,
     project_lokasi: String,
     project_date: String,
     project_type_hint: &str,
@@ -712,6 +757,21 @@ async fn parse_old_format(
         errors,
         summary,
     };
+    
+    // Record import in history to prevent duplicates
+    let history_query = "CREATE import_history CONTENT {
+        id: type::thing('import_history', $hash),
+        filename: $filename,
+        file_hash: $hash,
+        project_id: type::thing($project_id),
+        imported_at: time::now()
+    }";
+    
+    let _ = state.db.query(history_query)
+        .bind(("hash", file_hash))
+        .bind(("filename", file_name))
+        .bind(("project_id", project_id_str.clone()))
+        .await;
     
     Ok(Json(ApiResponse {
         success: true,
