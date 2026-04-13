@@ -110,6 +110,7 @@ pub async fn bulk_import_from_excel(
     // Step 1: Extract file from multipart
     let mut file_data: Option<Vec<u8>> = None;
     let mut filename: Option<String> = None;
+    let mut project_type_override: Option<String> = None;
     
     while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
         let name = field.name().unwrap_or("").to_string();
@@ -118,6 +119,11 @@ pub async fn bulk_import_from_excel(
             filename = field.file_name().map(|s| s.to_string());
             let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
             file_data = Some(bytes.to_vec());
+        } else if name == "project_type" {
+            let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            if !value.trim().is_empty() {
+                project_type_override = Some(value);
+            }
         }
     }
     
@@ -145,7 +151,9 @@ pub async fn bulk_import_from_excel(
     
     // Extract project type hint from filename (FILTER, COMBAT, etc.)
     let filename_upper = file_name.to_uppercase();
-    let project_type_hint = if filename_upper.contains("FILTER") {
+    let project_type_hint = if let Some(ref over) = project_type_override {
+        over.as_str()
+    } else if filename_upper.contains("FILTER") {
         "FILTER"
     } else if filename_upper.contains("COMBAT") {
         "COMBAT"
@@ -161,7 +169,7 @@ pub async fn bulk_import_from_excel(
     
     // Step 3: Parse Excel file
     let cursor = Cursor::new(file_bytes);
-    let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)
+    let workbook: Xlsx<_> = open_workbook_from_rs(cursor)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
     let sheet_names = workbook.sheet_names().to_vec();
@@ -174,7 +182,7 @@ pub async fn bulk_import_from_excel(
         parse_eproc_format(state, workbook, file_name, project_lokasi, project_date, project_type_hint).await
     } else if sheet_names.len() >= 3 {
         // Old Format: Multi-sheet, Sheet 3 "Active Project Details"
-        parse_old_format(state, workbook, sheet_names, file_name, project_lokasi, project_date).await
+        parse_old_format(state, workbook, sheet_names, file_name, project_lokasi, project_date, project_type_hint).await
     } else {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -251,7 +259,7 @@ async fn parse_eproc_format(
         lokasi: project_lokasi.clone(),
         value: total_budget,
         cost: total_budget,
-        tipe: project_type,
+        tipe: project_type.clone(),
         status: Some("active".to_string()),
         tgi_start: Some(project_date.clone()),
         tgi_end: None,
@@ -359,6 +367,7 @@ async fn parse_eproc_format(
             pemberi_tugas = $pemberi_tugas,
             penerima_tugas = $penerima_tugas,
             site_document = $site_document,
+            project_type = $project_type,
             created_at = time::now(),
             updated_at = time::now()";
         
@@ -378,6 +387,7 @@ async fn parse_eproc_format(
             .bind(("pemberi_tugas", "PT Telkom Indonesia".to_string()))
             .bind(("penerima_tugas", mitra))
             .bind(("site_document", None::<String>))
+            .bind(("project_type", Some(project_type.clone())))
             .await
         {
             Ok(mut response) => {
@@ -447,6 +457,7 @@ async fn parse_old_format(
     file_name: String,
     project_lokasi: String,
     project_date: String,
+    project_type_hint: &str,
 ) -> Result<Json<ApiResponse<BulkImportExcelResponse>>, StatusCode> {
     
     let target_sheet = &sheet_names[2];
@@ -470,12 +481,13 @@ async fn parse_old_format(
         0
     };
     
-    // Extract project type from first data row (Row 6, index 5)
-    // Column B (index 1) contains TIPE PROJECT
-    let project_type_str = if rows.len() > 5 {
+    // Use project_type_hint if it's not the default "BEBAN OPERASIONAL"
+    let project_type_str = if project_type_hint != "BEBAN OPERASIONAL" {
+        project_type_hint.to_string()
+    } else if rows.len() > 5 {
         get_cell_string(rows[5], 1) // Row 6, Column B
     } else {
-        String::from("BEBAN OPERASIONAL") // Default fallback
+        project_type_hint.to_string()
     };
     
     let project_type = parse_project_type(&project_type_str);
@@ -493,7 +505,7 @@ async fn parse_old_format(
         lokasi: project_lokasi.clone(),
         value: total_boq_aktual,
         cost: total_nilai_po,
-        tipe: project_type,
+        tipe: project_type.clone(),
         status: Some("active".to_string()),
         tgi_start: Some(project_date.clone()),
         tgi_end: None,
@@ -607,6 +619,7 @@ async fn parse_old_format(
             pemberi_tugas = $pemberi_tugas,
             penerima_tugas = $penerima_tugas,
             site_document = $site_document,
+            project_type = $project_type,
             created_at = time::now(),
             updated_at = time::now()";
         
@@ -626,6 +639,7 @@ async fn parse_old_format(
             .bind(("pemberi_tugas", pemberi_tugas))
             .bind(("penerima_tugas", penerima_tugas))
             .bind(("site_document", None::<String>))
+            .bind(("project_type", Some(project_type.clone())))
             .await
         {
             Ok(mut response) => {

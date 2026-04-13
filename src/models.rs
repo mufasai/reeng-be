@@ -212,6 +212,20 @@ pub enum ProjectType {
     Osp,
 }
 
+impl ProjectType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ProjectType::Combat => "COMBAT",
+            ProjectType::L2h => "L2H",
+            ProjectType::BlackSite => "BLACK SITE",
+            ProjectType::Refinen => "REFINEN",
+            ProjectType::Filter => "FILTER",
+            ProjectType::BebanOperasional => "BEBAN OPERASIONAL",
+            ProjectType::Osp => "OSP",
+        }
+    }
+}
+
 impl Serialize for ProjectType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -573,6 +587,7 @@ pub struct Site {
     pub pemberi_tugas: String,
     pub penerima_tugas: String,
     pub site_document: Option<String>,
+    pub project_type: Option<ProjectType>,
     // Stage tracking
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
@@ -661,6 +676,7 @@ pub struct CreateSiteRequest {
     pub site_document: Option<String>,
     pub team_members: Option<Vec<String>>,  // Array of people IDs for the team
     pub stage: Option<String>,
+    pub project_type: Option<ProjectType>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -686,6 +702,7 @@ pub struct UpdateSiteRequest {
     pub impl_rfs_done: Option<bool>,
     pub impl_dokumen_done: Option<bool>,
     pub ineom_registered: Option<bool>,
+    pub project_type: Option<ProjectType>,
 }
 
 // ==================== STAGE LOG MODELS ====================

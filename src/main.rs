@@ -8,7 +8,6 @@ mod services;
 
 use axum::{
     extract::{Json, DefaultBodyLimit},
-    http::Method,
     routing::{delete, get, post, put},
     Router,
 };

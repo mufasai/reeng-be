@@ -35,7 +35,7 @@ pub async fn create_site(
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Build query to create site with proper record references
-    let query = "CREATE sites SET project_id = $project_id, site_name = $site_name, site_info = $site_info, pekerjaan = $pekerjaan, lokasi = $lokasi, latitude = $latitude, longitude = $longitude, nomor_kontrak = $nomor_kontrak, start = $start, end = $end, maximal_budget = $maximal_budget, cost_estimated = $cost_estimated, pemberi_tugas = $pemberi_tugas, penerima_tugas = $penerima_tugas, site_document = $site_document, created_at = time::now(), updated_at = time::now()";
+    let query = "CREATE sites SET project_id = $project_id, site_name = $site_name, site_info = $site_info, pekerjaan = $pekerjaan, lokasi = $lokasi, latitude = $latitude, longitude = $longitude, nomor_kontrak = $nomor_kontrak, start = $start, end = $end, maximal_budget = $maximal_budget, cost_estimated = $cost_estimated, pemberi_tugas = $pemberi_tugas, penerima_tugas = $penerima_tugas, site_document = $site_document, project_type = $project_type, created_at = time::now(), updated_at = time::now()";
 
     let mut response = state
         .db
@@ -55,6 +55,7 @@ pub async fn create_site(
         .bind(("pemberi_tugas", req.pemberi_tugas.clone()))
         .bind(("penerima_tugas", req.penerima_tugas.clone()))
         .bind(("site_document", req.site_document.clone()))
+        .bind(("project_type", req.project_type.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error creating site: {}", e);
@@ -155,7 +156,7 @@ pub async fn list_sites(
 ) -> Result<Json<ApiResponse<Vec<Site>>>, StatusCode> {
     let mut response = state
         .db
-        .query("SELECT * FROM sites ORDER BY created_at DESC")
+        .query("SELECT *, project_type OR project_id.tipe AS project_type FROM sites ORDER BY created_at DESC")
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);
@@ -269,7 +270,7 @@ pub async fn list_sites_by_type(
 
     let mut response = state
         .db
-        .query("SELECT * FROM sites ORDER BY created_at DESC")
+        .query("SELECT *, project_type OR project_id.tipe AS project_type FROM sites ORDER BY created_at DESC")
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);
@@ -285,7 +286,11 @@ pub async fn list_sites_by_type(
     sites.retain(|site| {
         let site_info = site.site_info.as_str().to_lowercase();
         let pekerjaan = site.pekerjaan.as_str().to_lowercase();
-        site_info.contains(&type_filter) || pekerjaan.contains(&type_filter)
+        let project_type = site.project_type.as_ref().map(|t| format!("{:?}", t).to_lowercase()).unwrap_or_default();
+        
+        site_info.contains(&type_filter) || 
+        pekerjaan.contains(&type_filter) ||
+        project_type.contains(&type_filter)
     });
 
     enrich_sites_timing_fields(&mut sites);
@@ -509,6 +514,9 @@ pub async fn update_site(
     if req.site_document.is_some() {
         update_parts.push("site_document = $site_document".to_string());
     }
+    if req.project_type.is_some() {
+        update_parts.push("project_type = $project_type".to_string());
+    }
 
     let update_query = format!(
         "UPDATE type::thing($site_id) SET {}",
@@ -565,6 +573,9 @@ pub async fn update_site(
     }
     if let Some(site_document) = req.site_document {
         query_builder = query_builder.bind(("site_document", site_document));
+    }
+    if let Some(project_type) = req.project_type {
+        query_builder = query_builder.bind(("project_type", project_type));
     }
 
     let mut response = query_builder.await.map_err(|e| {

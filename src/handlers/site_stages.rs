@@ -225,7 +225,11 @@ pub async fn update_site_stage(
     }
 
     // Step 4: Validate stage transition is allowed
-    config::validate_stage_transition(current_stage, &multipart_data.stage, "FILTER")
+    let project_type_str = site.project_type.as_ref()
+        .map(|t| t.as_str())
+        .unwrap_or("FILTER");
+        
+    config::validate_stage_transition(current_stage, &multipart_data.stage, project_type_str)
         .map_err(|e| {
             eprintln!("❌ Invalid stage transition: {} → {} ({})", current_stage, multipart_data.stage, e);
             StatusCode::BAD_REQUEST
@@ -689,8 +693,10 @@ pub async fn get_valid_next_stages(
     let current_stage = site.stage.as_deref().unwrap_or("imported");
 
     // Get project type untuk project-specific stages
-    let project_type = "FILTER"; // TODO: Fetch dari project
-
+    let project_type = site.project_type.as_ref()
+        .map(|t| t.as_str())
+        .unwrap_or("FILTER");
+        
     let valid_stages = StageTransitionService::get_valid_next_stages(current_stage, project_type);
 
     Ok(Json(ApiResponse {
@@ -806,7 +812,7 @@ fn add_update_fields_multipart(
 
 /// Fetch single site dengan error handling
 async fn fetch_site(state: &Arc<AppState>, site_thing: &Thing) -> Result<Site, StatusCode> {
-    let query = "SELECT * FROM $site_id";
+    let query = "SELECT *, project_type OR project_id.tipe AS project_type FROM $site_id";
     let mut response = state
         .db
         .query(query)
@@ -817,7 +823,7 @@ async fn fetch_site(state: &Arc<AppState>, site_thing: &Thing) -> Result<Site, S
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let mut sites: Vec<Site> = response.take(0).map_err(|_| {
+    let sites: Vec<Site> = response.take(0).map_err(|_| {
         eprintln!("Parse error");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
