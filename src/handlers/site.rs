@@ -2515,6 +2515,7 @@ pub async fn create_site_evidence(
     let mut file_name: Option<String> = None;
     let mut file_content_type: Option<String> = None;
     let mut progress_tag: Option<String> = None;
+    let mut keterangan: Option<String> = None;
     let mut stage_context: Option<String> = None;
     let mut uploaded_by: Option<String> = None;
 
@@ -2531,6 +2532,11 @@ pub async fn create_site_evidence(
             }
             "progress_tag" => {
                 progress_tag = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
+            }
+            "keterangan" => {
+                let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+                println!("📸 Received evidence description: {}", text);
+                keterangan = Some(text);
             }
             "stage_context" => {
                 stage_context = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
@@ -2549,10 +2555,6 @@ pub async fn create_site_evidence(
     })?;
     let filename = file_name.ok_or_else(|| {
         eprintln!("Missing file name from multipart");
-        StatusCode::BAD_REQUEST
-    })?;
-    let progress_tag_str = progress_tag.ok_or_else(|| {
-        eprintln!("Missing required field: progress_tag");
         StatusCode::BAD_REQUEST
     })?;
     let uploaded_by_str = uploaded_by.ok_or_else(|| {
@@ -2592,6 +2594,7 @@ pub async fn create_site_evidence(
         mime_type = $mime_type, \
         size = $size, \
         progress_tag = $progress_tag, \
+        keterangan = $keterangan, \
         stage_context = $stage_context, \
         uploaded_by = $uploaded_by, \
         uploaded_at = time::now()";
@@ -2604,7 +2607,8 @@ pub async fn create_site_evidence(
         .bind(("file_url", data_url))
         .bind(("mime_type", mime_type))
         .bind(("size", file_size))
-        .bind(("progress_tag", progress_tag_str))
+        .bind(("progress_tag", progress_tag.unwrap_or_default()))
+        .bind(("keterangan", keterangan.unwrap_or_default()))
         .bind(("stage_context", stage_context))
         .bind(("uploaded_by", uploaded_by_str))
         .await

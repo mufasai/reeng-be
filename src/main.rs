@@ -8,13 +8,14 @@ mod services;
 
 use axum::{
     extract::{Json, DefaultBodyLimit},
+    http::Method,
     routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, site_stages, people, costs, materials, regions, files, termins, teams, bulk_import};
+use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams, bulk_import};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -33,6 +34,10 @@ async fn health_check() -> Json<serde_json::Value> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment
     dotenv::dotenv().ok();
+
+    println!("🚀 Starting application...");
+    println!("SERVER_PORT: {:?}", std::env::var("SERVER_PORT"));
+    println!("SURREAL_URL: {:?}", std::env::var("SURREAL_URL"));
 
     // Create shared state with database connection
     let state = Arc::new(AppState::new().await?);
@@ -57,7 +62,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Project routes
         .route("/api/projects", post(project::create_project))
         .route("/api/projects", get(project::list_projects))
-        .route("/api/projects/type", get(project::list_projects_by_type))
         .route("/api/projects/:id", get(project::get_project))
         .route("/api/projects/:id", put(project::update_project))
         .route("/api/projects/:id", delete(project::delete_project))
@@ -72,16 +76,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/sites/:id", get(site::get_site_by_id))
         .route("/api/sites/:id", put(site::update_site))
         .route("/api/sites/:id", delete(site::delete_site))
-        // Stats routes
-        .route("/api/stats/sidebar", get(site::get_sidebar_stats))
         // Site Tim Struktur routes
         .route("/api/sites/:site_id/team-structure", get(site::get_site_team_structure))
         .route("/api/sites/:site_id/team-structure", post(site::add_site_team_member))
         .route("/api/sites/:site_id/team-structure/:member_id", put(site::update_site_team_member))
         .route("/api/sites/:site_id/team-structure/:member_id", delete(site::remove_site_team_member))
         // Site Stage routes
-        .route("/api/sites/:id/stage", post(site_stages::update_site_stage))
-        .route("/api/sites/:id/stage", put(site_stages::update_site_stage))
+        .route("/api/sites/:id/stage", post(site::update_site_stage))
+        .route("/api/sites/:id/stage", put(site::update_site_stage))
         .route("/api/sites/:id/stage-logs", get(site::get_site_stage_logs))
         // Site BOQ routes
         .route("/api/sites/:site_id/boq", get(site::list_site_boq))
@@ -261,7 +263,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - admin");
     println!("   - direktur");
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let port = std::env::var("SERVER_PORT").unwrap_or("3001".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await?;
 
     Ok(())

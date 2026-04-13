@@ -2107,9 +2107,9 @@
                     },
                     {
                       "key": "progress_tag",
-                      "value": "implementasi",
+                      "value": "",
                       "type": "text",
-                      "description": "Tag progress: survei | implementasi | commissioning | serah_terima"
+                      "description": "(Optional) Tag progres. Boleh dikosongkan (Not Visible di UI)."
                     },
                     {
                       "key": "stage_context",
@@ -2122,6 +2122,12 @@
                       "value": "Budi Santoso",
                       "type": "text",
                       "description": "Nama atau ID uploader (wajib)"
+                    },
+                    {
+                      "key": "keterangan",
+                      "value": "Pemasangan tiang ODC area Menteng",
+                      "type": "text",
+                      "description": "Deskripsi foto lapangan"
                     }
                   ]
                 },
@@ -2136,7 +2142,7 @@
                     "evidence"
                   ]
                 },
-                "description": "Upload foto/dokumen lapangan sebagai multipart/form-data. File disimpan sebagai base64 data URL di database. Field wajib: file, progress_tag, uploaded_by. Field opsional: stage_context."
+                "description": "Upload foto/evidence lapangan.\n\n**Update 13 April:**\n- Ditambahkan field `keterangan` untuk deskripsi foto.\n- Field `progress_tag` sekarang bersifat optional (not visible)."
               },
               "event": [
                 {

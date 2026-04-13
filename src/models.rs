@@ -1616,7 +1616,11 @@ pub struct SiteEvidence {
     pub mime_type: Option<String>,
     #[serde(alias = "file_size")] // Support old database records
     pub size: Option<i64>,
-    pub progress_tag: String,
+    #[serde(default)]
+    pub progress_tag: Option<String>,
+    #[serde(default)]
+    pub keterangan: Option<String>,
+    #[serde(default)]
     pub stage_context: Option<String>,
     pub uploaded_by: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1630,7 +1634,11 @@ pub struct CreateSiteEvidenceRequest {
     pub file_url: Option<String>,
     pub mime_type: Option<String>,
     pub file_size: Option<i64>,
-    pub progress_tag: String,
+    #[serde(default)]
+    pub progress_tag: Option<String>,
+    #[serde(default)]
+    pub keterangan: Option<String>,
+    #[serde(default)]
     pub stage_context: Option<String>,
     pub uploaded_by: String,
 }
