@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
@@ -11,7 +12,7 @@ use crate::state::AppState;
 
 pub async fn register(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<RegisterRequest>,
+    FormOrJson(req): FormOrJson<RegisterRequest>,
 ) -> Result<Json<ApiResponse<UserInfo>>, StatusCode> {
     // Validate email format
     if !req.email.contains('@') {
@@ -103,7 +104,7 @@ pub async fn register(
 
 pub async fn login(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<LoginRequest>,
+    FormOrJson(req): FormOrJson<LoginRequest>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     // Find user by email
     let query = "SELECT * FROM users WHERE email = $email LIMIT 1";
@@ -209,7 +210,7 @@ pub async fn get_user_by_id(
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
-    Json(req): Json<UpdateUserRequest>,
+    FormOrJson(req): FormOrJson<UpdateUserRequest>,
 ) -> Result<Json<ApiResponse<User>>, StatusCode> {
     let thing = Thing::try_from(("users", user_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;

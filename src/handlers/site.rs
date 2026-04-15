@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{FromRequest, Json, Multipart, Request},
     http::{header, StatusCode},
@@ -28,7 +29,7 @@ fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
 
 pub async fn create_site(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    Json(req): Json<CreateSiteRequest>,
+    FormOrJson(req): FormOrJson<CreateSiteRequest>,
 ) -> Result<Json<ApiResponse<Site>>, StatusCode> {
     // Parse and clean project_id
     let project_id_clean = strip_table_prefix(&req.project_id, "projects");
@@ -518,7 +519,7 @@ fn enrich_sites_timing_fields(sites: &mut [Site]) {
 pub async fn update_site(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<UpdateSiteRequest>,
+    FormOrJson(req): FormOrJson<UpdateSiteRequest>,
 ) -> Result<Json<ApiResponse<Site>>, StatusCode> {
     // Parse site_id
     let site_thing = parse_thing_id(&site_id)?;
@@ -926,7 +927,7 @@ pub async fn get_site_team_structure(
 pub async fn add_site_team_member(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<AddSiteTeamMemberRequest>,
+    FormOrJson(req): FormOrJson<AddSiteTeamMemberRequest>,
 ) -> Result<Json<ApiResponse<SiteTeamMemberDetail>>, StatusCode> {
     let site_thing = parse_thing_id(&site_id)?;
 
@@ -1065,7 +1066,7 @@ pub async fn add_site_team_member(
 pub async fn update_site_team_member(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path((site_id, member_id)): axum::extract::Path<(String, String)>,
-    Json(req): Json<UpdateSiteTeamMemberRequest>,
+    FormOrJson(req): FormOrJson<UpdateSiteTeamMemberRequest>,
 ) -> Result<Json<ApiResponse<SiteTeamMemberDetail>>, StatusCode> {
     let _site_thing = parse_thing_id(&site_id)?;
     let member_thing = parse_thing_id(&member_id)?;
@@ -2168,7 +2169,7 @@ pub async fn list_site_boq(
 pub async fn create_site_boq(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<CreateSiteBoqRequest>,
+    FormOrJson(req): FormOrJson<CreateSiteBoqRequest>,
 ) -> Result<Json<ApiResponse<SiteBoq>>, StatusCode> {
     let site_thing = parse_thing_id(&site_id)?;
 
@@ -2220,7 +2221,7 @@ pub async fn create_site_boq(
 pub async fn update_site_boq(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(boq_id): axum::extract::Path<String>,
-    Json(req): Json<UpdateSiteBoqRequest>,
+    FormOrJson(req): FormOrJson<UpdateSiteBoqRequest>,
 ) -> Result<Json<ApiResponse<SiteBoq>>, StatusCode> {
     let boq_thing = parse_thing_id(&boq_id)?;
 
@@ -2320,7 +2321,7 @@ pub async fn list_skp_by_site(
 pub async fn create_skp(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<CreateSkpRequest>,
+    FormOrJson(req): FormOrJson<CreateSkpRequest>,
 ) -> Result<Json<ApiResponse<Skp>>, StatusCode> {
     let site_thing = parse_thing_id(&site_id)?;
 
@@ -2402,7 +2403,7 @@ pub async fn get_skp(
 pub async fn update_skp(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(skp_id): axum::extract::Path<String>,
-    Json(req): Json<UpdateSkpRequest>,
+    FormOrJson(req): FormOrJson<UpdateSkpRequest>,
 ) -> Result<Json<ApiResponse<Skp>>, StatusCode> {
     let skp_thing = parse_thing_id(&skp_id)?;
 
@@ -3058,7 +3059,7 @@ pub async fn list_site_issues(
 pub async fn create_site_issue(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(site_id): axum::extract::Path<String>,
-    Json(req): Json<CreateSiteIssueRequest>,
+    FormOrJson(req): FormOrJson<CreateSiteIssueRequest>,
 ) -> Result<Json<ApiResponse<SiteIssue>>, StatusCode> {
     let site_thing = Thing::try_from(site_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
 
@@ -3155,7 +3156,7 @@ pub async fn get_site_issue(
 pub async fn resolve_site_issue(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(issue_id): axum::extract::Path<String>,
-    Json(req): Json<ResolveSiteIssueRequest>,
+    FormOrJson(req): FormOrJson<ResolveSiteIssueRequest>,
 ) -> Result<Json<ApiResponse<SiteIssue>>, StatusCode> {
     let issue_thing = Thing::try_from(issue_id.as_str()).map_err(|_| StatusCode::BAD_REQUEST)?;
 

@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{extract::{Json, Multipart, Path, State}, http::StatusCode};
 use std::sync::Arc;
 use std::io::Cursor;
@@ -9,7 +10,7 @@ use crate::state::AppState;
 
 pub async fn create_team(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateTeamRequest>,
+    FormOrJson(req): FormOrJson<CreateTeamRequest>,
 ) -> Result<Json<ApiResponse<Team>>, StatusCode> {
     // Helper function to strip table prefix if present
     fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
@@ -188,7 +189,7 @@ pub async fn get_team_by_leader(
 pub async fn update_team(
     State(state): State<Arc<AppState>>,
     Path(team_id): Path<String>,
-    Json(req): Json<UpdateTeamRequest>,
+    FormOrJson(req): FormOrJson<UpdateTeamRequest>,
 ) -> Result<Json<ApiResponse<Team>>, StatusCode> {
     // Helper function to strip table prefix if present
     fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {

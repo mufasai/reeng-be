@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{extract::{Json, Path}, http::StatusCode};
 use std::sync::Arc;
 
@@ -6,7 +7,7 @@ use crate::state::AppState;
 
 pub async fn create_project(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    Json(req): Json<CreateProjectRequest>,
+    FormOrJson(req): FormOrJson<CreateProjectRequest>,
 ) -> Result<Json<ApiResponse<Project>>, StatusCode> {
     // Create project with new structure
     let project = Project {
@@ -163,7 +164,7 @@ pub async fn get_project(
 pub async fn update_project(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Path(project_id): Path<String>,
-    Json(req): Json<UpdateProjectRequest>,
+    FormOrJson(req): FormOrJson<UpdateProjectRequest>,
 ) -> Result<Json<ApiResponse<Project>>, StatusCode> {
     // First, get the existing project
     let query = "SELECT * FROM type::thing('projects', $id)";

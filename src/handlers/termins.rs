@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{Path, State, Multipart, Request, FromRequest},
     http::{StatusCode, header, HeaderMap, HeaderValue},
@@ -658,7 +659,7 @@ pub async fn get_termin_by_id(
 pub async fn update_termin(
     State(state): State<Arc<AppState>>,
     Path(termin_id): Path<String>,
-    Json(req): Json<UpdateTerminRequest>,
+    FormOrJson(req): FormOrJson<UpdateTerminRequest>,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
     let thing = Thing::try_from(("termins", termin_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -734,7 +735,7 @@ pub async fn update_termin(
 pub async fn submit_termin(
     State(state): State<Arc<AppState>>,
     Path(termin_id): Path<String>,
-    Json(req): Json<SubmitTerminRequest>,
+    FormOrJson(req): FormOrJson<SubmitTerminRequest>,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
     let thing = Thing::try_from(("termins", termin_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -768,7 +769,7 @@ pub async fn submit_termin(
 pub async fn review_termin(
     State(state): State<Arc<AppState>>,
     Path(termin_id): Path<String>,
-    Json(req): Json<ReviewTerminRequest>,
+    FormOrJson(req): FormOrJson<ReviewTerminRequest>,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
     let thing = Thing::try_from(("termins", termin_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -813,7 +814,7 @@ pub async fn review_termin(
 pub async fn approve_termin(
     State(state): State<Arc<AppState>>,
     Path(termin_id): Path<String>,
-    Json(req): Json<ApproveTerminRequest>,
+    FormOrJson(req): FormOrJson<ApproveTerminRequest>,
 ) -> Result<Json<ApiResponse<Termin>>, StatusCode> {
     let thing = Thing::try_from(("termins", termin_id.as_str()))
         .map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -1117,7 +1118,7 @@ pub async fn delete_termin(
 
 pub async fn create_termin_file(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateTerminFileRequest>,
+    FormOrJson(req): FormOrJson<CreateTerminFileRequest>,
 ) -> Result<Json<ApiResponse<TerminFile>>, StatusCode> {
     let query = r#"
         CREATE termin_files CONTENT {
