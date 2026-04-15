@@ -1,4 +1,4 @@
-use surrealdb::engine::remote::http::{Client, Http};
+use surrealdb::engine::remote::http::{Client, Http, Https};
 use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
 
@@ -19,7 +19,15 @@ impl AppState {
 
         // Connect to SurrealDB
         println!("🔌 Connecting to SurrealDB at {}...", surreal_url);
-        let db: Surreal<Client> = Surreal::new::<Http>(&surreal_url).await?;
+        let db: Surreal<Client> = if surreal_url.starts_with("http://") {
+            Surreal::new::<Http>(&surreal_url).await?
+        } else if surreal_url.starts_with("https://") {
+            Surreal::new::<Https>(&surreal_url).await?
+        } else if surreal_url.contains("localhost") || surreal_url.contains("127.0.0.1") {
+            Surreal::new::<Http>(&surreal_url).await?
+        } else {
+            Surreal::new::<Https>(&surreal_url).await?
+        };
 
         // Sign in
         db.signin(Root {
