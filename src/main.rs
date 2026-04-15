@@ -49,7 +49,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("SURREAL_URL: {:?}", std::env::var("SURREAL_URL"));
 
     // Create shared state with database connection
-    let state = Arc::new(AppState::new().await?);
+    let state = match AppState::new().await {
+    Ok(s) => {
+        println!("✅ AppState initialized");
+        Arc::new(s)
+    }
+    Err(e) => {
+        eprintln!("❌ Failed to init AppState: {:?}", e);
+        panic!("AppState init failed");
+    }
+};
 
     // Configure CORS
     let cors = CorsLayer::new()
