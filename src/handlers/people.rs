@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{extract::{Json, Path, Multipart, State}, http::StatusCode};
 use std::sync::Arc;
 use std::io::Cursor;
@@ -8,7 +9,7 @@ use crate::state::AppState;
 
 pub async fn create_people(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
-    Json(req): Json<CreatePeopleRequest>,
+    FormOrJson(req): FormOrJson<CreatePeopleRequest>,
 ) -> Result<Json<ApiResponse<People>>, StatusCode> {
     let people = People {
         id: None,
@@ -116,7 +117,7 @@ pub async fn get_people(
 pub async fn update_people(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Path(people_id): Path<String>,
-    Json(req): Json<UpdatePeopleRequest>,
+    FormOrJson(req): FormOrJson<UpdatePeopleRequest>,
 ) -> Result<Json<ApiResponse<People>>, StatusCode> {
     // Get existing person
     let query = "SELECT * FROM type::thing('people', $id)";

@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{Path, State, Multipart},
     http::{StatusCode, header, HeaderMap, HeaderValue},
@@ -16,7 +17,7 @@ use crate::common::parse_thing_id;
 
 pub async fn create_project_file(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateProjectFileRequest>,
+    FormOrJson(req): FormOrJson<CreateProjectFileRequest>,
 ) -> Result<Json<ApiResponse<ProjectFile>>, StatusCode> {
     let query = r#"
         CREATE project_files CONTENT {
@@ -104,7 +105,7 @@ pub async fn delete_project_file(
 
 pub async fn create_site_file(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateSiteFileRequest>,
+    FormOrJson(req): FormOrJson<CreateSiteFileRequest>,
 ) -> Result<Json<ApiResponse<SiteFile>>, StatusCode> {
     let query = r#"
         CREATE site_files CONTENT {

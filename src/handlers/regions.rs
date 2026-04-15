@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -11,7 +12,7 @@ use crate::state::AppState;
 
 pub async fn create_area(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateAreaRequest>,
+    FormOrJson(req): FormOrJson<CreateAreaRequest>,
 ) -> Result<Json<ApiResponse<Area>>, StatusCode> {
     let query = r#"
         CREATE areas CONTENT {
@@ -60,7 +61,7 @@ pub async fn list_areas(
 
 pub async fn create_region(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateRegionRequest>,
+    FormOrJson(req): FormOrJson<CreateRegionRequest>,
 ) -> Result<Json<ApiResponse<Region>>, StatusCode> {
     let query = r#"
         CREATE regions CONTENT {
