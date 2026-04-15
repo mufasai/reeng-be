@@ -1607,6 +1607,7 @@ pub struct SiteEvidence {
     pub id: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
     pub site_id: Option<Thing>,
+    pub title: Option<String>,
     pub filename: String,
     pub original_name: Option<String>,
     #[serde(skip_serializing)]  // Hide base64 string from response
@@ -1629,6 +1630,7 @@ pub struct SiteEvidence {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateSiteEvidenceRequest {
+    pub title: Option<String>,
     pub filename: String,
     pub original_name: Option<String>,
     pub file_url: Option<String>,

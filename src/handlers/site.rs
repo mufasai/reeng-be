@@ -1948,6 +1948,7 @@ pub async fn update_site_stage(
                     // → site_evidence (foto)
                     let q = "CREATE site_evidence SET \
                         site_id = $site_id, \
+                        title = $title, \
                         filename = $filename, \
                         original_name = $filename, \
                         url = $url, \
@@ -1960,6 +1961,7 @@ pub async fn update_site_stage(
                         uploaded_at = time::now()";
                     let _ = state.db.query(q)
                         .bind(("site_id", site_thing.clone()))
+                        .bind(("title", filename.clone()))
                         .bind(("filename", filename.clone()))
                         .bind(("url", data_url.clone()))
                         .bind(("file_data", data_url))
@@ -2017,6 +2019,7 @@ pub async fn update_site_stage(
                 // Image → site_evidence
                 let create_evidence_query = "CREATE site_evidence SET \
                     site_id = $site_id, \
+                    title = $title, \
                     filename = $filename, \
                     original_name = $filename, \
                     url = $url, \
@@ -2029,6 +2032,7 @@ pub async fn update_site_stage(
                     uploaded_at = time::now()";
                 let _ = state.db.query(create_evidence_query)
                     .bind(("site_id", site_thing.clone()))
+                    .bind(("title", filename.clone()))
                     .bind(("filename", filename.clone()))
                     .bind(("url", data_url.clone()))
                     .bind(("file_data", data_url))
@@ -2516,6 +2520,7 @@ pub async fn create_site_evidence(
     let mut file_name: Option<String> = None;
     let mut file_content_type: Option<String> = None;
     let mut progress_tag: Option<String> = None;
+    let mut title: Option<String> = None;
     let mut keterangan: Option<String> = None;
     let mut stage_context: Option<String> = None;
     let mut uploaded_by: Option<String> = None;
@@ -2538,6 +2543,9 @@ pub async fn create_site_evidence(
                 let text = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
                 println!("📸 Received evidence description: {}", text);
                 keterangan = Some(text);
+            }
+            "title" => {
+                title = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
             }
             "stage_context" => {
                 stage_context = Some(field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?);
@@ -2589,6 +2597,7 @@ pub async fn create_site_evidence(
 
     let query = "CREATE site_evidence SET \
         site_id = $site_id, \
+        title = $title, \
         filename = $filename, \
         original_name = $filename, \
         file_url = $file_url, \
@@ -2604,6 +2613,7 @@ pub async fn create_site_evidence(
         .db
         .query(query)
         .bind(("site_id", site_thing))
+        .bind(("title", title.unwrap_or_else(|| filename.clone())))
         .bind(("filename", filename))
         .bind(("file_url", data_url))
         .bind(("mime_type", mime_type))
