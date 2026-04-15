@@ -29,14 +29,26 @@ impl AppState {
 
         // Connect to SurrealDB
         println!("🔌 Connecting to SurrealDB at {}...", surreal_url);
-        let db: Surreal<Client> = if surreal_url.starts_with("http://") {
-            Surreal::new::<Http>(&surreal_url).await?
-        } else if surreal_url.starts_with("https://") {
-            Surreal::new::<Https>(&surreal_url).await?
+        
+        // Determine protocol and construct full URL
+        let full_url = if surreal_url.starts_with("http://") || surreal_url.starts_with("https://") {
+            surreal_url.clone()
         } else if surreal_url.contains("localhost") || surreal_url.contains("127.0.0.1") {
-            Surreal::new::<Http>(&surreal_url).await?
+            format!("http://{}", surreal_url)
+        } else if surreal_url.contains("railway.internal") {
+            // Railway internal network uses HTTP
+            format!("http://{}", surreal_url)
         } else {
-            Surreal::new::<Https>(&surreal_url).await?
+            // External URLs default to HTTPS
+            format!("https://{}", surreal_url)
+        };
+        
+        println!("🔗 Full connection URL: {}", full_url);
+        
+        let db: Surreal<Client> = if full_url.starts_with("https://") {
+            Surreal::new::<Https>(&full_url).await?
+        } else {
+            Surreal::new::<Http>(&full_url).await?
         };
 
         // Sign in
