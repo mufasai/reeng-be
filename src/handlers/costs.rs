@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -9,7 +10,7 @@ use crate::state::AppState;
 
 pub async fn create_cost(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateCostRequest>,
+    FormOrJson(req): FormOrJson<CreateCostRequest>,
 ) -> Result<Json<ApiResponse<Cost>>, StatusCode> {
     let query = r#"
         CREATE costs CONTENT {
@@ -111,7 +112,7 @@ pub async fn get_costs_by_site(
 pub async fn approve_cost(
     State(state): State<Arc<AppState>>,
     Path(cost_id): Path<String>,
-    Json(body): Json<serde_json::Value>,
+    FormOrJson(body): FormOrJson<serde_json::Value>,
 ) -> Result<Json<ApiResponse<Cost>>, StatusCode> {
     let acc_by = body.get("acc_by").and_then(|v| v.as_str()).unwrap_or("").to_string();
     let acc_name = body.get("acc_name").and_then(|v| v.as_str()).unwrap_or("").to_string();

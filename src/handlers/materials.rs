@@ -1,3 +1,4 @@
+use crate::extractors::FormOrJson;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -9,7 +10,7 @@ use crate::state::AppState;
 
 pub async fn create_material(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<CreateMaterialRequest>,
+    FormOrJson(req): FormOrJson<CreateMaterialRequest>,
 ) -> Result<Json<ApiResponse<Material>>, StatusCode> {
     let query = r#"
         CREATE materials CONTENT {
@@ -108,7 +109,7 @@ pub async fn get_materials_by_site(
 
 pub async fn bulk_create_materials(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<crate::models::BulkCreateMaterialRequest>,
+    FormOrJson(req): FormOrJson<crate::models::BulkCreateMaterialRequest>,
 ) -> Result<Json<ApiResponse<Vec<Material>>>, StatusCode> {
     let mut created_materials = Vec::new();
     

@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 13 APRIL v2.6.1",
+    "name": "SmartElco API Collection - UPDATE 15 APRIL v2.6.1",
     "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 13 APRIL 2026 (v2.6.1):\n- Refactor: days_in_stage diubah menjadi last_update (DateTime String) pada semua site responses\n- NEW: Site Evidence support field 'keterangan' (deskripsi foto)\n- NEW: Proteksi otomatis terhadap upload file Excel (BOQ) yang sama (File Hashing)\n- Enhanced: Metadata stage di dashboard menampilkan waktu eksak perubahan terakhir\n\nUPDATE 7 APRIL 2026 (v2.5):\n- NEW: POST /people/upload — Bulk import people dari file Excel dengan auto-detection kolom\n- NEW: POST /sites/{site_id}/team-structure — Auto-update stage dari \"imported\" → \"assigned\" ketika tim ditambahkan\n- NEW: GET /sites/type — Filter site berdasarkan jenis pekerjaan (query parameter)\n- NEW: GET /sites/category/{category} — Filter site berdasarkan kategori (BLACK SITE, COMBAT, FILTER, L2H, REFINEN)\n- Enhanced: People import dengan handling date conversion Excel serial format\n- Enhanced: Auto stage transition complete dengan timestamp logging\n- Field validation untuk duplicate detection pada site creation\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: last_update, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -31,20 +31,31 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\",\n  \"role\": \"engineer\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "john.doe@smartelco.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                },
+                {
+                  "key": "role",
+                  "value": "engineer",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "description": "Register a new user with role selection.\n\n**Available Roles:**\n- backoffice admin\n- management\n- team leader\n- finance\n- engineer\n- admin\n- direktur",
             "url": {
@@ -81,15 +92,21 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john.doe@smartelco.com\",\n  \"password\": \"password123\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "email",
+                  "value": "john.doe@smartelco.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -143,20 +160,21 @@
           "name": "Update User",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"role\": \"team leader\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "John Doe Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "role",
+                  "value": "team leader",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "description": "Update user information. All fields are optional:\n- name\n- email\n- role\n- password",
             "url": {
@@ -199,15 +217,56 @@
           "name": "Create Project",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Network Expansion Jakarta\",\n  \"lokasi\": \"Jakarta\",\n  \"value\": 5000000000,\n  \"cost\": 0,\n  \"tipe\": \"COMBAT\",\n  \"keterangan\": \"Ekspansi jaringan fiber optik Jakarta 2026\",\n  \"tgi_start\": \"2026-03-01\",\n  \"tgi_end\": \"2026-12-31\",\n  \"status\": \"active\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Network Expansion Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "lokasi",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "value",
+                  "value": "5000000000",
+                  "type": "text"
+                },
+                {
+                  "key": "cost",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "tipe",
+                  "value": "COMBAT",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Ekspansi jaringan fiber optik Jakarta 2026",
+                  "type": "text"
+                },
+                {
+                  "key": "tgi_start",
+                  "value": "2026-03-01",
+                  "type": "text"
+                },
+                {
+                  "key": "tgi_end",
+                  "value": "2026-12-31",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/projects",
@@ -260,15 +319,31 @@
           "name": "Update Project",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Network Expansion Jakarta - Updated\",\n  \"cost\": 1500000000,\n  \"status\": \"in_progress\",\n  \"keterangan\": \"Updated: Project sudah dimulai\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Network Expansion Jakarta - Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "cost",
+                  "value": "1500000000",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "in_progress",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Updated: Project sudah dimulai",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/projects/{{project_id_only}}",
@@ -305,15 +380,56 @@
           "name": "Create Project - L2H Type",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"L2H Project Surabaya\",\n  \"lokasi\": \"Surabaya\",\n  \"value\": 3000000000,\n  \"cost\": 0,\n  \"tipe\": \"L2H\",\n  \"keterangan\": \"Light to Home project untuk area Surabaya\",\n  \"tgi_start\": \"2026-04-01\",\n  \"tgi_end\": \"2026-10-31\",\n  \"status\": \"active\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "L2H Project Surabaya",
+                  "type": "text"
+                },
+                {
+                  "key": "lokasi",
+                  "value": "Surabaya",
+                  "type": "text"
+                },
+                {
+                  "key": "value",
+                  "value": "3000000000",
+                  "type": "text"
+                },
+                {
+                  "key": "cost",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "tipe",
+                  "value": "L2H",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Light to Home project untuk area Surabaya",
+                  "type": "text"
+                },
+                {
+                  "key": "tgi_start",
+                  "value": "2026-04-01",
+                  "type": "text"
+                },
+                {
+                  "key": "tgi_end",
+                  "value": "2026-10-31",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/projects",
@@ -331,15 +447,56 @@
           "name": "Create Project - BLACK SITE",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Black Site Bandung\",\n  \"lokasi\": \"Bandung\",\n  \"value\": 2000000000,\n  \"cost\": 0,\n  \"tipe\": \"BLACK SITE\",\n  \"keterangan\": \"Black site maintenance project\",\n  \"tgi_start\": \"2026-05-01\",\n  \"tgi_end\": \"2026-08-31\",\n  \"status\": \"active\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Black Site Bandung",
+                  "type": "text"
+                },
+                {
+                  "key": "lokasi",
+                  "value": "Bandung",
+                  "type": "text"
+                },
+                {
+                  "key": "value",
+                  "value": "2000000000",
+                  "type": "text"
+                },
+                {
+                  "key": "cost",
+                  "value": "0",
+                  "type": "text"
+                },
+                {
+                  "key": "tipe",
+                  "value": "BLACK SITE",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Black site maintenance project",
+                  "type": "text"
+                },
+                {
+                  "key": "tgi_start",
+                  "value": "2026-05-01",
+                  "type": "text"
+                },
+                {
+                  "key": "tgi_end",
+                  "value": "2026-08-31",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/projects",
@@ -418,21 +575,124 @@
       ]
     },
     {
-      "name": "Sites - 13 APRIL ",
+      "name": "Sites - 15 APRIL ",
       "item": [
         {
-          "name": "Create Site - 13 APRIL",
+          "name": "Create Site - 15 APRIL",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_name\": \"Site Menteng\",\n  \"site_info\": \"Area Menteng Jakarta Pusat dengan 500 rumah\",\n  \"pekerjaan\": \"Instalasi Fiber to Home\",\n  \"lokasi\": \"Menteng, Jakarta Pusat\",\n  \"latitude\": \"-6.197361\",\n  \"longitude\": \"106.831924\",\n  \"nomor_kontrak\": \"KTR/2026/001\",\n  \"start\": \"2026-03-15\",\n  \"end\": \"2026-07-15\",\n  \"maximal_budget\": 500000000,\n  \"cost_estimated\": 450000000,\n  \"pemberi_tugas\": \"PT Telkom Indonesia\",\n  \"penerima_tugas\": \"PT SmartElco Solutions\",\n  \"site_document\": null,\n  \"project_type\": \"COMBAT\",\n  \"team_members\": [],\n  \"site_id\": \"BKS999\",\n  \"sector\": \"1\",\n  \"cluster\": \"BEKASI\",\n  \"region\": \"R03\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_name",
+                  "value": "Site Menteng",
+                  "type": "text"
+                },
+                {
+                  "key": "site_info",
+                  "value": "Area Menteng Jakarta Pusat dengan 500 rumah",
+                  "type": "text"
+                },
+                {
+                  "key": "pekerjaan",
+                  "value": "Instalasi Fiber to Home",
+                  "type": "text"
+                },
+                {
+                  "key": "lokasi",
+                  "value": "Menteng, Jakarta Pusat",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "-6.197361",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "106.831924",
+                  "type": "text"
+                },
+                {
+                  "key": "nomor_kontrak",
+                  "value": "KTR/2026/001",
+                  "type": "text"
+                },
+                {
+                  "key": "start",
+                  "value": "2026-03-15",
+                  "type": "text"
+                },
+                {
+                  "key": "end",
+                  "value": "2026-07-15",
+                  "type": "text"
+                },
+                {
+                  "key": "maximal_budget",
+                  "value": "500000000",
+                  "type": "text"
+                },
+                {
+                  "key": "cost_estimated",
+                  "value": "450000000",
+                  "type": "text"
+                },
+                {
+                  "key": "pemberi_tugas",
+                  "value": "PT Telkom Indonesia",
+                  "type": "text"
+                },
+                {
+                  "key": "penerima_tugas",
+                  "value": "PT SmartElco Solutions",
+                  "type": "text"
+                },
+                {
+                  "key": "site_document",
+                  "value": "",
+                  "type": "text",
+                  "description": "(null/optional)"
+                },
+                {
+                  "key": "project_type",
+                  "value": "COMBAT",
+                  "type": "text"
+                },
+                {
+                  "key": "team_members",
+                  "value": "[]",
+                  "type": "text",
+                  "description": "JSON array"
+                },
+                {
+                  "key": "site_id",
+                  "value": "BKS999",
+                  "type": "text"
+                },
+                {
+                  "key": "sector",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "cluster",
+                  "value": "BEKASI",
+                  "type": "text"
+                },
+                {
+                  "key": "region",
+                  "value": "R03",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/sites",
@@ -527,18 +787,69 @@
           "response": []
         },
         {
-          "name": "Update Site - 13 APRIL",
+          "name": "Update Site - 15 APRIL",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"site_name\": \"Site Menteng Updated\",\n  \"latitude\": \"-6.197500\",\n  \"longitude\": \"106.832000\",\n  \"maximal_budget\": 550000000,\n  \"cost_estimated\": 480000000,\n  \"end\": \"2026-08-15\",\n  \"project_type\": \"FILTER\",\n  \"site_id\": \"JKT888\",\n  \"sector\": \"2\",\n  \"cluster\": \"Menteng\",\n  \"region\": \"R12\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "site_name",
+                  "value": "Site Menteng Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "-6.197500",
+                  "type": "text"
+                },
+                {
+                  "key": "longitude",
+                  "value": "106.832000",
+                  "type": "text"
+                },
+                {
+                  "key": "maximal_budget",
+                  "value": "550000000",
+                  "type": "text"
+                },
+                {
+                  "key": "cost_estimated",
+                  "value": "480000000",
+                  "type": "text"
+                },
+                {
+                  "key": "end",
+                  "value": "2026-08-15",
+                  "type": "text"
+                },
+                {
+                  "key": "project_type",
+                  "value": "FILTER",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "JKT888",
+                  "type": "text"
+                },
+                {
+                  "key": "sector",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "cluster",
+                  "value": "Menteng",
+                  "type": "text"
+                },
+                {
+                  "key": "region",
+                  "value": "R12",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/sites/{{site_id}}",
@@ -646,15 +957,26 @@
               "name": "Add Member ke Tim Struktur",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"team_master_id\": \"{{team_id}}\",\n  \"role\": \"member\",\n  \"vendor\": \"Vendor A\"\n}"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "team_master_id",
+                      "value": "{{team_id}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "role",
+                      "value": "member",
+                      "type": "text"
+                    },
+                    {
+                      "key": "vendor",
+                      "value": "Vendor A",
+                      "type": "text"
+                    }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/team-structure",
@@ -696,15 +1018,21 @@
               "name": "Update Member di Tim Struktur",
               "request": {
                 "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"role\": \"supervisor\",\n  \"vendor\": \"Vendor B\"\n}"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "role",
+                      "value": "supervisor",
+                      "type": "text"
+                    },
+                    {
+                      "key": "vendor",
+                      "value": "Vendor B",
+                      "type": "text"
+                    }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/team-structure/{{site_team_member_id}}",
@@ -1605,20 +1933,21 @@
               "name": "Stage INVALID - expect error",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"stage\": \"invalid_stage_test\",\n  \"changed_by\": \"Tester\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "stage",
+                      "value": "invalid_stage_test",
+                      "type": "text"
+                    },
+                    {
+                      "key": "changed_by",
+                      "value": "Tester",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/stage",
@@ -1753,20 +2082,41 @@
               "name": "Create BOQ Item",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"item_code\": \"MAT-001\",\n  \"description\": \"Kabel Fiber Optik SM 12C\",\n  \"quantity\": 100.0,\n  \"unit\": \"meter\",\n  \"type\": \"material\",\n  \"source\": \"Warehouse Jakarta\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "item_code",
+                      "value": "MAT-001",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Kabel Fiber Optik SM 12C",
+                      "type": "text"
+                    },
+                    {
+                      "key": "quantity",
+                      "value": "100.0",
+                      "type": "text"
+                    },
+                    {
+                      "key": "unit",
+                      "value": "meter",
+                      "type": "text"
+                    },
+                    {
+                      "key": "type",
+                      "value": "material",
+                      "type": "text"
+                    },
+                    {
+                      "key": "source",
+                      "value": "Warehouse Jakarta",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/boq",
@@ -1808,20 +2158,21 @@
               "name": "Update BOQ Item",
               "request": {
                 "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"description\": \"Kabel Fiber Optik SM 24C\",\n  \"quantity\": 150.0\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "description",
+                      "value": "Kabel Fiber Optik SM 24C",
+                      "type": "text"
+                    },
+                    {
+                      "key": "quantity",
+                      "value": "150.0",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/site-boq/{{boq_id}}",
@@ -1898,20 +2249,37 @@
               "name": "Create SKP",
               "request": {
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"skp_number\": \"SKP/2026/001\",\n  \"tanggal\": \"2026-03-10\",\n  \"keterangan\": \"Pengambilan material batch 1\",\n  \"uploaded_by\": \"Budi Santoso\",\n  \"document_url\": null\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "skp_number",
+                      "value": "SKP/2026/001",
+                      "type": "text"
+                    },
+                    {
+                      "key": "tanggal",
+                      "value": "2026-03-10",
+                      "type": "text"
+                    },
+                    {
+                      "key": "keterangan",
+                      "value": "Pengambilan material batch 1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "uploaded_by",
+                      "value": "Budi Santoso",
+                      "type": "text"
+                    },
+                    {
+                      "key": "document_url",
+                      "value": "",
+                      "type": "text",
+                      "description": "(null/optional)"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/sites/{{site_id}}/skp",
@@ -1972,20 +2340,21 @@
               "name": "Update SKP - Submit",
               "request": {
                 "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"Submitted\",\n  \"document_url\": \"https://storage.example.com/skp-001.pdf\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "status",
+                      "value": "Submitted",
+                      "type": "text"
+                    },
+                    {
+                      "key": "document_url",
+                      "value": "https://storage.example.com/skp-001.pdf",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/skp/{{skp_id}}",
@@ -2005,20 +2374,21 @@
               "name": "Update SKP - Received",
               "request": {
                 "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
+                "header": [],
                 "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"Received\",\n  \"received_proof_url\": \"https://storage.example.com/bukti-terima-001.jpg\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "status",
+                      "value": "Received",
+                      "type": "text"
+                    },
+                    {
+                      "key": "received_proof_url",
+                      "value": "https://storage.example.com/bukti-terima-001.jpg",
+                      "type": "text"
                     }
-                  }
+                  ]
                 },
                 "url": {
                   "raw": "{{base_url}}/skp/{{skp_id}}",
@@ -2142,7 +2512,7 @@
                     "evidence"
                   ]
                 },
-            "description": "Upload foto/evidence lapangan (Update 13 April 2026).\n\n**1. Integrasi Field Evidence:**\n- **Field progress_tag**: Sekarang bersifat **Opsional** (Sembunyikan di UI).\n- **Field keterangan (NEW)**: Memberikan deskripsi atau konteks pada foto (WAJIB).\n\n**Body Parameters (multipart/form-data):**\n- `file`: File foto (.jpg, .png)\n- `keterangan`: Deskripsi foto\n- `uploaded_by`: Nama pengunggah\n- `progress_tag`: (Opsional)\n\n**Note**: Tabelgaleri evidence di dashboard harus menampilkan kolom 'Keterangan' alih-alih Tag Progres."
+                "description": "Upload foto/evidence lapangan (Update 13 April 2026).\n\n**1. Integrasi Field Evidence:**\n- **Field progress_tag**: Sekarang bersifat **Opsional** (Sembunyikan di UI).\n- **Field keterangan (NEW)**: Memberikan deskripsi atau konteks pada foto (WAJIB).\n\n**Body Parameters (multipart/form-data):**\n- `file`: File foto (.jpg, .png)\n- `keterangan`: Deskripsi foto\n- `uploaded_by`: Nama pengunggah\n- `progress_tag`: (Opsional)\n\n**Note**: Tabelgaleri evidence di dashboard harus menampilkan kolom 'Keterangan' alih-alih Tag Progres."
               },
               "event": [
                 {
@@ -2473,20 +2843,37 @@
                   "name": "Create Issue - Tahan Stage",
                   "request": {
                     "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
+                    "header": [],
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"stage_at_report\": \"implementasi\",\n  \"keterangan\": \"Material tidak sesuai spesifikasi kontrak, perlu penggantian\",\n  \"tindakan\": \"tahan\",\n  \"reported_by\": \"Budi Santoso\",\n  \"evidence_urls\": [\"https://cdn.example.com/foto-bukti.jpg\"]\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "stage_at_report",
+                          "value": "implementasi",
+                          "type": "text"
+                        },
+                        {
+                          "key": "keterangan",
+                          "value": "Material tidak sesuai spesifikasi kontrak, perlu penggantian",
+                          "type": "text"
+                        },
+                        {
+                          "key": "tindakan",
+                          "value": "tahan",
+                          "type": "text"
+                        },
+                        {
+                          "key": "reported_by",
+                          "value": "Budi Santoso",
+                          "type": "text"
+                        },
+                        {
+                          "key": "evidence_urls",
+                          "value": "[\"https://cdn.example.com/foto-bukti.jpg\"]",
+                          "type": "text",
+                          "description": "JSON array"
                         }
-                      }
+                      ]
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
@@ -2527,20 +2914,31 @@
                   "name": "Create Issue - Eskalasi ke Management",
                   "request": {
                     "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
+                    "header": [],
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"stage_at_report\": \"permit_process\",\n  \"keterangan\": \"Izin warga ditolak setelah 3 minggu negosiasi, perlu intervensi management\",\n  \"tindakan\": \"eskalasi\",\n  \"reported_by\": \"Andi Manajer\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "stage_at_report",
+                          "value": "permit_process",
+                          "type": "text"
+                        },
+                        {
+                          "key": "keterangan",
+                          "value": "Izin warga ditolak setelah 3 minggu negosiasi, perlu intervensi management",
+                          "type": "text"
+                        },
+                        {
+                          "key": "tindakan",
+                          "value": "eskalasi",
+                          "type": "text"
+                        },
+                        {
+                          "key": "reported_by",
+                          "value": "Andi Manajer",
+                          "type": "text"
                         }
-                      }
+                      ]
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
@@ -2578,20 +2976,26 @@
                   "name": "Create Issue - INVALID tindakan (expect error)",
                   "request": {
                     "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
+                    "header": [],
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"stage_at_report\": \"bast\",\n  \"keterangan\": \"Test invalid\",\n  \"tindakan\": \"invalid_action\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "stage_at_report",
+                          "value": "bast",
+                          "type": "text"
+                        },
+                        {
+                          "key": "keterangan",
+                          "value": "Test invalid",
+                          "type": "text"
+                        },
+                        {
+                          "key": "tindakan",
+                          "value": "invalid_action",
+                          "type": "text"
                         }
-                      }
+                      ]
                     },
                     "url": {
                       "raw": "{{base_url}}/sites/{{site_id}}/issues",
@@ -2700,20 +3104,21 @@
                   "name": "Resolve Issue",
                   "request": {
                     "method": "POST",
-                    "header": [
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
+                    "header": [],
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"resolved_by\": \"Supervisor Tim\",\n  \"resolved_notes\": \"Material sudah diganti sesuai spesifikasi kontrak\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "resolved_by",
+                          "value": "Supervisor Tim",
+                          "type": "text"
+                        },
+                        {
+                          "key": "resolved_notes",
+                          "value": "Material sudah diganti sesuai spesifikasi kontrak",
+                          "type": "text"
                         }
-                      }
+                      ]
                     },
                     "url": {
                       "raw": "{{base_url}}/site-issues/{{issue_id}}/resolve",
@@ -2812,15 +3217,71 @@
           "name": "Create Person",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Budi Santoso\",\n  \"tanggal_lahir\": \"1990-05-15\",\n  \"tempat_lahir\": \"Jakarta\",\n  \"agama\": \"Islam\",\n  \"jenis_kelamin\": \"Laki-laki\",\n  \"no_ktp\": \"3174012345678901\",\n  \"no_hp\": \"081234567890\",\n  \"email\": \"budi@smartelco.com\",\n  \"jabatan_kerja\": \"Teknisi Senior\",\n  \"regional\": \"Jakarta\",\n  \"lokasi_kerja\": \"Jakarta Pusat\",\n  \"pekerjaan\": \"Instalasi Fiber\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Budi Santoso",
+                  "type": "text"
+                },
+                {
+                  "key": "tanggal_lahir",
+                  "value": "1990-05-15",
+                  "type": "text"
+                },
+                {
+                  "key": "tempat_lahir",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "agama",
+                  "value": "Islam",
+                  "type": "text"
+                },
+                {
+                  "key": "jenis_kelamin",
+                  "value": "Laki-laki",
+                  "type": "text"
+                },
+                {
+                  "key": "no_ktp",
+                  "value": "3174012345678901",
+                  "type": "text"
+                },
+                {
+                  "key": "no_hp",
+                  "value": "081234567890",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "budi@smartelco.com",
+                  "type": "text"
+                },
+                {
+                  "key": "jabatan_kerja",
+                  "value": "Teknisi Senior",
+                  "type": "text"
+                },
+                {
+                  "key": "regional",
+                  "value": "Jakarta",
+                  "type": "text"
+                },
+                {
+                  "key": "lokasi_kerja",
+                  "value": "Jakarta Pusat",
+                  "type": "text"
+                },
+                {
+                  "key": "pekerjaan",
+                  "value": "Instalasi Fiber",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/people",
@@ -2873,15 +3334,41 @@
           "name": "Update Person",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"jabatan_kerja\": \"Senior Project Manager\",\n  \"status_pernikahan\": \"Menikah\",\n  \"pendidikan_terakhir\": \"S1\",\n  \"nama_kampus_sekolah\": \"Universitas Indonesia\",\n  \"jurusan_sekolah\": \"Teknik Elektro\",\n  \"tahun_lulus\": \"2012\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "jabatan_kerja",
+                  "value": "Senior Project Manager",
+                  "type": "text"
+                },
+                {
+                  "key": "status_pernikahan",
+                  "value": "Menikah",
+                  "type": "text"
+                },
+                {
+                  "key": "pendidikan_terakhir",
+                  "value": "S1",
+                  "type": "text"
+                },
+                {
+                  "key": "nama_kampus_sekolah",
+                  "value": "Universitas Indonesia",
+                  "type": "text"
+                },
+                {
+                  "key": "jurusan_sekolah",
+                  "value": "Teknik Elektro",
+                  "type": "text"
+                },
+                {
+                  "key": "tahun_lulus",
+                  "value": "2012",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/people/{{people_id}}",
@@ -2953,15 +3440,47 @@
           "name": "Create Cost",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"Termin 1\",\n  \"tgl_pengajuan\": \"2026-02-20\",\n  \"jumlah_pengajuan\": 100000000,\n  \"status\": \"pending\",\n  \"catatan_tolak\": null\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "Termin 1",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_pengajuan",
+                  "value": "2026-02-20",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah_pengajuan",
+                  "value": "100000000",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "type": "text"
+                },
+                {
+                  "key": "catatan_tolak",
+                  "value": "",
+                  "type": "text",
+                  "description": "(null/optional)"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/costs",
@@ -3034,15 +3553,26 @@
           "name": "Approve Cost",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"acc_by\": \"user:admin123\",\n  \"acc_name\": \"John Doe\",\n  \"jumlah_acc\": 95000000\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "acc_by",
+                  "value": "user:admin123",
+                  "type": "text"
+                },
+                {
+                  "key": "acc_name",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah_acc",
+                  "value": "95000000",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/costs/{{cost_id_only}}/approve",
@@ -3067,15 +3597,46 @@
           "name": "Create Material",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"skp\": \"SKP-2026-001\",\n  \"name\": \"Kabel Fiber Optik 100m\",\n  \"unit\": \"Roll\",\n  \"qty\": 50,\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"tgl\": \"2026-02-20\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "skp",
+                  "value": "SKP-2026-001",
+                  "type": "text"
+                },
+                {
+                  "key": "name",
+                  "value": "Kabel Fiber Optik 100m",
+                  "type": "text"
+                },
+                {
+                  "key": "unit",
+                  "value": "Roll",
+                  "type": "text"
+                },
+                {
+                  "key": "qty",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl",
+                  "value": "2026-02-20",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/materials",
@@ -3153,15 +3714,16 @@
           "name": "Create Area",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nama_area\": \"Jakarta\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "nama_area",
+                  "value": "Jakarta",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/areas",
@@ -3196,15 +3758,26 @@
           "name": "Create Region",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"area_id\": \"{{area_id}}\",\n  \"kode_region\": \"JKT-PUSAT\",\n  \"nama_region\": \"Jakarta Pusat\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "area_id",
+                  "value": "{{area_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "kode_region",
+                  "value": "JKT-PUSAT",
+                  "type": "text"
+                },
+                {
+                  "key": "nama_region",
+                  "value": "Jakarta Pusat",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/regions",
@@ -3705,15 +4278,61 @@
           "name": "✅ Create Termin 1 (VALID - 30%)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 30000000,\n  \"termin_ke\": 1,\n  \"percentage\": 30,\n  \"keterangan\": \"Pengajuan termin 1 - 30% dari budget\",\n  \"nomor_rekening_tujuan\": \"BCA 1234567890 an. PT Mitra\",\n  \"submitted_by\": \"Budi Santoso\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_1",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-02-15",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "30000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "30",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Pengajuan termin 1 - 30% dari budget",
+                  "type": "text"
+                },
+                {
+                  "key": "nomor_rekening_tujuan",
+                  "value": "BCA 1234567890 an. PT Mitra",
+                  "type": "text"
+                },
+                {
+                  "key": "submitted_by",
+                  "value": "Budi Santoso",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3731,15 +4350,61 @@
           "name": "✅ Create Termin 2 (VALID - 50%)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Pengajuan termin 2 - 50% dari budget\",\n  \"nomor_rekening_tujuan\": \"BCA 1234567890 an. PT Mitra\",\n  \"submitted_by\": \"Ahmad Rahman\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_2",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-02-20",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "10000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Pengajuan termin 2 - 50% dari budget",
+                  "type": "text"
+                },
+                {
+                  "key": "nomor_rekening_tujuan",
+                  "value": "BCA 1234567890 an. PT Mitra",
+                  "type": "text"
+                },
+                {
+                  "key": "submitted_by",
+                  "value": "Ahmad Rahman",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3757,15 +4422,51 @@
           "name": "✅ Create Termin 3 (VALID - 10%)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_3\",\n  \"tgl_terima\": \"2026-03-01\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 3,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 3 - 10% dari budget\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_3",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-03-01",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "2000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "3",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Pengajuan termin 3 - 10% dari budget",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3783,15 +4484,51 @@
           "name": "✅ Create Termin 4 (VALID - 10%)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_4\",\n  \"tgl_terima\": \"2026-03-15\",\n  \"jumlah\": 2000000,\n  \"termin_ke\": 4,\n  \"percentage\": 10,\n  \"keterangan\": \"Pengajuan termin 4 - 10% dari budget (final)\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_4",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-03-15",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "2000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "4",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Pengajuan termin 4 - 10% dari budget (final)",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3809,15 +4546,51 @@
           "name": "❌ TEST: Wrong Percentage Pattern",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_1\",\n  \"tgl_terima\": \"2026-02-15\",\n  \"jumlah\": 40000000,\n  \"termin_ke\": 1,\n  \"percentage\": 40,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena Termin 1 harus 30%\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_1",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-02-15",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "40000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "40",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Test validasi - seharusnya ditolak karena Termin 1 harus 30%",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3835,15 +4608,51 @@
           "name": "❌ TEST: Skip Sequential Order",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 10000000,\n  \"termin_ke\": 2,\n  \"percentage\": 50,\n  \"keterangan\": \"Test validasi - seharusnya ditolak jika Termin 1 belum approved\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_2",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-02-20",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "10000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "2",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "50",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Test validasi - seharusnya ditolak jika Termin 1 belum approved",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3861,15 +4670,51 @@
           "name": "❌ TEST: Invalid termin_ke (5)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"site_id\": \"{{site_id}}\",\n  \"type_termin\": \"TERMIN_5\",\n  \"tgl_terima\": \"2026-03-20\",\n  \"jumlah\": 5000000,\n  \"termin_ke\": 5,\n  \"percentage\": 10,\n  \"keterangan\": \"Test validasi - seharusnya ditolak karena termin_ke hanya 1-4\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "project_id",
+                  "value": "{{project_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_5",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-03-20",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "5000000",
+                  "type": "text"
+                },
+                {
+                  "key": "termin_ke",
+                  "value": "5",
+                  "type": "text"
+                },
+                {
+                  "key": "percentage",
+                  "value": "10",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Test validasi - seharusnya ditolak karena termin_ke hanya 1-4",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins",
@@ -3964,15 +4809,31 @@
           "name": "Update Termin (Draft Only)",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type_termin\": \"TERMIN_2\",\n  \"tgl_terima\": \"2026-02-20\",\n  \"jumlah\": 400000000,\n  \"keterangan\": \"Updated: Pembayaran termin kedua 50%\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "type_termin",
+                  "value": "TERMIN_2",
+                  "type": "text"
+                },
+                {
+                  "key": "tgl_terima",
+                  "value": "2026-02-20",
+                  "type": "text"
+                },
+                {
+                  "key": "jumlah",
+                  "value": "400000000",
+                  "type": "text"
+                },
+                {
+                  "key": "keterangan",
+                  "value": "Updated: Pembayaran termin kedua 50%",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins/{{termin_id_only}}",
@@ -3991,15 +4852,16 @@
           "name": "Submit Termin for Review",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"submitter_name\": \"Field Engineer\"\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "submitter_name",
+                  "value": "Field Engineer",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins/{{termin_id_only}}/submit",
@@ -4019,15 +4881,26 @@
           "name": "Review Termin (Field Head)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reviewer_name\": \"John Doe\",\n  \"catatan_review\": \"review oleh head area - dokumen lengkap dan sesuai\",\n  \"approve\": true\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "reviewer_name",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "catatan_review",
+                  "value": "review oleh head area - dokumen lengkap dan sesuai",
+                  "type": "text"
+                },
+                {
+                  "key": "approve",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins/{{termin_id_only}}/review",
@@ -4047,15 +4920,31 @@
           "name": "Approve Termin (Director)",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"approver_name\": \"Director Pak Dipo\",\n  \"approver_role\": \"direktur\",\n  \"catatan_approval\": \"Disetujui untuk pembayaran\",\n  \"approve\": true\n}"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "approver_name",
+                  "value": "Director Pak Dipo",
+                  "type": "text"
+                },
+                {
+                  "key": "approver_role",
+                  "value": "direktur",
+                  "type": "text"
+                },
+                {
+                  "key": "catatan_approval",
+                  "value": "Disetujui untuk pembayaran",
+                  "type": "text"
+                },
+                {
+                  "key": "approve",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/termins/{{termin_id_only}}/approve",
@@ -4173,20 +5062,37 @@
           "name": "Create Team",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nama\": \"Team Alpha Engineering\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"people_id_here\",\n  \"members\": [\n    {\n      \"people_id\": \"member1_id\",\n      \"role\": \"Engineer\",\n      \"vendor\": \"PT ABC Contractor\"\n    },\n    {\n      \"people_id\": \"member2_id\",\n      \"role\": \"Technician\",\n      \"vendor\": \"PT XYZ Services\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "nama",
+                  "value": "Team Alpha Engineering",
+                  "type": "text"
+                },
+                {
+                  "key": "project_id",
+                  "value": "{{project_id_only}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id_only}}",
+                  "type": "text"
+                },
+                {
+                  "key": "leader_id",
+                  "value": "people_id_here",
+                  "type": "text"
+                },
+                {
+                  "key": "members",
+                  "value": "[{\"people_id\": \"member1_id\", \"role\": \"Engineer\", \"vendor\": \"PT ABC Contractor\"}, {\"people_id\": \"member2_id\", \"role\": \"Technician\", \"vendor\": \"PT XYZ Services\"}]",
+                  "type": "text",
+                  "description": "JSON array"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/teams",
@@ -4262,20 +5168,36 @@
           "name": "Update Team",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nama\": \"Team Alpha Engineering Updated\",\n  \"project_id\": \"{{project_id_only}}\",\n  \"site_id\": \"{{site_id_only}}\",\n  \"leader_id\": \"new_leader_id\",\n  \"active\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "nama",
+                  "value": "Team Alpha Engineering Updated",
+                  "type": "text"
+                },
+                {
+                  "key": "project_id",
+                  "value": "{{project_id_only}}",
+                  "type": "text"
+                },
+                {
+                  "key": "site_id",
+                  "value": "{{site_id_only}}",
+                  "type": "text"
+                },
+                {
+                  "key": "leader_id",
+                  "value": "new_leader_id",
+                  "type": "text"
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{base_url}}/teams/{{team_id_only}}",
