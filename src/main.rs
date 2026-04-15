@@ -5,6 +5,7 @@ mod common;
 mod config;
 mod permissions;
 mod services;
+mod extractors;
 
 use axum::{
     extract::{Json, DefaultBodyLimit},
