@@ -143,20 +143,30 @@ pub async fn bulk_import_from_excel(
     // Step 2: Duplicate check using file hash
     let file_hash = calculate_file_hash(&file_bytes);
     
-    let existing_log: Option<ImportHistory> = state.db
-        .select(("import_history", &file_hash))
-        .await
-        .map_err(|e| {
-            eprintln!("Database error checking import history: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    // Check if the sites table is empty. If it's empty, bypass duplicate file check.
+    let mut is_db_not_empty = false;
+    if let Ok(mut res) = state.db.query("SELECT * FROM sites LIMIT 1").await {
+        if let Ok(sites) = res.take::<Vec<Site>>(0) {
+            is_db_not_empty = !sites.is_empty();
+        }
+    }
     
-    if existing_log.is_some() {
-        return Ok(Json(ApiResponse {
-            success: false,
-            data: None,
-            message: Some(format!("Gagal: File '{}' sudah pernah diimport sebelumnya.", file_name)),
-        }));
+    if is_db_not_empty {
+        let existing_log: Option<ImportHistory> = state.db
+            .select(("import_history", &file_hash))
+            .await
+            .map_err(|e| {
+                eprintln!("Database error checking import history: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+        
+        if existing_log.is_some() {
+            return Ok(Json(ApiResponse {
+                success: false,
+                data: None,
+                message: Some(format!("Gagal: File '{}' sudah pernah diimport sebelumnya.", file_name)),
+            }));
+        }
     }
 
     // Step 3: Parse filename to extract project info
@@ -473,8 +483,7 @@ async fn parse_eproc_format(
     };
     
     // Record import in history to prevent duplicates
-    let history_query = "CREATE import_history CONTENT {
-        id: type::thing('import_history', $hash),
+    let history_query = "CREATE type::thing('import_history', $hash) CONTENT {
         filename: $filename,
         file_hash: $hash,
         project_id: type::thing($project_id),
@@ -760,8 +769,7 @@ async fn parse_old_format(
     };
     
     // Record import in history to prevent duplicates
-    let history_query = "CREATE import_history CONTENT {
-        id: type::thing('import_history', $hash),
+    let history_query = "CREATE type::thing('import_history', $hash) CONTENT {
         filename: $filename,
         file_hash: $hash,
         project_id: type::thing($project_id),
