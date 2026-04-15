@@ -69,6 +69,39 @@ pub async fn list_projects(
     }))
 }
 
+/// GET /api/projects/type?type={keyword}
+/// Filter projects by type
+pub async fn list_projects_by_type(
+    axum::extract::State(state): axum::extract::State<Arc<AppState>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<ApiResponse<Vec<Project>>>, StatusCode> {
+    let type_keyword = params.get("type").map(|s| s.to_uppercase()).unwrap_or_default();
+    
+    // In SurrealDB, project has 'tipe' field
+    let query = "SELECT * FROM projects WHERE tipe = $type_keyword OR name CONTAINS $type_keyword ORDER BY created_at DESC";
+    
+    let mut response = state
+        .db
+        .query(query)
+        .bind(("type_keyword", type_keyword))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let projects: Vec<Project> = response.take(0).map_err(|e| {
+        eprintln!("Parse error: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(projects),
+        message: None,
+    }))
+}
+
 pub async fn delete_project(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     Path(project_id): Path<String>,

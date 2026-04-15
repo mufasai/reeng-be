@@ -7,13 +7,22 @@ use calamine::{Reader, Xlsx, open_workbook_from_rs, Data};
 use std::sync::Arc;
 use std::io::Cursor;
 use chrono::NaiveDate;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use surrealdb::sql::Thing;
 
 use crate::models::{
     ApiResponse, Project, Site, ProjectType,
-    BulkImportExcelResponse, ImportError, ImportSummary,
+    BulkImportExcelResponse, ImportError, ImportSummary, ImportHistory,
 };
 use crate::state::AppState;
+
+// Helper to calculate file hash for duplicate detection
+fn calculate_file_hash(bytes: &[u8]) -> String {
+    let mut hasher = DefaultHasher::new();
+    bytes.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
 
 // Helper function to strip table prefix
 fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
@@ -110,6 +119,7 @@ pub async fn bulk_import_from_excel(
     // Step 1: Extract file from multipart
     let mut file_data: Option<Vec<u8>> = None;
     let mut filename: Option<String> = None;
+    let mut project_type_override: Option<String> = None;
     
     while let Some(field) = multipart.next_field().await.map_err(|_| StatusCode::BAD_REQUEST)? {
         let name = field.name().unwrap_or("").to_string();
@@ -118,13 +128,37 @@ pub async fn bulk_import_from_excel(
             filename = field.file_name().map(|s| s.to_string());
             let bytes = field.bytes().await.map_err(|_| StatusCode::BAD_REQUEST)?;
             file_data = Some(bytes.to_vec());
+        } else if name == "project_type" {
+            let value = field.text().await.map_err(|_| StatusCode::BAD_REQUEST)?;
+            if !value.trim().is_empty() {
+                project_type_override = Some(value);
+            }
         }
     }
     
     let file_bytes = file_data.ok_or(StatusCode::BAD_REQUEST)?;
     let file_name = filename.unwrap_or_else(|| "unknown.xlsx".to_string());
     
-    // Step 2: Parse filename to extract project info
+    // Step 2: Duplicate check using file hash
+    let file_hash = calculate_file_hash(&file_bytes);
+    
+    let existing_log: Option<ImportHistory> = state.db
+        .select(("import_history", &file_hash))
+        .await
+        .map_err(|e| {
+            eprintln!("Database error checking import history: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    
+    if existing_log.is_some() {
+        return Ok(Json(ApiResponse {
+            success: false,
+            data: None,
+            message: Some(format!("Gagal: File '{}' sudah pernah diimport sebelumnya.", file_name)),
+        }));
+    }
+
+    // Step 3: Parse filename to extract project info
     let file_name_clean = file_name.replace(".xlsx", "").replace(".XLSX", "");
     let parts: Vec<&str> = file_name_clean.split('_').collect();
     
@@ -145,7 +179,9 @@ pub async fn bulk_import_from_excel(
     
     // Extract project type hint from filename (FILTER, COMBAT, etc.)
     let filename_upper = file_name.to_uppercase();
-    let project_type_hint = if filename_upper.contains("FILTER") {
+    let project_type_hint = if let Some(ref over) = project_type_override {
+        over.as_str()
+    } else if filename_upper.contains("FILTER") {
         "FILTER"
     } else if filename_upper.contains("COMBAT") {
         "COMBAT"
@@ -161,7 +197,7 @@ pub async fn bulk_import_from_excel(
     
     // Step 3: Parse Excel file
     let cursor = Cursor::new(file_bytes);
-    let mut workbook: Xlsx<_> = open_workbook_from_rs(cursor)
+    let workbook: Xlsx<_> = open_workbook_from_rs(cursor)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
     let sheet_names = workbook.sheet_names().to_vec();
@@ -171,10 +207,10 @@ pub async fn bulk_import_from_excel(
     
     if is_eproc_format {
         // EPROC Format: Single sheet, Row 2 = headers, Row 3+ = data
-        parse_eproc_format(state, workbook, file_name, project_lokasi, project_date, project_type_hint).await
+        parse_eproc_format(state, workbook, file_name, file_hash, project_lokasi, project_date, project_type_hint).await
     } else if sheet_names.len() >= 3 {
         // Old Format: Multi-sheet, Sheet 3 "Active Project Details"
-        parse_old_format(state, workbook, sheet_names, file_name, project_lokasi, project_date).await
+        parse_old_format(state, workbook, sheet_names, file_name, file_hash, project_lokasi, project_date, project_type_hint).await
     } else {
         return Err(StatusCode::BAD_REQUEST);
     }
@@ -185,6 +221,7 @@ async fn parse_eproc_format(
     state: Arc<AppState>,
     mut workbook: Xlsx<Cursor<Vec<u8>>>,
     file_name: String,
+    file_hash: String,
     project_lokasi: String,
     project_date: String,
     project_type_hint: &str,
@@ -251,7 +288,7 @@ async fn parse_eproc_format(
         lokasi: project_lokasi.clone(),
         value: total_budget,
         cost: total_budget,
-        tipe: project_type,
+        tipe: project_type.clone(),
         status: Some("active".to_string()),
         tgi_start: Some(project_date.clone()),
         tgi_end: None,
@@ -359,6 +396,7 @@ async fn parse_eproc_format(
             pemberi_tugas = $pemberi_tugas,
             penerima_tugas = $penerima_tugas,
             site_document = $site_document,
+            project_type = $project_type,
             created_at = time::now(),
             updated_at = time::now()";
         
@@ -378,6 +416,7 @@ async fn parse_eproc_format(
             .bind(("pemberi_tugas", "PT Telkom Indonesia".to_string()))
             .bind(("penerima_tugas", mitra))
             .bind(("site_document", None::<String>))
+            .bind(("project_type", Some(project_type.clone())))
             .await
         {
             Ok(mut response) => {
@@ -432,6 +471,21 @@ async fn parse_eproc_format(
         summary,
     };
     
+    // Record import in history to prevent duplicates
+    let history_query = "CREATE import_history CONTENT {
+        id: type::thing('import_history', $hash),
+        filename: $filename,
+        file_hash: $hash,
+        project_id: type::thing($project_id),
+        imported_at: time::now()
+    }";
+    
+    let _ = state.db.query(history_query)
+        .bind(("hash", file_hash))
+        .bind(("filename", file_name))
+        .bind(("project_id", project_id_str.clone()))
+        .await;
+    
     Ok(Json(ApiResponse {
         success: true,
         data: Some(response),
@@ -445,8 +499,10 @@ async fn parse_old_format(
     mut workbook: Xlsx<Cursor<Vec<u8>>>,
     sheet_names: Vec<String>,
     file_name: String,
+    file_hash: String,
     project_lokasi: String,
     project_date: String,
+    project_type_hint: &str,
 ) -> Result<Json<ApiResponse<BulkImportExcelResponse>>, StatusCode> {
     
     let target_sheet = &sheet_names[2];
@@ -470,12 +526,13 @@ async fn parse_old_format(
         0
     };
     
-    // Extract project type from first data row (Row 6, index 5)
-    // Column B (index 1) contains TIPE PROJECT
-    let project_type_str = if rows.len() > 5 {
+    // Use project_type_hint if it's not the default "BEBAN OPERASIONAL"
+    let project_type_str = if project_type_hint != "BEBAN OPERASIONAL" {
+        project_type_hint.to_string()
+    } else if rows.len() > 5 {
         get_cell_string(rows[5], 1) // Row 6, Column B
     } else {
-        String::from("BEBAN OPERASIONAL") // Default fallback
+        project_type_hint.to_string()
     };
     
     let project_type = parse_project_type(&project_type_str);
@@ -493,7 +550,7 @@ async fn parse_old_format(
         lokasi: project_lokasi.clone(),
         value: total_boq_aktual,
         cost: total_nilai_po,
-        tipe: project_type,
+        tipe: project_type.clone(),
         status: Some("active".to_string()),
         tgi_start: Some(project_date.clone()),
         tgi_end: None,
@@ -566,6 +623,16 @@ async fn parse_old_format(
         } else {
             nomor_kontrak
         };
+
+        // Extract new fields for "site id based" view
+        // C: SITE_ID
+        let site_id = get_cell_string(row, 2);
+        // E: SECTOR
+        let sector = get_cell_string(row, 4);
+        // F: CLUSTER
+        let cluster = get_cell_string(row, 5);
+        // Q: REGION (Assuming Column Q based on common formats, or fallback to empty)
+        let region = get_cell_string(row, 16);
         
         // G: TANGGAL WO - start
         let start = parse_date_field(row, 6);
@@ -607,6 +674,11 @@ async fn parse_old_format(
             pemberi_tugas = $pemberi_tugas,
             penerima_tugas = $penerima_tugas,
             site_document = $site_document,
+            project_type = $project_type,
+            site_id = $site_id,
+            sector = $sector,
+            cluster = $cluster,
+            region = $region,
             created_at = time::now(),
             updated_at = time::now()";
         
@@ -626,6 +698,11 @@ async fn parse_old_format(
             .bind(("pemberi_tugas", pemberi_tugas))
             .bind(("penerima_tugas", penerima_tugas))
             .bind(("site_document", None::<String>))
+            .bind(("project_type", Some(project_type.clone())))
+            .bind(("site_id", site_id))
+            .bind(("sector", sector))
+            .bind(("cluster", cluster))
+            .bind(("region", region))
             .await
         {
             Ok(mut response) => {
@@ -680,6 +757,21 @@ async fn parse_old_format(
         errors,
         summary,
     };
+    
+    // Record import in history to prevent duplicates
+    let history_query = "CREATE import_history CONTENT {
+        id: type::thing('import_history', $hash),
+        filename: $filename,
+        file_hash: $hash,
+        project_id: type::thing($project_id),
+        imported_at: time::now()
+    }";
+    
+    let _ = state.db.query(history_query)
+        .bind(("hash", file_hash))
+        .bind(("filename", file_name))
+        .bind(("project_id", project_id_str.clone()))
+        .await;
     
     Ok(Json(ApiResponse {
         success: true,

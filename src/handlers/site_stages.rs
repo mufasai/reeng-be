@@ -81,6 +81,7 @@ pub async fn update_site_stage(
         stage_rfs_catatan: None,
         stage_bast_dok_confirm: None,
         stage_bast_final_confirm: None,
+        stage_permit_approver_name: None,
     };
 
     // Parse multipart fields
@@ -135,6 +136,9 @@ pub async fn update_site_stage(
             },
             "stage_approval_chain" | "approval_chain" => {
                 multipart_data.stage_approval_chain = field.text().await.ok();
+            },
+            "stage_permit_approver_name" | "permit_approver_name" => {
+                multipart_data.stage_permit_approver_name = field.text().await.ok();
             },
             // Akses fields
             "stage_akses_provider" | "tower_provider" => {
@@ -221,7 +225,11 @@ pub async fn update_site_stage(
     }
 
     // Step 4: Validate stage transition is allowed
-    config::validate_stage_transition(current_stage, &multipart_data.stage, "FILTER")
+    let project_type_str = site.project_type.as_ref()
+        .map(|t| t.as_str())
+        .unwrap_or("FILTER");
+        
+    config::validate_stage_transition(current_stage, &multipart_data.stage, project_type_str)
         .map_err(|e| {
             eprintln!("❌ Invalid stage transition: {} → {} ({})", current_stage, multipart_data.stage, e);
             StatusCode::BAD_REQUEST
@@ -540,6 +548,9 @@ fn add_update_fields(
             if let Some(date) = &req.tgl_berakhir_permit_tpas {
                 query.push_str(&format!(", tgl_berakhir_permit_tpas = '{}'", escape_sql_string(date)));
             }
+            if let Some(approver) = &req.permit_approver_name {
+                query.push_str(&format!(", permit_approved_by = '{}', permit_approved_at = time::now()", escape_sql_string(approver)));
+            }
         }
 
         ("permit_ready", "akses_process") => {
@@ -682,8 +693,10 @@ pub async fn get_valid_next_stages(
     let current_stage = site.stage.as_deref().unwrap_or("imported");
 
     // Get project type untuk project-specific stages
-    let project_type = "FILTER"; // TODO: Fetch dari project
-
+    let project_type = site.project_type.as_ref()
+        .map(|t| t.as_str())
+        .unwrap_or("FILTER");
+        
     let valid_stages = StageTransitionService::get_valid_next_stages(current_stage, project_type);
 
     Ok(Json(ApiResponse {
@@ -738,6 +751,7 @@ fn map_multipart_to_request(mp: &UpdateSiteStageMultipart) -> UpdateSiteStageReq
         tgl_berakhir_permit_tpas: mp.stage_permit_berakhir.clone(),
         approval_chain: mp.stage_approval_chain.clone(),
         dokumen_tpas_url: mp.file.as_ref().map(|_| "uploaded".to_string()),
+        permit_approver_name: mp.stage_permit_approver_name.clone(),
         tower_provider: mp.stage_akses_provider.as_deref().and_then(|s| match s.to_uppercase().as_str() {
             "MITRATEL" => Some(crate::models::TowerProvider::Mitratel),
             "STP" => Some(crate::models::TowerProvider::Stp),
@@ -798,7 +812,7 @@ fn add_update_fields_multipart(
 
 /// Fetch single site dengan error handling
 async fn fetch_site(state: &Arc<AppState>, site_thing: &Thing) -> Result<Site, StatusCode> {
-    let query = "SELECT * FROM $site_id";
+    let query = "SELECT *, project_type OR project_id.tipe AS project_type FROM $site_id";
     let mut response = state
         .db
         .query(query)
@@ -809,7 +823,7 @@ async fn fetch_site(state: &Arc<AppState>, site_thing: &Thing) -> Result<Site, S
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    let mut sites: Vec<Site> = response.take(0).map_err(|_| {
+    let sites: Vec<Site> = response.take(0).map_err(|_| {
         eprintln!("Parse error");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
