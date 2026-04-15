@@ -42,6 +42,9 @@ COPY --from=builder /app/target/release/reengineering-tool-be /app/reengineering
 # Debug: cek binary compatibility
 RUN file /app/reengineering-tool-be && ldd /app/reengineering-tool-be || true
 
-EXPOSE 8080
+EXPOSE 3001
+
+# Railway will set PORT env variable, app will use it
+ENV PORT=3001
 
 ENTRYPOINT ["/app/reengineering-tool-be"]

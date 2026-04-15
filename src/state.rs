@@ -10,12 +10,22 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        // Load environment variables
-        let surreal_url = std::env::var("SURREAL_URL")?;
-        let surreal_namespace = std::env::var("SURREAL_NAMESPACE")?;
-        let surreal_database = std::env::var("SURREAL_DATABASE")?;
-        let surreal_username = std::env::var("SURREAL_USERNAME")?;
-        let surreal_password = std::env::var("SURREAL_PASSWORD")?;
+        // Load environment variables with better error messages
+        let surreal_url = std::env::var("SURREAL_URL")
+            .map_err(|_| "SURREAL_URL environment variable not set")?;
+        let surreal_namespace = std::env::var("SURREAL_NAMESPACE")
+            .map_err(|_| "SURREAL_NAMESPACE environment variable not set")?;
+        let surreal_database = std::env::var("SURREAL_DATABASE")
+            .map_err(|_| "SURREAL_DATABASE environment variable not set")?;
+        let surreal_username = std::env::var("SURREAL_USERNAME")
+            .map_err(|_| "SURREAL_USERNAME environment variable not set")?;
+        let surreal_password = std::env::var("SURREAL_PASSWORD")
+            .map_err(|_| "SURREAL_PASSWORD environment variable not set")?;
+        
+        println!("📋 Environment variables loaded:");
+        println!("   SURREAL_URL: {}", surreal_url);
+        println!("   SURREAL_NAMESPACE: {}", surreal_namespace);
+        println!("   SURREAL_DATABASE: {}", surreal_database);
 
         // Connect to SurrealDB
         println!("🔌 Connecting to SurrealDB at {}...", surreal_url);

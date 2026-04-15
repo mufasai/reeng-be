@@ -21,10 +21,19 @@ use state::AppState;
 // ==================== HEALTH CHECK ====================
 
 async fn health_check() -> Json<serde_json::Value> {
+    let env_check = serde_json::json!({
+        "surreal_url_set": std::env::var("SURREAL_URL").is_ok(),
+        "jwt_secret_set": std::env::var("JWT_SECRET").is_ok(),
+        "port": std::env::var("PORT")
+            .or_else(|_| std::env::var("SERVER_PORT"))
+            .unwrap_or_else(|_| "not set".to_string()),
+    });
+    
     Json(serde_json::json!({
         "success": true,
         "message": "Server is running",
         "timestamp": chrono::Utc::now().to_rfc3339(),
+        "environment": env_check,
     }))
 }
 
@@ -182,8 +191,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(cors)
         .layer(DefaultBodyLimit::max(20 * 1024 * 1024));
 
-    // Start server
-    let addr = "0.0.0.0:3001";
+    // Start server - Railway uses PORT env variable
+    let port = std::env::var("PORT")
+        .or_else(|_| std::env::var("SERVER_PORT"))
+        .unwrap_or_else(|_| "3001".to_string());
+    let addr = format!("0.0.0.0:{}", port);
     println!("🚀 Server starting on http://{}", addr);
     println!("📝 Available endpoints:");
     println!("  GET    /api/health");
@@ -263,8 +275,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   - admin");
     println!("   - direktur");
 
-    let port = std::env::var("SERVER_PORT").unwrap_or("3001".to_string());
-    let addr = format!("0.0.0.0:{}", port);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await?;
 
