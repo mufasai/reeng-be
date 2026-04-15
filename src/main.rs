@@ -50,15 +50,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create shared state with database connection
     let state = match AppState::new().await {
-    Ok(s) => {
-        println!("✅ AppState initialized");
-        Arc::new(s)
-    }
-    Err(e) => {
-        eprintln!("❌ Failed to init AppState: {:?}", e);
-        panic!("AppState init failed");
-    }
-};
+        Ok(s) => {
+            println!("✅ AppState initialized successfully");
+            Arc::new(s)
+        }
+        Err(e) => {
+            eprintln!("❌ FATAL: Failed to initialize AppState");
+            eprintln!("❌ Error: {}", e);
+            eprintln!("❌ This usually means:");
+            eprintln!("   1. Database connection failed");
+            eprintln!("   2. Environment variables not set correctly");
+            eprintln!("   3. Database is not accessible");
+            std::process::exit(1);
+        }
+    };
 
     // Configure CORS
     let cors = CorsLayer::new()
@@ -288,4 +293,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     axum::serve(listener, app).await?;
 
     Ok(())
-}pub mod extractors;
+}

@@ -7,7 +7,7 @@
 .env
 .env.local
 .env.production
-.env.example
+# Keep .env.example for documentation
 
 # IDE
 .vscode/
