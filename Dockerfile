@@ -46,5 +46,8 @@ EXPOSE 3001
 
 # Railway will set PORT env variable, app will use it
 ENV PORT=3001
+ENV RUST_LOG=info
+RUN echo '#!/bin/sh\necho "==== CONTAINER STARTING ===="\nenv\nls -la /app\necho "==== STARTING RUST APP ===="\nexec /app/reengineering-tool-be' > /app/start.sh && \
+    chmod +x /app/start.sh /app/reengineering-tool-be
 
-ENTRYPOINT ["/app/reengineering-tool-be"]
+ENTRYPOINT ["/app/start.sh"]
