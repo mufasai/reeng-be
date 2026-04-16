@@ -21,6 +21,7 @@ RUN mkdir -p src && \
 
 # Build aplikasi sebenarnya
 COPY src ./src
+RUN touch src/main.rs
 RUN cargo build --release -p reengineering-tool-be
 
 # =========================
