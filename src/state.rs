@@ -10,7 +10,7 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        println!("🔧 Initializing AppState...");
+        eprintln!("🔧 Initializing AppState...");
         
         // Load environment variables with better error messages
         let surreal_url = std::env::var("SURREAL_URL")
@@ -24,13 +24,13 @@ impl AppState {
         let surreal_password = std::env::var("SURREAL_PASSWORD")
             .map_err(|_| "SURREAL_PASSWORD environment variable not set")?;
         
-        println!("📋 Environment variables loaded:");
-        println!("   SURREAL_URL: {}", surreal_url);
-        println!("   SURREAL_NAMESPACE: {}", surreal_namespace);
-        println!("   SURREAL_DATABASE: {}", surreal_database);
+        eprintln!("📋 Environment variables loaded:");
+        eprintln!("   SURREAL_URL: {}", surreal_url);
+        eprintln!("   SURREAL_NAMESPACE: {}", surreal_namespace);
+        eprintln!("   SURREAL_DATABASE: {}", surreal_database);
 
         // Connect to SurrealDB
-        println!("🔌 Connecting to SurrealDB at {}...", surreal_url);
+        eprintln!("🔌 Connecting to SurrealDB at {}...", surreal_url);
         
         // Remove protocol if present (SurrealDB client adds it automatically)
         let clean_url = surreal_url
@@ -50,12 +50,12 @@ impl AppState {
             true // External URLs default to HTTPS
         };
         
-        println!("🔗 Connecting with {} to: {}", if use_https { "HTTPS" } else { "HTTP" }, clean_url);
+        eprintln!("🔗 Connecting with {} to: {}", if use_https { "HTTPS" } else { "HTTP" }, clean_url);
         
         let db: Surreal<Client> = if use_https {
             match Surreal::new::<Https>(clean_url).await {
                 Ok(db) => {
-                    println!("✅ HTTPS connection established");
+                    eprintln!("✅ HTTPS connection established");
                     db
                 }
                 Err(e) => {
@@ -66,7 +66,7 @@ impl AppState {
         } else {
             match Surreal::new::<Http>(clean_url).await {
                 Ok(db) => {
-                    println!("✅ HTTP connection established");
+                    eprintln!("✅ HTTP connection established");
                     db
                 }
                 Err(e) => {
@@ -77,12 +77,12 @@ impl AppState {
         };
 
         // Sign in
-        println!("🔐 Signing in to database...");
+        eprintln!("🔐 Signing in to database...");
         match db.signin(Root {
             username: &surreal_username,
             password: &surreal_password,
         }).await {
-            Ok(_) => println!("✅ Authentication successful"),
+            Ok(_) => eprintln!("✅ Authentication successful"),
             Err(e) => {
                 eprintln!("❌ Authentication failed: {}", e);
                 return Err(Box::new(e));
@@ -90,16 +90,16 @@ impl AppState {
         }
 
         // Select namespace and database
-        println!("📂 Selecting namespace and database...");
+        eprintln!("📂 Selecting namespace and database...");
         match db.use_ns(&surreal_namespace).use_db(&surreal_database).await {
-            Ok(_) => println!("✅ Namespace and database selected"),
+            Ok(_) => eprintln!("✅ Namespace and database selected"),
             Err(e) => {
                 eprintln!("❌ Failed to select namespace/database: {}", e);
                 return Err(Box::new(e));
             }
         }
 
-        println!("✅ Connected to SurrealDB: {}/{}", surreal_namespace, surreal_database);
+        eprintln!("✅ Connected to SurrealDB: {}/{}", surreal_namespace, surreal_database);
 
         Ok(Self { db })
     }
