@@ -307,6 +307,7 @@ async fn parse_eproc_format(
             project_type_hint,
             file_name
         ),
+        regional: None,
         created_at: None,
         updated_at: None,
     };
@@ -568,6 +569,7 @@ async fn parse_old_format(
             project_type_str.to_uppercase().trim(),
             file_name
         ),
+        regional: None,
         created_at: None,
         updated_at: None,
     };

@@ -21,6 +21,7 @@ pub async fn create_project(
         tgi_start: req.tgi_start,  // NEW
         tgi_end: req.tgi_end,      // NEW
         status: req.status.or(Some("active".to_string())),  // NEW with default
+        regional: req.regional,
         created_at: None,
         updated_at: None,
     };
@@ -217,6 +218,9 @@ pub async fn update_project(
     if let Some(status) = req.status {
         existing_project.status = Some(status);
     }
+    if let Some(regional) = req.regional {
+        existing_project.regional = Some(regional);
+    }
 
     // Update project in SurrealDB
     let update_query = r#"
@@ -230,6 +234,7 @@ pub async fn update_project(
             tgi_start = $tgi_start,
             tgi_end = $tgi_end,
             status = $status,
+            regional = $regional,
             updated_at = time::now()
     "#;
 
@@ -246,6 +251,7 @@ pub async fn update_project(
         .bind(("tgi_start", existing_project.tgi_start.clone()))
         .bind(("tgi_end", existing_project.tgi_end.clone()))
         .bind(("status", existing_project.status.clone()))
+        .bind(("regional", existing_project.regional.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);

@@ -4,6 +4,7 @@ pub mod site;
 pub mod people;
 pub mod costs;
 pub mod materials;
+pub mod material_master;
 pub mod regions;
 pub mod files;
 pub mod termins;

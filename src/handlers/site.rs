@@ -58,6 +58,12 @@ pub async fn create_site(
         sector = $sector,
         cluster = $cluster,
         region = $region,
+        tanggal_pks_sm = $tanggal_pks_sm,
+        pks_number = $pks_number,
+        regional_contract_manager = $regional_contract_manager,
+        pks_admin = $pks_admin,
+        spk_contract_manager = $spk_contract_manager,
+        spk_admin = $spk_admin,
         created_at = time::now(), 
         updated_at = time::now()";
 
@@ -84,6 +90,12 @@ pub async fn create_site(
         .bind(("sector", req.sector.clone()))
         .bind(("cluster", req.cluster.clone()))
         .bind(("region", req.region.clone()))
+        .bind(("tanggal_pks_sm", req.tanggal_pks_sm.clone()))
+        .bind(("pks_number", req.pks_number.clone()))
+        .bind(("regional_contract_manager", req.regional_contract_manager.clone()))
+        .bind(("pks_admin", req.pks_admin.clone()))
+        .bind(("spk_contract_manager", req.spk_contract_manager.clone()))
+        .bind(("spk_admin", req.spk_admin.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error creating site: {}", e);
@@ -608,6 +620,24 @@ pub async fn update_site(
     if req.region.is_some() {
         update_parts.push("region = $region".to_string());
     }
+    if req.tanggal_pks_sm.is_some() {
+        update_parts.push("tanggal_pks_sm = $tanggal_pks_sm".to_string());
+    }
+    if req.pks_number.is_some() {
+        update_parts.push("pks_number = $pks_number".to_string());
+    }
+    if req.regional_contract_manager.is_some() {
+        update_parts.push("regional_contract_manager = $regional_contract_manager".to_string());
+    }
+    if req.pks_admin.is_some() {
+        update_parts.push("pks_admin = $pks_admin".to_string());
+    }
+    if req.spk_contract_manager.is_some() {
+        update_parts.push("spk_contract_manager = $spk_contract_manager".to_string());
+    }
+    if req.spk_admin.is_some() {
+        update_parts.push("spk_admin = $spk_admin".to_string());
+    }
 
     let update_query = format!(
         "UPDATE type::thing($site_id) SET {}",
@@ -679,6 +709,24 @@ pub async fn update_site(
     }
     if let Some(region) = req.region {
         query_builder = query_builder.bind(("region", region));
+    }
+    if let Some(tanggal_pks_sm) = req.tanggal_pks_sm {
+        query_builder = query_builder.bind(("tanggal_pks_sm", tanggal_pks_sm));
+    }
+    if let Some(pks_number) = req.pks_number {
+        query_builder = query_builder.bind(("pks_number", pks_number));
+    }
+    if let Some(regional_contract_manager) = req.regional_contract_manager {
+        query_builder = query_builder.bind(("regional_contract_manager", regional_contract_manager));
+    }
+    if let Some(pks_admin) = req.pks_admin {
+        query_builder = query_builder.bind(("pks_admin", pks_admin));
+    }
+    if let Some(spk_contract_manager) = req.spk_contract_manager {
+        query_builder = query_builder.bind(("spk_contract_manager", spk_contract_manager));
+    }
+    if let Some(spk_admin) = req.spk_admin {
+        query_builder = query_builder.bind(("spk_admin", spk_admin));
     }
 
     let mut response = query_builder.await.map_err(|e| {
