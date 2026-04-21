@@ -7,6 +7,12 @@ use calamine::{Reader, Xlsx, Data};
 use crate::models::{ApiResponse, CreatePeopleRequest, UpdatePeopleRequest, People, TeamUploadResult};
 use crate::state::AppState;
 
+// Helper function to strip table prefix from ID strings
+fn strip_table_prefix<'a>(id_str: &'a str, table: &str) -> &'a str {
+    let prefix = format!("{}:", table);
+    id_str.strip_prefix(&prefix).unwrap_or(id_str)
+}
+
 pub async fn create_people(
     axum::extract::State(state): axum::extract::State<Arc<AppState>>,
     FormOrJson(req): FormOrJson<CreatePeopleRequest>,
@@ -37,6 +43,7 @@ pub async fn create_people(
         foto_ktp: None,
         foto_diri: None,
         thumbnail_path: None,
+        status_aktif: true,
         created_at: None,
         updated_at: None,
     };
@@ -88,10 +95,11 @@ pub async fn get_people(
 ) -> Result<Json<ApiResponse<People>>, StatusCode> {
     let query = "SELECT * FROM type::thing('people', $id)";
 
+    let id_clean = strip_table_prefix(&people_id, "people");
     let mut response = state
         .db
         .query(query)
-        .bind(("id", people_id.clone()))
+        .bind(("id", id_clean.to_string()))
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);
@@ -120,11 +128,12 @@ pub async fn update_people(
     FormOrJson(req): FormOrJson<UpdatePeopleRequest>,
 ) -> Result<Json<ApiResponse<People>>, StatusCode> {
     // Get existing person
+    let id_clean = strip_table_prefix(&people_id, "people");
     let query = "SELECT * FROM type::thing('people', $id)";
     let mut response = state
         .db
         .query(query)
-        .bind(("id", people_id.clone()))
+        .bind(("id", id_clean.to_string()))
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);
@@ -206,6 +215,9 @@ pub async fn update_people(
     if let Some(tahun_lulus) = req.tahun_lulus {
         existing_person.tahun_lulus = Some(tahun_lulus);
     }
+    if let Some(status_aktif) = req.status_aktif {
+        existing_person.status_aktif = status_aktif;
+    }
 
     // Update in database
     let update_query = r#"
@@ -231,13 +243,15 @@ pub async fn update_people(
             nama_kampus_sekolah = $nama_kampus_sekolah,
             jurusan_sekolah = $jurusan_sekolah,
             tahun_lulus = $tahun_lulus,
+            status_aktif = $status_aktif,
             updated_at = time::now()
     "#;
 
+    let id_clean = strip_table_prefix(&people_id, "people");
     let mut update_response = state
         .db
         .query(update_query)
-        .bind(("id", people_id.clone()))
+        .bind(("id", id_clean.to_string()))
         .bind(("name", existing_person.name.clone()))
         .bind(("tanggal_lahir", existing_person.tanggal_lahir.clone()))
         .bind(("tempat_lahir", existing_person.tempat_lahir.clone()))
@@ -259,6 +273,7 @@ pub async fn update_people(
         .bind(("nama_kampus_sekolah", existing_person.nama_kampus_sekolah.clone()))
         .bind(("jurusan_sekolah", existing_person.jurusan_sekolah.clone()))
         .bind(("tahun_lulus", existing_person.tahun_lulus.clone()))
+        .bind(("status_aktif", existing_person.status_aktif))
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);
@@ -285,10 +300,11 @@ pub async fn delete_people(
 ) -> Result<Json<ApiResponse<String>>, StatusCode> {
     let query = "DELETE type::thing('people', $id)";
 
+    let id_clean = strip_table_prefix(&people_id, "people");
     let _result = state
         .db
         .query(query)
-        .bind(("id", people_id.clone()))
+        .bind(("id", id_clean.to_string()))
         .await
         .map_err(|e| {
             eprintln!("Database error: {}", e);

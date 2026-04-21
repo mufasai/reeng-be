@@ -471,11 +471,17 @@ pub struct People {
     pub foto_ktp: Option<String>,
     pub foto_diri: Option<String>,
     pub thumbnail_path: Option<String>,
+    /// Apakah person ini masih aktif bekerja (default: true)
+    #[serde(default = "default_true")]
+    pub status_aktif: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
+
+/// Helper: default value `true` for serde fields
+fn default_true() -> bool { true }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePeopleRequest {
@@ -516,6 +522,8 @@ pub struct UpdatePeopleRequest {
     pub nama_kampus_sekolah: Option<String>,
     pub jurusan_sekolah: Option<String>,
     pub tahun_lulus: Option<String>,
+    /// Update status aktif karyawan
+    pub status_aktif: Option<bool>,
 }
 
 // ==================== PROJECT MODELS ====================
@@ -533,6 +541,7 @@ pub struct Project {
     pub tgi_start: Option<String>,  // NEW - tanggal mulai
     pub tgi_end: Option<String>,    // NEW - tanggal selesai
     pub status: Option<String>,     // NEW
+    pub regional: Option<String>,   // NEW - regional info
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -550,6 +559,7 @@ pub struct CreateProjectRequest {
     pub tgi_start: Option<String>,
     pub tgi_end: Option<String>,
     pub status: Option<String>,
+    pub regional: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -563,6 +573,7 @@ pub struct UpdateProjectRequest {
     pub tgi_start: Option<String>,
     pub tgi_end: Option<String>,
     pub status: Option<String>,
+    pub regional: Option<String>,
 }
 
 // ==================== SITE MODELS ====================
@@ -592,6 +603,13 @@ pub struct Site {
     pub sector: Option<String>,
     pub cluster: Option<String>,
     pub region: Option<String>,
+    // PKS & Contract Management Fields
+    pub tanggal_pks_sm: Option<String>,
+    pub pks_number: Option<String>,
+    pub regional_contract_manager: Option<String>,
+    pub pks_admin: Option<String>,
+    pub spk_contract_manager: Option<String>,
+    pub spk_admin: Option<String>,
     // Stage tracking
     pub stage: Option<String>,              // imported | assigned | permit_process | permit_ready | akses_process | akses_ready | implementasi | rfi_done | rfs_done | dokumen_done | bast | invoice | completed
     pub stage_updated_at: Option<String>,
@@ -697,6 +715,12 @@ pub struct CreateSiteRequest {
     pub sector: Option<String>,
     pub cluster: Option<String>,
     pub region: Option<String>,
+    pub tanggal_pks_sm: Option<String>,
+    pub pks_number: Option<String>,
+    pub regional_contract_manager: Option<String>,
+    pub pks_admin: Option<String>,
+    pub spk_contract_manager: Option<String>,
+    pub spk_admin: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -727,6 +751,12 @@ pub struct UpdateSiteRequest {
     pub sector: Option<String>,
     pub cluster: Option<String>,
     pub region: Option<String>,
+    pub tanggal_pks_sm: Option<String>,
+    pub pks_number: Option<String>,
+    pub regional_contract_manager: Option<String>,
+    pub pks_admin: Option<String>,
+    pub spk_contract_manager: Option<String>,
+    pub spk_admin: Option<String>,
 }
 
 // ==================== STAGE LOG MODELS ====================
@@ -885,6 +915,11 @@ pub struct Team {
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
     pub leader_id: Option<Thing>,  // FK to people table
     pub active: bool,
+    /// Status aktif tim (frontend: status_aktif)
+    #[serde(default = "default_true")]
+    pub status_aktif: bool,
+    /// Tipe proyek tim: FILTER | COMBAT | BLACKSITE | L2H | RESCOPING
+    pub project_type: Option<String>,
     // Employee detail fields (populated from Excel upload)
     pub nik: Option<String>,
     pub nama_karyawan: Option<String>,
@@ -925,10 +960,14 @@ pub struct TeamPeople {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTeamRequest {
     pub nama: String,
-    pub project_id: String,
+    pub project_id: Option<String>,
     pub site_id: Option<String>,
     pub leader_id: Option<String>,
     pub members: Vec<TeamMemberInput>,
+    /// Tipe proyek: FILTER | COMBAT | BLACKSITE | L2H | RESCOPING
+    pub project_type: Option<String>,
+    pub status_aktif: Option<bool>,
+    pub regional: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -938,6 +977,9 @@ pub struct UpdateTeamRequest {
     pub site_id: Option<String>,
     pub leader_id: Option<String>,
     pub active: Option<bool>,
+    pub status_aktif: Option<bool>,
+    pub project_type: Option<String>,
+    pub regional: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1076,6 +1118,16 @@ pub struct Material {
     #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
     pub site_id: Option<Thing>,
     pub tgl: Option<String>,
+    /// Link ke tabel material_master (opsional)
+    pub material_master_id: Option<String>,
+    /// true jika material berasal dari master catalog
+    #[serde(default)]
+    pub source_master: bool,
+    /// Harga satuan (dari master atau diisi manual)
+    pub harga_satuan: Option<i64>,
+    pub spesifikasi: Option<String>,
+    pub satuan: Option<String>,
+    pub keterangan: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1091,6 +1143,69 @@ pub struct CreateMaterialRequest {
     pub project_id: String,
     pub site_id: String,
     pub tgl: Option<String>,
+    pub material_master_id: Option<String>,
+    pub source_master: Option<bool>,
+    pub harga_satuan: Option<i64>,
+    pub spesifikasi: Option<String>,
+    pub satuan: Option<String>,
+    pub keterangan: Option<String>,
+}
+
+// ==================== MATERIAL MASTER MODELS ====================
+
+/// Katalog/referensi material yang dapat digunakan di seluruh site.
+/// Dikelola lewat halaman Material Master di frontend.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaterialMaster {
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "thing_serializer::serialize")]
+    pub id: Option<Thing>,
+    /// Kode unik material (opsional, contoh: MT-001)
+    pub kode_material: Option<String>,
+    /// Nama material (wajib)
+    pub nama_material: String,
+    /// Kategori: Sipil | Telecom | Elektrikal | Lainnya
+    pub kategori: Option<String>,
+    /// Spesifikasi teknis material
+    pub spesifikasi: Option<String>,
+    /// Satuan: pcs | m | kg | ZAK | Btg | set | dll
+    pub satuan: Option<String>,
+    /// Harga satuan dalam rupiah
+    pub harga_satuan: Option<i64>,
+    pub keterangan: Option<String>,
+    /// Apakah material masih aktif digunakan (default true)
+    #[serde(default = "default_true")]
+    pub status_aktif: bool,
+    pub created_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateMaterialMasterRequest {
+    pub kode_material: Option<String>,
+    pub nama_material: String,
+    pub kategori: Option<String>,
+    pub spesifikasi: Option<String>,
+    pub satuan: Option<String>,
+    pub harga_satuan: Option<i64>,
+    pub keterangan: Option<String>,
+    /// Default true jika tidak diisi
+    pub status_aktif: Option<bool>,
+    pub created_by: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateMaterialMasterRequest {
+    pub kode_material: Option<String>,
+    pub nama_material: Option<String>,
+    pub kategori: Option<String>,
+    pub spesifikasi: Option<String>,
+    pub satuan: Option<String>,
+    pub harga_satuan: Option<i64>,
+    pub keterangan: Option<String>,
+    pub status_aktif: Option<bool>,
 }
 
 // ==================== AREA & REGION MODELS ====================

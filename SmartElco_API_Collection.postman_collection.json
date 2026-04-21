@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "smartelco-api-2026",
-    "name": "SmartElco API Collection - UPDATE 15 APRIL v2.6.2",
+    "name": "SmartElco API Collection - UPDATE 20 APRIL v2.7.0",
     "description": "Complete API collection for SmartElco Reengineering Tool Backend\n\nUPDATE 15 APRIL 2026 (v2.6.2):\n- NEW: Site Evidence support field 'title' (judul foto)\n- Internal: Refactor create_site_evidence handler to support title multipart field\n\nUPDATE 15 APRIL 2026 (v2.6.1):\n- Refactor: days_in_stage diubah menjadi last_update (DateTime String) pada semua site responses\n- NEW: Site Evidence support field 'keterangan' (deskripsi foto)\n- NEW: Proteksi otomatis terhadap upload file Excel (BOQ) yang sama (File Hashing)\n- Enhanced: Metadata stage di dashboard menampilkan waktu eksak perubahan terakhir\n\nUPDATE 7 APRIL 2026 (v2.5):\n- NEW: POST /people/upload — Bulk import people dari file Excel dengan auto-detection kolom\n- NEW: POST /sites/{site_id}/team-structure — Auto-update stage dari \"imported\" → \"assigned\" ketika tim ditambahkan\n- NEW: GET /sites/type — Filter site berdasarkan jenis pekerjaan (query parameter)\n- NEW: GET /sites/category/{category} — Filter site berdasarkan kategori (BLACK SITE, COMBAT, FILTER, L2H, REFINEN)\n- Enhanced: People import dengan handling date conversion Excel serial format\n- Enhanced: Auto stage transition complete dengan timestamp logging\n- Field validation untuk duplicate detection pada site creation\n\nUPDATE 31 MARET 2026 (v2.3):\n- Enhanced Update Stage Modal with 40+ dynamic fields\n- New fields: Permit, Akses, Survey, Building, Implementasi, RFI/RFS, BAST categories\n- Per-stage field validation with required field matrix\n- New endpoint: GET /sites/:id/valid-next-stages (helper for stage dropdown)\n- New endpoint: GET /sites/:id/valid-next-stages (helper for UI flow)\n- SQL injection prevention on all string fields\n- Comprehensive error messages in Indonesian\n- Audit logging for all stage transitions\n\nUPDATE 14 MARET 2026 (v2.2.1):\n- Site responses kini include metrik hari: last_update, permit_days_total, permit_days_elapsed, permit_days_remaining\n- Berlaku pada POST /sites, GET /sites, GET /sites/:id, GET /sites/project/:project_id, PUT /sites/:id, POST /sites/:id/stage\n\nUPDATE 12 MARET 2026 (v2.2):\n- GET/POST /sites/:id/permit-docs — Upload dokumen perizinan TPAS/TP/CAF per site\n- GET/DELETE /permit-docs/:doc_id — Detail/hapus dokumen perizinan\n- GET /permit-docs/:doc_id/preview — Preview biner dokumen perizinan\n- POST /termins — Kini mendukung multipart/form-data dengan field dokumen_pengajuan (permit doc, inv proforma, dsb)\n\nUPDATE 11 MARET 2026 (v2.1):\n- GET /sites/:id — Get detail site by ID\n- POST /sites/:id/issues — Laporkan issue/blocker (tahan | eskalasi)\n- GET /sites/:id/issues — List issue per site\n- GET /site-issues/:id — Detail issue\n- POST /site-issues/:id/resolve — Resolve issue (status: resolved)\n- DELETE /site-issues/:id — Hapus issue\n\nUPDATE 10 MARET 2026 (v2.0):\n- POST /sites/:id/stage — Update stage progress site + auto audit log\n- GET /sites/:id/stage-logs — Riwayat perubahan stage\n- GET/POST /sites/:id/boq — BOQ material per site\n- PUT/DELETE /site-boq/:boq_id — Update/hapus item BOQ\n- GET/POST /sites/:id/skp — SKP (Surat Perintah Ambil Material)\n- GET/PUT/DELETE /skp/:skp_id — Detail/update/hapus SKP\n- GET/POST /sites/:id/evidence — Foto lapangan per site\n- DELETE /site-evidence/:evidence_id — Hapus foto lapangan",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -3708,6 +3708,190 @@
                 "{{site_id_only}}"
               ]
             }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Material Master - 20 April",
+      "item": [
+        {
+          "name": "Create Material Master",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kode_material\": \"MT-006\",\n  \"nama_material\": \"Filter LTE 1800 MHz\",\n  \"kategori\": \"Telecom\",\n  \"spesifikasi\": \"1800MHz Bandpass, insertion loss < 1dB\",\n  \"satuan\": \"pcs\",\n  \"harga_satuan\": 3500000,\n  \"keterangan\": \"Import dari vendor luar\",\n  \"status_aktif\": true,\n  \"created_by\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/material-master",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master"
+              ]
+            },
+            "description": "Buat data material master baru dalam katalog. Semua field kecuali nama_material bersifat opsional.\n\nField:\n- kode_material: Kode unik (opsional, contoh: MT-006)\n- nama_material: Nama material (WAJIB)\n- kategori: Sipil | Telecom | Elektrikal | Lainnya\n- spesifikasi: Detail teknis material\n- satuan: pcs | m | kg | ZAK | Btg | set | dll\n- harga_satuan: Harga per satuan (rupiah)\n- status_aktif: true/false (default: true)\n- created_by: Nama/ID pembuat"
+          },
+          "response": []
+        },
+        {
+          "name": "List All Material Master",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/material-master",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master"
+              ]
+            },
+            "description": "Ambil semua data material master (aktif dan non-aktif), diurutkan berdasarkan nama."
+          },
+          "response": []
+        },
+        {
+          "name": "List Active Material Master",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/material-master/active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master",
+                "active"
+              ]
+            },
+            "description": "Ambil hanya material master yang aktif (status_aktif = true). Digunakan untuk dropdown di form Site Material."
+          },
+          "response": []
+        },
+        {
+          "name": "List Material Master by Kategori",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/material-master/kategori/Telecom",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master",
+                "kategori",
+                "Telecom"
+              ]
+            },
+            "description": "Filter material master berdasarkan kategori. Hanya yang aktif yang dikembalikan.\n\nContoh kategori: Sipil | Telecom | Elektrikal | Lainnya\n\nGanti 'Telecom' di URL dengan kategori yang diinginkan."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Material Master by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/material-master/{{material_master_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master",
+                "{{material_master_id}}"
+              ]
+            },
+            "description": "Ambil detail satu material master berdasarkan ID.\n\nSet variabel material_master_id di environment Postman terlebih dahulu."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Material Master",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"harga_satuan\": 3800000,\n  \"spesifikasi\": \"1800MHz Bandpass, insertion loss < 0.8dB (updated)\",\n  \"status_aktif\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/material-master/{{material_master_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master",
+                "{{material_master_id}}"
+              ]
+            },
+            "description": "Update sebagian atau seluruh field material master. Semua field bersifat opsional (partial update)."
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Material Master (Soft Delete)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/material-master/{{material_master_id}}/deactivate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master",
+                "{{material_master_id}}",
+                "deactivate"
+              ]
+            },
+            "description": "Non-aktifkan material master (status_aktif = false). Material tetap ada di database dan TIDAK terhapus, hanya tidak muncul di list active dan filter. Gunakan ini dibanding hard delete untuk menjaga integritas data."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Material Master (Hard Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/material-master/{{material_master_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "material-master",
+                "{{material_master_id}}"
+              ]
+            },
+            "description": "Hapus permanen material master dari database. HATI-HATI: Gunakan Deactivate (soft delete) jika material sudah pernah digunakan di Site Material agar tidak merusak relasi data."
           },
           "response": []
         }

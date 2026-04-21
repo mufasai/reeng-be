@@ -18,10 +18,14 @@ pub async fn create_team(
         id_str.strip_prefix(&prefix).unwrap_or(id_str)
     }
 
-    // Parse project_id
-    let project_id_clean = strip_table_prefix(&req.project_id, "projects");
-    let project_thing = Thing::try_from(("projects", project_id_clean))
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
+    // Parse project_id (now optional)
+    let project_thing = if let Some(project_id) = &req.project_id {
+        let project_id_clean = strip_table_prefix(project_id, "projects");
+        Some(Thing::try_from(("projects", project_id_clean))
+            .map_err(|_| StatusCode::BAD_REQUEST)?)
+    } else {
+        None
+    };
 
     // Parse site_id if provided
     let site_thing = if let Some(site_id) = &req.site_id {
@@ -41,15 +45,29 @@ pub async fn create_team(
         None
     };
 
-    // Save team to database using raw query to avoid serialization issues
-    let query = "CREATE teams SET nama = $nama, project_id = $project_id, site_id = $site_id, leader_id = $leader_id, active = $active, created_at = time::now(), updated_at = time::now()";
+    let query = r#"
+        CREATE teams SET
+            nama          = $nama,
+            project_id    = $project_id,
+            site_id       = $site_id,
+            leader_id     = $leader_id,
+            active        = $active,
+            status_aktif  = $status_aktif,
+            project_type  = $project_type,
+            regional      = $regional,
+            created_at    = time::now(),
+            updated_at    = time::now()
+    "#;
     
     let mut result = state.db.query(query)
-        .bind(("nama", req.nama.clone()))
-        .bind(("project_id", project_thing.clone()))
-        .bind(("site_id", site_thing.clone()))
-        .bind(("leader_id", leader_thing.clone()))
-        .bind(("active", true))
+        .bind(("nama",         req.nama.clone()))
+        .bind(("project_id",   project_thing.clone()))
+        .bind(("site_id",      site_thing.clone()))
+        .bind(("leader_id",    leader_thing.clone()))
+        .bind(("active",       true))
+        .bind(("status_aktif", req.status_aktif.unwrap_or(true)))
+        .bind(("project_type", req.project_type.clone()))
+        .bind(("regional",     req.regional.clone()))
         .await
         .map_err(|e| {
             eprintln!("Database error creating team: {}", e);
@@ -70,10 +88,10 @@ pub async fn create_team(
         let member_query = "CREATE team_people SET team_id = $team_id, people_id = $people_id, role = $role, vendor = $vendor, created_at = time::now(), updated_at = time::now()";
         
         let _ = state.db.query(member_query)
-            .bind(("team_id", team_id.clone()))
+            .bind(("team_id",   team_id.clone()))
             .bind(("people_id", people_thing))
-            .bind(("role", member.role))
-            .bind(("vendor", member.vendor))
+            .bind(("role",      member.role))
+            .bind(("vendor",    member.vendor))
             .await
             .map_err(|e| {
                 eprintln!("Database error creating team_people: {}", e);

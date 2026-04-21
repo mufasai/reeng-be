@@ -16,7 +16,7 @@ use axum::{
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, people, costs, materials, regions, files, termins, teams, bulk_import};
+use handlers::{auth, project, site, people, costs, materials, material_master, regions, files, termins, teams, bulk_import};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -164,6 +164,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/materials", get(materials::list_materials))
         .route("/api/materials/project/:project_id", get(materials::get_materials_by_project))
         .route("/api/materials/site/:site_id", get(materials::get_materials_by_site))
+        // Material Master routes (katalog)
+        .route("/api/material-master", post(material_master::create_material_master))
+        .route("/api/material-master", get(material_master::list_material_masters))
+        .route("/api/material-master/active", get(material_master::list_active_material_masters))
+        .route("/api/material-master/kategori/:kategori", get(material_master::list_material_masters_by_kategori))
+        .route("/api/material-master/:id", get(material_master::get_material_master))
+        .route("/api/material-master/:id", put(material_master::update_material_master))
+        .route("/api/material-master/:id/deactivate", post(material_master::deactivate_material_master))
+        .route("/api/material-master/:id", delete(material_master::delete_material_master))
         // Area & Region routes
         .route("/api/areas", post(regions::create_area))
         .route("/api/areas", get(regions::list_areas))
