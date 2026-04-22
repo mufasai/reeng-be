@@ -3636,7 +3636,7 @@
           "response": []
         },
         {
-          "name": "Create Material",
+          "name": "Create Material - 22 April",
           "request": {
             "method": "POST",
             "header": [],
@@ -3681,11 +3681,12 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/materials",
+              "raw": "{{base_url}}/api/materials",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "materials"
               ]
             }
@@ -3693,16 +3694,17 @@
           "response": []
         },
         {
-          "name": "List All Materials",
+          "name": "List All Materials - 22 April",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/materials",
+              "raw": "{{base_url}}/api/materials",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "materials"
               ]
             }
@@ -3715,11 +3717,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/materials/project/{{project_id_only}}",
+              "raw": "{{base_url}}/api/materials/project/{{project_id_only}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "materials",
                 "project",
                 "{{project_id_only}}"
@@ -3734,11 +3737,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/materials/site/{{site_id_only}}",
+              "raw": "{{base_url}}/api/materials/site/{{site_id_only}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "materials",
                 "site",
                 "{{site_id_only}}"
@@ -3803,11 +3807,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/material-master/active",
+              "raw": "{{base_url}}/api/material-master/active",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "material-master",
                 "active"
               ]
@@ -3822,11 +3827,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/material-master/kategori/Telecom",
+              "raw": "{{base_url}}/api/material-master/kategori/Telecom",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "material-master",
                 "kategori",
                 "Telecom"

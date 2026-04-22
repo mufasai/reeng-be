@@ -1,24 +1,29 @@
-use surrealdb::engine::local::Mem;
+use surrealdb::engine::remote::http::Http;
+use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Material {
+    id: Option<surrealdb::sql::Thing>,
+    name: String,
+    created_at: Option<serde_json::Value>,
+    delivery_note_no: Option<String>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let db = Surreal::new::<Mem>(()).await?;
-    db.use_ns("test").use_db("test").await?;
+    let db = Surreal::new::<Http>("surrealdb-production-b201.up.railway.app").await?;
+    db.signin(Root {
+        username: "root",
+        password: "root",
+    }).await?;
+    db.use_ns("yerico").use_db("project_budget").await?;
+
+    let mut response = db.query("SELECT * FROM materials ORDER BY created_at DESC LIMIT 5").await?;
+    let materials: Vec<serde_json::Value> = response.take(0)?;
     
-    let query = r#"
-        CREATE test CONTENT {
-            id: type::thing('test', '123'),
-            val: 'hello'
-        };
-        CREATE test:456 CONTENT { val: 'world' };
-    "#;
+    println!("{}", serde_json::to_string_pretty(&materials)?);
     
-    let mut response = db.query(query).await?;
-    let r1: Vec<Value> = response.take(0)?;
-    println!("R1: {:?}", r1);
-    let r2: Vec<Value> = response.take(1)?;
-    println!("R2: {:?}", r2);
     Ok(())
 }
