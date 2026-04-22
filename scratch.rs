@@ -1,13 +1,4 @@
-<<<<<<< HEAD
-use surrealdb::engine::remote::http::{Client, Http};
-use surrealdb::Surreal;
 
-#[tokio::main]
-async fn main() {
-    println!("Connecting...");
-    let db = Surreal::new::<Http>("127.0.0.1:9999").await;
-    println!("Result: {:?}", db.is_ok());
-=======
 use surrealdb::engine::remote::http::Http;
 use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
@@ -36,5 +27,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{}", serde_json::to_string_pretty(&materials)?);
     
     Ok(())
->>>>>>> 691c3482bf6f9b955c729ba1398d34d2f0b11b17
 }
