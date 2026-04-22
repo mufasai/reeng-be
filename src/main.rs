@@ -8,14 +8,13 @@ mod services;
 
 use axum::{
     extract::{Json, DefaultBodyLimit},
-    http::Method,
     routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 
-use handlers::{auth, project, site, people, costs, materials, material_master, regions, files, termins, teams, bulk_import};
+use handlers::{auth, project, site, people, costs, materials, material_master, regions, files, termins, teams, bulk_import, material_import};
 use state::AppState;
 
 // ==================== HEALTH CHECK ====================
@@ -140,6 +139,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/materials", get(materials::list_materials))
         .route("/api/materials/project/:project_id", get(materials::get_materials_by_project))
         .route("/api/materials/site/:site_id", get(materials::get_materials_by_site))
+        .route("/api/materials/import-excel", post(material_import::import_materials_from_excel))
         // Material Master routes (katalog)
         .route("/api/material-master", post(material_master::create_material_master))
         .route("/api/material-master", get(material_master::list_material_masters))
@@ -235,6 +235,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  GET    /api/materials");
     println!("  GET    /api/materials/project/:project_id");
     println!("  GET    /api/materials/site/:site_id");
+    println!("  POST   /api/materials/import-excel  (Excel upload)");
     println!("\n🌍 Areas & Regions:");
     println!("  POST   /api/areas");
     println!("  GET    /api/areas");

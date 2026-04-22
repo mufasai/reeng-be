@@ -21,6 +21,19 @@ pub async fn create_material(
             project_id: type::thing($project_id),
             site_id: type::thing($site_id),
             tgl: $tgl,
+            material_master_id: $material_master_id,
+            source_master: $source_master,
+            harga_satuan: $harga_satuan,
+            spesifikasi: $spesifikasi,
+            satuan: $satuan,
+            material_type: $material_type,
+            direction: $direction,
+            delivery_note_no: $delivery_note_no,
+            po_delivery_date: $po_delivery_date,
+            vendor: $vendor,
+            sender: $sender,
+            receiver: $receiver,
+            keterangan: $keterangan,
             created_at: time::now(),
             updated_at: time::now()
         }
@@ -34,6 +47,19 @@ pub async fn create_material(
         .bind(("project_id", req.project_id.clone()))
         .bind(("site_id", req.site_id.clone()))
         .bind(("tgl", req.tgl.clone()))
+        .bind(("material_master_id", req.material_master_id.clone()))
+        .bind(("source_master", req.source_master.unwrap_or(false)))
+        .bind(("harga_satuan", req.harga_satuan))
+        .bind(("spesifikasi", req.spesifikasi.clone()))
+        .bind(("satuan", req.satuan.clone()))
+        .bind(("material_type", req.material_type.clone()))
+        .bind(("direction", req.direction.clone()))
+        .bind(("delivery_note_no", req.delivery_note_no.clone()))
+        .bind(("po_delivery_date", req.po_delivery_date.clone()))
+        .bind(("vendor", req.vendor.clone()))
+        .bind(("sender", req.sender.clone()))
+        .bind(("receiver", req.receiver.clone()))
+        .bind(("keterangan", req.keterangan.clone()))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -123,6 +149,19 @@ pub async fn bulk_create_materials(
                 project_id: type::thing($project_id),
                 site_id: type::thing($site_id),
                 tgl: $tgl,
+                material_master_id: $material_master_id,
+                source_master: $source_master,
+                harga_satuan: $harga_satuan,
+                spesifikasi: $spesifikasi,
+                satuan: $satuan,
+                material_type: $material_type,
+                direction: $direction,
+                delivery_note_no: $delivery_note_no,
+                po_delivery_date: $po_delivery_date,
+                vendor: $vendor,
+                sender: $sender,
+                receiver: $receiver,
+                keterangan: $keterangan,
                 created_at: time::now(),
                 updated_at: time::now()
             }
@@ -136,8 +175,24 @@ pub async fn bulk_create_materials(
             .bind(("project_id", req.project_id.clone()))
             .bind(("site_id", req.site_id.clone()))
             .bind(("tgl", item.tgl.clone()))
+            .bind(("material_master_id", item.material_master_id.clone()))
+            .bind(("source_master", item.source_master.unwrap_or(false)))
+            .bind(("harga_satuan", item.harga_satuan))
+            .bind(("spesifikasi", item.spesifikasi.clone()))
+            .bind(("satuan", item.satuan.clone()))
+            .bind(("material_type", item.material_type.clone()))
+            .bind(("direction", item.direction.clone()))
+            .bind(("delivery_note_no", item.delivery_note_no.clone()))
+            .bind(("po_delivery_date", item.po_delivery_date.clone()))
+            .bind(("vendor", item.vendor.clone()))
+            .bind(("sender", item.sender.clone()))
+            .bind(("receiver", item.receiver.clone()))
+            .bind(("keterangan", item.keterangan.clone()))
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|e| {
+                eprintln!("DB error bulk_create_materials: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
 
         if let Ok(Some(material)) = result.take::<Option<Material>>(0) {
             created_materials.push(material);

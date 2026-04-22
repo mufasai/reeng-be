@@ -1127,6 +1127,13 @@ pub struct Material {
     pub harga_satuan: Option<i64>,
     pub spesifikasi: Option<String>,
     pub satuan: Option<String>,
+    pub material_type: Option<String>,
+    pub direction: Option<String>,
+    pub delivery_note_no: Option<String>,
+    pub po_delivery_date: Option<String>,
+    pub vendor: Option<String>,
+    pub sender: Option<String>,
+    pub receiver: Option<String>,
     pub keterangan: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -1148,6 +1155,13 @@ pub struct CreateMaterialRequest {
     pub harga_satuan: Option<i64>,
     pub spesifikasi: Option<String>,
     pub satuan: Option<String>,
+    pub material_type: Option<String>,
+    pub direction: Option<String>,
+    pub delivery_note_no: Option<String>,
+    pub po_delivery_date: Option<String>,
+    pub vendor: Option<String>,
+    pub sender: Option<String>,
+    pub receiver: Option<String>,
     pub keterangan: Option<String>,
 }
 
@@ -1835,6 +1849,19 @@ pub struct MaterialItemInput {
     pub unit: String,
     pub qty: i64,
     pub tgl: Option<String>,
+    pub material_master_id: Option<String>,
+    pub source_master: Option<bool>,
+    pub harga_satuan: Option<i64>,
+    pub spesifikasi: Option<String>,
+    pub satuan: Option<String>,
+    pub material_type: Option<String>,
+    pub direction: Option<String>,
+    pub delivery_note_no: Option<String>,
+    pub po_delivery_date: Option<String>,
+    pub vendor: Option<String>,
+    pub sender: Option<String>,
+    pub receiver: Option<String>,
+    pub keterangan: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1859,4 +1886,14 @@ pub struct ImportHistory {
     pub file_hash: String,
     pub project_id: Option<Thing>,
     pub imported_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MaterialImportResponse {
+    pub project_id: String,
+    pub project_name: String,
+    pub total_rows: usize,
+    pub materials_created: usize,
+    pub masters_created: usize,
+    pub errors: Vec<ImportError>,
 }
