@@ -11,3 +11,4 @@ pub mod termins;
 pub mod teams;
 pub mod bulk_import;
 pub mod site_stages;
+pub mod material_import;
